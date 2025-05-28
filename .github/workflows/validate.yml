@@ -11,8 +11,36 @@ permissions:
   pull-requests: write
 
 jobs:
+  check-initialization:
+    name: "🔍 Check Initialization Status"
+    runs-on: ubuntu-latest
+    outputs:
+      initialized: ${{ steps.check.outputs.initialized }}
+    steps:
+      - name: "Checkout Code"
+        uses: actions/checkout@v4
+        
+      - name: "Verify Initialization Status"
+        id: check
+        run: |
+          if [ -f ".github/workflow.env" ]; then
+            source .github/workflow.env
+            if [ "$INITIALIZATION_COMPLETE" = "true" ]; then
+              echo "initialized=true" >> $GITHUB_OUTPUT
+              echo "✅ Repository is initialized"
+            else
+              echo "initialized=false" >> $GITHUB_OUTPUT
+              echo "⏳ Repository initialization in progress"
+            fi
+          else
+            echo "initialized=false" >> $GITHUB_OUTPUT
+            echo "⏸️ Repository not yet initialized"
+          fi
+
   check-repo-state:
     name: "🔍 Check Repository State"
+    needs: check-initialization
+    if: needs.check-initialization.outputs.initialized == 'true'
     runs-on: ubuntu-latest
     outputs:
       is_initialized: ${{ steps.check_init.outputs.initialized }}
@@ -41,7 +69,7 @@ jobs:
 
   java-build:
     name: "🔨 Java Build"
-    needs: check-repo-state
+    needs: [check-initialization, check-repo-state]
     # Modified condition to exclude Dependabot PRs
     if: |
       needs.check-repo-state.outputs.is_initialized == 'true' && 
@@ -86,8 +114,10 @@ jobs:
 
   code-validation:
     name: "✅ Code Quality Checks"
-    needs: [check-repo-state, java-build]
-    if: always()
+    needs: [check-initialization, check-repo-state, java-build]
+    if: |
+      always() && 
+      needs.check-initialization.outputs.initialized == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout Code"
