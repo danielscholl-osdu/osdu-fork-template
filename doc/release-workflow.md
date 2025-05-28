@@ -266,7 +266,7 @@ outputs:
 ```markdown
 # Changelog
 
-## [1.2.0](https://github.com/org/repo/compare/v1.1.0...v1.2.0) (2025-01-28)
+## [1.2.0](https://github.com/org/repo/compare/v1.1.0...v1.2.0) (2025-05-28)
 
 ### 🚀 Features
 

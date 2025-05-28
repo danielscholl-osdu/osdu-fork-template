@@ -1,7 +1,7 @@
 # ADR-004: Release Please for Automated Version Management
 
 ## Status
-**Accepted** - 2025-01-28
+**Accepted** - 2025-05-28
 
 ## Context
 Fork repositories need automated version management that can handle both local changes and upstream integration while maintaining semantic versioning and clear changelog documentation. The versioning system must:

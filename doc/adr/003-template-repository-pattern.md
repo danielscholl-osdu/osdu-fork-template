@@ -1,7 +1,7 @@
 # ADR-003: Template Repository Pattern for Self-Configuration
 
 ## Status
-**Accepted** - 2025-01-28
+**Accepted** - 2025-05-28
 
 ## Context
 Teams need a way to quickly set up fork management systems for different upstream repositories without manual configuration. The setup process involves creating branch structures, configuring workflows, setting up branch protection rules, and establishing the upstream relationship.

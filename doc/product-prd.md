@@ -284,8 +284,8 @@ jobs:
 
 | Change | Date | Version | Description | Author |
 | ------ | ---- | ------- | ----------- | ------ |
-| Initial PRD | 2025-01-28 | 1.0.0 | Initial creation with complete workflow suite | Product Manager |
-| Multi-Spec Update | 2025-01-28 | 2.0.0 | Restructured for phased specification approach | Product Manager |
+| Initial PRD | 2025-05-28 | 1.0.0 | Initial creation with complete workflow suite | Product Manager |
+| Multi-Spec Update | 2025-05-28 | 2.0.0 | Restructured for phased specification approach | Product Manager |
 
 ## Conclusion
 

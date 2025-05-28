@@ -115,7 +115,7 @@ jobs:
           # Check for Anthropic API key (default)
           if [[ -n "$ANTHROPIC_API_KEY" ]]; then
             USE_LLM=true
-            LLM_MODEL="claude-3.5-sonnet"
+            LLM_MODEL="claude-4"
             echo "Using Anthropic Claude 3.5 Sonnet for PR description generation"
             echo "USE_LLM=true" >> $GITHUB_ENV
           # Check for Azure OpenAI API key
@@ -127,7 +127,7 @@ jobs:
           # Check for OpenAI API key
           elif [[ -n "$OPENAI_API_KEY" ]]; then
             USE_LLM=true
-            LLM_MODEL="gpt-4"
+            LLM_MODEL="gpt-4.1"
             echo "Using OpenAI GPT-4 for PR description generation"
             echo "USE_LLM=true" >> $GITHUB_ENV
           else

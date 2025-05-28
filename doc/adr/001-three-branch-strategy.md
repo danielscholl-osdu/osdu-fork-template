@@ -1,7 +1,7 @@
 # ADR-001: Three-Branch Fork Management Strategy
 
 ## Status
-**Accepted** - 2025-01-28
+**Accepted** - 2025-05-28
 
 ## Context
 When maintaining a long-lived fork of an upstream repository, teams need to balance staying current with upstream changes while preserving their own modifications. Traditional forking approaches often lead to complex merge conflicts, difficulty tracking upstream changes, and challenges in maintaining a stable release branch.

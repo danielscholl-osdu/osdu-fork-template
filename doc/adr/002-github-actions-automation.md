@@ -1,7 +1,7 @@
 # ADR-002: GitHub Actions-Based Automation Architecture
 
 ## Status
-**Accepted** - 2025-01-28
+**Accepted** - 2025-05-28
 
 ## Context
 The fork management system requires extensive automation to handle repository initialization, upstream synchronization, conflict detection, build validation, and release management. The automation must be reliable, maintainable, and integrate seamlessly with GitHub's repository management features.

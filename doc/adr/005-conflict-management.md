@@ -1,7 +1,7 @@
 # ADR-005: Automated Conflict Management Strategy
 
 ## Status
-**Accepted** - 2025-01-28
+**Accepted** - 2025-05-28
 
 ## Context
 When synchronizing with upstream repositories, merge conflicts are inevitable due to modifications made in the fork. The system needs to handle conflicts in a way that:

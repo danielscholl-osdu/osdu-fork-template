@@ -1,7 +1,7 @@
 # ADR-006: Two-Workflow Initialization Pattern
 
 ## Status
-**Accepted** - 2025-01-28
+**Accepted** - 2025-05-28
 
 ## Context
 The original initialization system used a single, complex workflow (`init.yml`) that handled everything from issue creation to repository setup, branch creation, security scanning, and cleanup in one 492-line file. This approach led to several challenges:

@@ -6,12 +6,12 @@ Architecture Decision Records for Fork Management Template
 
 | ID  | Title                                      | Status   | Date       | Details |
 | --- | ------------------------------------------ | -------- | ---------- | ------- |
-| 001 | Three-Branch Fork Management Strategy      | Accepted | 2025-01-28 | [ADR-001](001-three-branch-strategy.md) |
-| 002 | GitHub Actions-Based Automation            | Accepted | 2025-01-28 | [ADR-002](002-github-actions-automation.md) |
-| 003 | Template Repository Pattern                | Accepted | 2025-01-28 | [ADR-003](003-template-repository-pattern.md) |
-| 004 | Release Please for Version Management      | Accepted | 2025-01-28 | [ADR-004](004-release-please-versioning.md) |
-| 005 | Automated Conflict Management Strategy     | Accepted | 2025-01-28 | [ADR-005](005-conflict-management.md) |
-| 006 | Two-Workflow Initialization Pattern        | Accepted | 2025-01-28 | [ADR-006](006-two-workflow-initialization.md) |
+| 001 | Three-Branch Fork Management Strategy      | Accepted | 2025-05-28 | [ADR-001](001-three-branch-strategy.md) |
+| 002 | GitHub Actions-Based Automation            | Accepted | 2025-05-28 | [ADR-002](002-github-actions-automation.md) |
+| 003 | Template Repository Pattern                | Accepted | 2025-05-28 | [ADR-003](003-template-repository-pattern.md) |
+| 004 | Release Please for Version Management      | Accepted | 2025-05-28 | [ADR-004](004-release-please-versioning.md) |
+| 005 | Automated Conflict Management Strategy     | Accepted | 2025-05-28 | [ADR-005](005-conflict-management.md) |
+| 006 | Two-Workflow Initialization Pattern        | Accepted | 2025-05-28 | [ADR-006](006-two-workflow-initialization.md) |
 
 ## Overview
 
