@@ -23,6 +23,12 @@ Even with `--allow-unrelated-histories`, merge conflicts occur in common files:
 - `README.md` - Template documentation vs upstream documentation
 - Solution requires `-X theirs` merge strategy to automatically resolve conflicts
 
+**Permission Discovery:**
+The built-in GITHUB_TOKEN lacks permissions to create repository secrets:
+- Error: `HTTP 403: Resource not accessible by integration`
+- Solution: Use Personal Access Token (PAT) stored as `GH_TOKEN` secret
+- Fallback: Skip secret creation with warning if PAT not available
+
 **Root Cause:**
 GitHub Actions runs workflows from the commit that triggered the event. For template-created repositories, this is the initial commit containing the old workflow version, creating a chicken-and-egg problem.
 
@@ -150,6 +156,7 @@ jobs:
 - ✅ Critical fixes are immediately available:
   - `--allow-unrelated-histories` for unrelated history errors
   - `-X theirs` for automatic merge conflict resolution
+  - PAT token usage for secret creation operations
 - ✅ Users don't encounter previously-fixed initialization issues
 - ✅ Workflow updates are transparent in git history
 - ✅ Process handles edge cases gracefully (template unavailable, etc.)

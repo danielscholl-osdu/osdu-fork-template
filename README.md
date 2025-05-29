@@ -31,10 +31,10 @@ This template automates the process of maintaining a fork while keeping it updat
 
 Before starting, ensure you have:
 - GitHub account with repository creation permissions
-- Personal Access Token (PAT) with required permissions:
-  - `repo` (Full control of private repositories)
-  - `workflow` (Update GitHub Action workflows)
-  - `admin:repo_hook` (Full control of repository hooks)
+- (Optional) Personal Access Token (PAT) for full automation:
+  - Create a secret named `GH_TOKEN` in your repository
+  - Required scopes: `repo`, `workflow`, `admin:repo_hook`
+  - Without PAT: Manual configuration of branch protection and secrets required
 
 ## Quick Start
 

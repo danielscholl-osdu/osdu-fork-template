@@ -184,7 +184,8 @@ jobs:
 
       - name: Merge to main and setup secrets
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           echo "🔀 **Updating main branch...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           
@@ -209,22 +210,30 @@ jobs:
           
           git push origin main
           
-          # Store upstream repo URL as secret
-          echo "$UPSTREAM_URL" | gh secret set UPSTREAM_REPO_URL
+          # Store upstream repo URL as secret using PAT if available
+          if [ -n "$GH_TOKEN" ]; then
+            echo "🔐 **Setting repository secret using Personal Access Token...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            GH_TOKEN=$GH_TOKEN gh secret set UPSTREAM_REPO_URL --body "$UPSTREAM_URL"
+          else
+            echo "⚠️ **Warning:** Unable to set UPSTREAM_REPO_URL secret. Please set it manually or provide a GH_TOKEN secret with appropriate permissions." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          fi
 
       - name: Configure branch protection
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           echo "🛡️ **Setting up branch protection...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           
-          # Create basic branch protection rules
-          for branch in main fork_upstream fork_integration; do
-            gh api \
-              --method PUT \
-              -H "Accept: application/vnd.github.v3+json" \
-              "/repos/${{ github.repository }}/branches/$branch/protection" \
-              --input - << 'EOF'
+          # Try to create branch protection rules
+          if [ -n "$GH_TOKEN" ]; then
+            # Use PAT for branch protection
+            for branch in main fork_upstream fork_integration; do
+              GH_TOKEN=$GH_TOKEN gh api \
+                --method PUT \
+                -H "Accept: application/vnd.github.v3+json" \
+                "/repos/${{ github.repository }}/branches/$branch/protection" \
+                --input - << 'EOF' || echo "⚠️ Failed to protect branch $branch"
           {
             "required_status_checks": {
               "strict": true,
@@ -240,20 +249,31 @@ jobs:
             "allow_deletions": false
           }
           EOF
-          done
+            done
+          else
+            echo "⚠️ **Warning:** Unable to set branch protection rules. Please configure manually or provide a GH_TOKEN secret with appropriate permissions." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            echo "To set up branch protection manually, go to Settings → Branches for each of: main, fork_upstream, fork_integration" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          fi
 
       - name: Enable security features
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           echo "🔒 **Enabling security features...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           
-          # Enable security features
-          gh api \
-            --method PATCH \
-            -H "Accept: application/vnd.github.v3+json" \
-            "/repos/${{ github.repository }}" \
-            --input .github/security-on.json || true
+          # Enable security features if possible
+          if [ -f .github/security-on.json ]; then
+            if [ -n "$GH_TOKEN" ]; then
+              GH_TOKEN=$GH_TOKEN gh api \
+                --method PATCH \
+                -H "Accept: application/vnd.github.v3+json" \
+                "/repos/${{ github.repository }}" \
+                --input .github/security-on.json || echo "⚠️ Some security features may require manual configuration"
+            else
+              echo "⚠️ **Note:** Security features require manual configuration. Go to Settings → Security & analysis" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            fi
+          fi
 
       - name: Update README and close issue
         env:
@@ -270,6 +290,17 @@ jobs:
           fi
           
           # Post completion message and close issue
+          # Check what was actually configured
+          if [ -n "$GH_TOKEN" ]; then
+            PROTECTION_STATUS="✅ **Branch Protection:** All branches are protected with PR requirements"
+            SECRET_STATUS="✅ **Repository Secret:** UPSTREAM_REPO_URL configured"
+            SECURITY_STATUS="✅ **Security Features:** Secret scanning and dependency updates enabled"
+          else
+            PROTECTION_STATUS="⚠️ **Branch Protection:** Manual configuration required (Settings → Branches)"
+            SECRET_STATUS="⚠️ **Repository Secret:** Manual configuration required (Settings → Secrets → Actions)"
+            SECURITY_STATUS="⚠️ **Security Features:** Manual configuration required (Settings → Security & analysis)"
+          fi
+          
           cat << EOF | gh issue comment "${{ github.event.issue.number }}" --body-file -
           🎉 **Initialization Complete!**
 
@@ -280,13 +311,15 @@ jobs:
           - \`fork_upstream\` - Tracks upstream changes
           - \`fork_integration\` - Integration and conflict resolution
 
-          ✅ **Branch Protection:** All branches are protected with PR requirements
+          $PROTECTION_STATUS
 
           ✅ **Upstream Connection:** Connected to \`${{ needs.validate_and_setup.outputs.upstream_repo }}\`
 
           ✅ **Automated Workflows:** Sync, validation, and release workflows are active
 
-          ✅ **Security Features:** Secret scanning and dependency updates enabled
+          $SECRET_STATUS
+
+          $SECURITY_STATUS
 
           ## Next Steps
 

@@ -715,6 +715,11 @@ protection_rules:
 - **Challenge**: Template and upstream have completely different commit histories
 - **Solution**: `--allow-unrelated-histories` flag enables merging disparate branches
 
+**GitHub Token Permissions:**
+- **Challenge**: Built-in GITHUB_TOKEN cannot create repository secrets
+- **Solution**: Use Personal Access Token (GH_TOKEN) for secret operations
+- **Fallback**: Skip secret creation with user warning if PAT not available
+
 ### 12.2. Operational Considerations
 
 **Security Scanning:**
