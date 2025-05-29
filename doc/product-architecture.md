@@ -199,8 +199,11 @@ The initialization workflow implements a self-updating bootstrap pattern to ensu
 
 1. **Bootstrap Problem**: Template-created repositories run workflows from the initial commit, missing subsequent fixes
 2. **Solution**: Workflows update themselves from the template repository before executing initialization
-3. **Benefits**: Critical fixes (like `--allow-unrelated-histories` for merge conflicts) reach all new repositories
-4. **Implementation**: Two-phase approach - update workflows, then execute with latest version
+3. **Critical Fixes Addressed**:
+   - `--allow-unrelated-histories`: Handles merging branches with different commit histories
+   - `-X theirs` merge strategy: Automatically resolves conflicts in common files (README.md, .gitignore)
+4. **Benefits**: All initialization improvements reach new repositories immediately
+5. **Implementation**: Two-phase approach - update workflows, then execute with latest version
 
 ### 4.3. Synchronization Architecture (sync.yml)
 
@@ -696,9 +699,35 @@ protection_rules:
 - **Backward Compatibility**: Maintain compatibility with existing deployments
 - **Feature Flags**: Gradual rollout of new capabilities
 
-## 12. Validation Strategy
+## 12. Known Challenges and Solutions
 
-### 12.1. Architecture Validation
+### 12.1. Initialization Challenges
+
+**Bootstrap Problem (ADR-007):**
+- **Challenge**: Template repositories run workflows from initial commit, missing fixes
+- **Solution**: Self-updating workflow pattern fetches latest version before execution
+
+**Merge Conflicts:**
+- **Challenge**: Common files (README.md, .gitignore) conflict between template and upstream
+- **Solution**: `-X theirs` merge strategy automatically resolves in favor of upstream
+
+**Unrelated Histories:**
+- **Challenge**: Template and upstream have completely different commit histories
+- **Solution**: `--allow-unrelated-histories` flag enables merging disparate branches
+
+### 12.2. Operational Considerations
+
+**Security Scanning:**
+- **Challenge**: Upstream repositories may contain sensitive data
+- **Solution**: git-filter-repo removes secrets during initialization (old workflow approach)
+
+**Branch Protection:**
+- **Challenge**: Need to balance security with automation capabilities
+- **Solution**: Temporary protection removal during critical operations with immediate re-enabling
+
+## 13. Validation Strategy
+
+### 13.1. Architecture Validation
 
 **Current Implementation Validation:**
 - ✅ Template repository creation and deployment functional
@@ -707,7 +736,7 @@ protection_rules:
 - ✅ Validation workflows comprehensive with status reporting
 - ✅ Release automation functional with semantic versioning
 
-### 12.2. Integration Validation
+### 13.2. Integration Validation
 
 **End-to-End Testing:**
 - **Template Creation**: New repository creation from template
@@ -716,9 +745,9 @@ protection_rules:
 - **Conflict Resolution**: Manual resolution workflow validation
 - **Release Process**: Automated semantic version generation and publication
 
-## 13. Future Architecture Evolution
+## 14. Future Architecture Evolution
 
-### 13.1. Phase 5: Advanced Features
+### 14.1. Phase 5: Advanced Features
 
 **Planned Enhancements:**
 - **Multi-Provider Support**: GitLab, Bitbucket, and other upstream sources
@@ -726,7 +755,7 @@ protection_rules:
 - **Performance Optimization**: Workflow caching and parallel processing
 - **Enterprise Integration**: LDAP/SSO integration and compliance reporting
 
-### 13.2. Scalability Considerations
+### 14.2. Scalability Considerations
 
 **Enterprise Readiness:**
 - **Multi-Tenant Support**: Organization-wide template management
@@ -734,7 +763,7 @@ protection_rules:
 - **Resource Optimization**: Efficient workflow execution at scale
 - **Monitoring Integration**: Enterprise observability and alerting systems
 
-## 14. Conclusion
+## 15. Conclusion
 
 The Fork Management Template architecture provides a comprehensive, production-ready solution for automated fork lifecycle management through GitHub's native features. By leveraging template repository patterns with sophisticated workflow automation, the architecture eliminates manual DevOps overhead while maintaining security, stability, and compliance requirements.
 

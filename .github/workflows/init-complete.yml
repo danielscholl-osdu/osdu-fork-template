@@ -188,9 +188,25 @@ jobs:
         run: |
           echo "🔀 **Updating main branch...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           
-          # Merge fork_integration into main
+          # Merge fork_integration into main with conflict resolution
           git checkout main
-          git merge fork_integration --allow-unrelated-histories --no-ff -m "chore: complete repository initialization"
+          
+          # Try merge with unrelated histories, preferring fork_integration changes
+          if ! git merge fork_integration --allow-unrelated-histories --no-ff -X theirs -m "chore: complete repository initialization"; then
+            echo "⚠️ **Merge conflicts detected, resolving automatically...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            
+            # If there are still conflicts even with -X theirs, explicitly take fork_integration version
+            git status --porcelain | grep -E '^(DD|AU|UD|UA|DU|AA|UU)' | cut -c4- | while read -r file; do
+              echo "Resolving conflict in $file - using upstream version"
+              # Use the version from fork_integration (which comes from upstream)
+              git checkout --theirs "$file"
+              git add "$file"
+            done
+            
+            # Complete the merge
+            git commit -m "chore: complete repository initialization (conflicts resolved using upstream versions)"
+          fi
+          
           git push origin main
           
           # Store upstream repo URL as secret

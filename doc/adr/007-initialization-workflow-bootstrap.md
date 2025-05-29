@@ -17,6 +17,12 @@ When a new repository is created from this template, it runs the initialization 
 5. Current template already has the fix: `--allow-unrelated-histories` flag
 6. But the fix isn't available to the running workflow
 
+**Additional Discovery:**
+Even with `--allow-unrelated-histories`, merge conflicts occur in common files:
+- `.gitignore` - Template version vs upstream version
+- `README.md` - Template documentation vs upstream documentation
+- Solution requires `-X theirs` merge strategy to automatically resolve conflicts
+
 **Root Cause:**
 GitHub Actions runs workflows from the commit that triggered the event. For template-created repositories, this is the initial commit containing the old workflow version, creating a chicken-and-egg problem.
 
@@ -31,7 +37,9 @@ This ensures that any fixes or improvements to the initialization process are im
 ## Rationale
 
 ### Why This Matters
-1. **Fix Propagation**: Critical fixes (like `--allow-unrelated-histories`) reach new repositories immediately
+1. **Fix Propagation**: Critical fixes reach new repositories immediately
+   - `--allow-unrelated-histories` for unrelated history errors
+   - `-X theirs` for automatic merge conflict resolution
 2. **Continuous Improvement**: Template improvements benefit all future users
 3. **Reduced Support**: Users don't encounter already-fixed issues
 4. **Maintainability**: Single source of truth for initialization logic
@@ -139,7 +147,9 @@ jobs:
 
 ## Success Criteria
 - ✅ New repositories always use latest initialization workflow
-- ✅ Critical fixes (like `--allow-unrelated-histories`) are immediately available
+- ✅ Critical fixes are immediately available:
+  - `--allow-unrelated-histories` for unrelated history errors
+  - `-X theirs` for automatic merge conflict resolution
 - ✅ Users don't encounter previously-fixed initialization issues
 - ✅ Workflow updates are transparent in git history
 - ✅ Process handles edge cases gracefully (template unavailable, etc.)
