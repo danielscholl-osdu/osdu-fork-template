@@ -107,15 +107,41 @@ jobs:
           git remote add upstream $REPO_URL
           git fetch upstream --prune --tags
           
+          # List available branches for debugging
+          echo "🔍 **Checking available branches in upstream repository...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          
+          # Get all branches from upstream
+          BRANCHES=$(git branch -r | grep upstream | sed 's/upstream\///' | grep -v HEAD | tr '\n' ' ')
+          echo "Available branches: $BRANCHES"
+          
           # Determine default branch
           if git rev-parse --verify upstream/main >/dev/null 2>&1; then
             DEFAULT_BRANCH="main"
           elif git rev-parse --verify upstream/master >/dev/null 2>&1; then
             DEFAULT_BRANCH="master"
           else
-            echo "❌ **Error:** Could not find main or master branch in upstream repository" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-            exit 1
+            # Try to detect default branch from HEAD
+            DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/upstream/HEAD 2>/dev/null | sed 's@^refs/remotes/upstream/@@')
+            
+            if [ -z "$DEFAULT_BRANCH" ]; then
+              # Last resort: check common branch names
+              for branch in develop development prod production release stable; do
+                if git rev-parse --verify upstream/$branch >/dev/null 2>&1; then
+                  DEFAULT_BRANCH="$branch"
+                  break
+                fi
+              done
+            fi
+            
+            if [ -z "$DEFAULT_BRANCH" ]; then
+              echo "❌ **Error:** Could not determine default branch in upstream repository" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              echo "Available branches found: $BRANCHES" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              echo "Please ensure the upstream repository has at least one branch." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              exit 1
+            fi
           fi
+          
+          echo "✅ Using default branch: $DEFAULT_BRANCH" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           
           echo "DEFAULT_BRANCH=$DEFAULT_BRANCH" >> $GITHUB_ENV
           echo "UPSTREAM_URL=$REPO_URL" >> $GITHUB_ENV
@@ -125,6 +151,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🌿 **Creating branch structure...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          
+          # Check if this is an OSDU partition repository
+          if [[ "${{ needs.validate_and_setup.outputs.upstream_repo }}" == *"partition"* ]]; then
+            echo "📋 **Detected OSDU partition repository - checking for release branches...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            
+            # List release branches for OSDU repos
+            RELEASE_BRANCHES=$(git branch -r | grep upstream/release | sed 's/upstream\///' | tr '\n' ', ')
+            if [ -n "$RELEASE_BRANCHES" ]; then
+              echo "Found release branches: $RELEASE_BRANCHES" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            fi
+          fi
           
           # Create fork_upstream from upstream's default branch
           git checkout -b fork_upstream upstream/$DEFAULT_BRANCH
@@ -153,7 +190,7 @@ jobs:
           
           # Merge fork_integration into main
           git checkout main
-          git merge fork_integration --no-ff -m "chore: complete repository initialization"
+          git merge fork_integration --allow-unrelated-histories --no-ff -m "chore: complete repository initialization"
           git push origin main
           
           # Store upstream repo URL as secret

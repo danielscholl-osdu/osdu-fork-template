@@ -40,7 +40,7 @@ This document covers:
 ### 2.3. Template Context Considerations
 **Critical Design Constraints:**
 - **Zero External Dependencies**: Must work with GitHub features only
-- **Self-Modification**: Workflows must update themselves during initialization
+- **Self-Modification**: Workflows must update themselves during initialization (Bootstrap Pattern - ADR-007)
 - **Multi-Repository**: Template must support unlimited deployments
 - **Issue-Based Configuration**: User interaction through GitHub Issues
 - **Security-First**: All automation must maintain security posture
@@ -193,6 +193,14 @@ jobs:
 - **State Management**: `.github/workflow.env` as primary initialization indicator
 - **Error Handling**: Clear validation with actionable feedback
 - **Maintainability**: Two focused workflows (222 + 180 lines vs. previous 492 lines)
+
+**Bootstrap Pattern (ADR-007):**
+The initialization workflow implements a self-updating bootstrap pattern to ensure that bug fixes and improvements are immediately available to new repositories:
+
+1. **Bootstrap Problem**: Template-created repositories run workflows from the initial commit, missing subsequent fixes
+2. **Solution**: Workflows update themselves from the template repository before executing initialization
+3. **Benefits**: Critical fixes (like `--allow-unrelated-histories` for merge conflicts) reach all new repositories
+4. **Implementation**: Two-phase approach - update workflows, then execute with latest version
 
 ### 4.3. Synchronization Architecture (sync.yml)
 
