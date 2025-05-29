@@ -210,6 +210,25 @@ jobs:
           
           git push origin main
           
+          # Clean up template files immediately after merge, before branch protection
+          echo "🧹 **Cleaning up template documentation...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          
+          # Remove template-specific documentation and files
+          rm -rf doc/
+          rm -f .github/copilot-instructions.md
+          rm -f CLAUDE.md
+          rm -rf .claude/
+          
+          # Note: The upstream repository's README will be used after merge
+          # No need to create a new README as upstream content will take precedence
+          
+          # Commit cleanup changes
+          git add -A
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: clean up template files after initialization"
+            git push origin main
+          fi
+          
           # Store upstream repo URL as secret using PAT if available
           if [ -n "$GH_TOKEN" ]; then
             echo "🔐 **Setting repository secret using Personal Access Token...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
@@ -273,38 +292,6 @@ jobs:
             else
               echo "⚠️ **Note:** Security features require manual configuration. Go to Settings → Security & analysis" | gh issue comment "${{ github.event.issue.number }}" --body-file -
             fi
-          fi
-
-      - name: Clean up template files
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "🧹 **Cleaning up template documentation...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-          
-          # Configure git
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Switch to main branch for cleanup
-          git checkout main
-          git pull origin main
-          
-          # Remove template-specific documentation
-          rm -rf doc/
-          
-          # Clean up template-specific files
-          rm -f .github/copilot-instructions.md
-          rm -f CLAUDE.md
-          rm -rf .claude/
-          
-          # Note: The upstream repository's README will be used after merge
-          # No need to create a new README as upstream content will take precedence
-          
-          # Commit cleanup changes
-          git add -A
-          if ! git diff --staged --quiet; then
-            git commit -m "chore: clean up template files after initialization"
-            git push origin main
           fi
 
       - name: Update README status
