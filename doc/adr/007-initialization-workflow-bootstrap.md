@@ -157,9 +157,11 @@ jobs:
   - `--allow-unrelated-histories` for unrelated history errors
   - `-X theirs` for automatic merge conflict resolution
   - PAT token usage for secret creation operations
+  - Template file cleanup and repository-specific README generation
 - ✅ Users don't encounter previously-fixed initialization issues
 - ✅ Workflow updates are transparent in git history
 - ✅ Process handles edge cases gracefully (template unavailable, etc.)
+- ✅ Template documentation is cleaned up after initialization
 
 ## Implementation Timeline
 1. **Phase 1**: Update existing workflows to include self-update logic

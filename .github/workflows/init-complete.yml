@@ -275,11 +275,74 @@ jobs:
             fi
           fi
 
-      - name: Update README and close issue
+      - name: Clean up template files
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Update README to remove initialization status
+          echo "🧹 **Cleaning up template documentation...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Switch to main branch for cleanup
+          git checkout main
+          git pull origin main
+          
+          # Remove template-specific documentation
+          rm -rf doc/
+          
+          # Clean up template-specific files
+          rm -f .github/copilot-instructions.md
+          rm -f CLAUDE.md
+          rm -rf .claude/
+          
+          # Create a basic README if the current one is template-specific
+          if grep -q "Fork Management Template" README.md; then
+            cat > README.md << 'EOF'
+# ${{ github.event.repository.name }}
+
+This repository is a fork of `${{ needs.validate_and_setup.outputs.upstream_repo }}` managed with automated synchronization.
+
+## Branch Structure
+
+- `main` - Stable development branch
+- `fork_upstream` - Tracks upstream repository changes
+- `fork_integration` - Integration branch for conflict resolution
+
+## Workflows
+
+This repository includes automated workflows for:
+- Upstream synchronization (weekly)
+- Pull request validation
+- Release management
+
+## Development
+
+1. Create feature branches from `main`
+2. Use conventional commits (feat:, fix:, etc.)
+3. Create pull requests for review
+4. Merge to main after approval
+
+## Upstream Sync
+
+The repository automatically syncs with upstream weekly. Manual sync is available via the Actions tab.
+EOF
+          fi
+          
+          # Commit cleanup changes
+          git add -A
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: clean up template files after initialization"
+            git push origin main
+          fi
+
+      - name: Update README status
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Update README to remove initialization status if it still exists
+          git pull origin main
           if grep -q "Repository Status: Initialization Required" README.md; then
             # Remove the initialization status section
             sed -i '/## 🔄 Repository Status: Initialization Required/,/---/d' README.md
@@ -317,6 +380,8 @@ jobs:
 
           ✅ **Automated Workflows:** Sync, validation, and release workflows are active
 
+          ✅ **Template Cleanup:** Removed template documentation and created repository-specific README
+
           $SECRET_STATUS
 
           $SECURITY_STATUS
@@ -324,7 +389,7 @@ jobs:
           ## Next Steps
 
           1. **Review the workflows** in the Actions tab
-          2. **Check out the documentation** in the \`doc/\` folder
+          2. **Customize the README** with your project-specific information
           3. **Start developing** by creating feature branches from \`main\`
           4. **Sync with upstream** will happen automatically via the sync workflow
 
