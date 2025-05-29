@@ -299,16 +299,19 @@ jobs:
           
           # Create a basic README if the current one is template-specific
           if grep -q "Fork Management Template" README.md; then
-            cat > README.md << 'EOF'
-# ${{ github.event.repository.name }}
+            REPO_NAME="${{ github.event.repository.name }}"
+            UPSTREAM_REPO="${{ needs.validate_and_setup.outputs.upstream_repo }}"
+            
+            cat > README.md << EOF
+# ${REPO_NAME}
 
-This repository is a fork of `${{ needs.validate_and_setup.outputs.upstream_repo }}` managed with automated synchronization.
+This repository is a fork of \`${UPSTREAM_REPO}\` managed with automated synchronization.
 
 ## Branch Structure
 
-- `main` - Stable development branch
-- `fork_upstream` - Tracks upstream repository changes
-- `fork_integration` - Integration branch for conflict resolution
+- \`main\` - Stable development branch
+- \`fork_upstream\` - Tracks upstream repository changes
+- \`fork_integration\` - Integration branch for conflict resolution
 
 ## Workflows
 
@@ -319,7 +322,7 @@ This repository includes automated workflows for:
 
 ## Development
 
-1. Create feature branches from `main`
+1. Create feature branches from \`main\`
 2. Use conventional commits (feat:, fix:, etc.)
 3. Create pull requests for review
 4. Merge to main after approval
