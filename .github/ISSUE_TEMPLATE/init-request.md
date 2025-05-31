@@ -10,7 +10,7 @@ To initialize your fork management repository, I need to know which repository y
    - `admin:read:org` (Read organization information)
    - `admin:write:repo_hook` (Full control of repository hooks)
    - `write:discussion` (Add comments to issues and pull requests)
-2. Add the token as a repository secret named `PAT_TOKEN`
+2. Add the token as a repository secret named `GH_TOKEN`
 3. Comment on this issue with the upstream repository to sync with, using either:
    - GitHub format: `owner/repo`
    - GitLab URL: `https://gitlab.com/owner/repo`
