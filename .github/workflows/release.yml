@@ -50,7 +50,7 @@ jobs:
       - name: "Generate Release PR"
         uses: google-github-actions/release-please-action@v4
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
           release-type: simple
           package-name: repo-sync
           changelog-types: |
@@ -86,7 +86,7 @@ jobs:
           
       - name: "Update Release Tags"
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           # Get the latest release tag
           RELEASE_TAG=$(gh release list -L 1 | cut -f 3)
