@@ -16,7 +16,7 @@ This project follows an AI-driven development workflow:
 - 🔄 **Automated Workflows** - GitHub Actions with AI-enhanced PR descriptions and conflict resolution
 - 🎯 **AI-First Architecture** - Designed with clear patterns for AI understanding and modification
 
-This repository provides an automated template for managing long-lived forks of upstream repositories, ensuring controlled synchronization and release management. For detailed design and requirements, see the [Product Requirements Document](doc/prd.md).
+This repository provides an automated template for managing long-lived forks of upstream repositories, ensuring controlled synchronization and release management. To understand conceptionally what is trying to be accomplished in this effort, see the [Overview OnePager](doc/overview.md). For detailed design and requirements, see the [Product Requirements Document](doc/prd.md).
 
 ## Features
 
