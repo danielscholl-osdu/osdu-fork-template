@@ -109,41 +109,11 @@ jobs:
           if [ "$CONFLICTS_FOUND" = "true" ]; then
             PR_TITLE="🚨 CONFLICTS: Integrate upstream changes to integration - $(date +%Y-%m-%d)"
             PR_LABELS="conflict,upstream-sync,needs-resolution,cascade-blocked"
-            PR_BODY="## ⚠️ Manual Conflict Resolution Required
-
-This PR has conflicts that need to be resolved manually before merging.
-
-### Conflicted Files:
-\`\`\`
-$(cat conflicted_files.txt)
-\`\`\`
-
-### Resolution Steps:
-1. Checkout this branch locally
-2. Resolve conflicts in the listed files
-3. Test the resolved changes
-4. Commit and push the resolution
-5. Request review
-
-### Context:
-- Source: \`fork_upstream\` (latest upstream changes)
-- Target: \`fork_integration\` (includes latest from main)
-- This is step 1 of 2 in the cascade to main"
+            PR_BODY="Manual Conflict Resolution Required - This PR has conflicts that need to be resolved manually before merging. See conflicted files list in PR."
           else
             PR_TITLE="✅ Integrate upstream changes to integration - $(date +%Y-%m-%d)"
             PR_LABELS="upstream-sync,cascade-active"
-            PR_BODY="## Automated Integration PR
-
-This PR integrates the latest upstream changes into the integration branch.
-
-### Context:
-- Source: \`fork_upstream\` (latest upstream changes)
-- Target: \`fork_integration\` (includes latest from main)
-- This is step 1 of 2 in the cascade to main
-- No conflicts detected - ready for automated testing
-
-### Next Steps:
-Once this PR is merged, an automated PR will be created to cascade these changes to the main branch."
+            PR_BODY="Automated Integration PR - This PR integrates the latest upstream changes into the integration branch. No conflicts detected, ready for automated testing."
           fi
           
           # Create the PR
@@ -211,8 +181,7 @@ Once this PR is merged, an automated PR will be created to cascade these changes
           # Get commit summary
           COMMIT_SUMMARY=$(git log --pretty=format:"- %s" origin/main..HEAD | head -20)
           if [ $(git rev-list --count origin/main..HEAD) -gt 20 ]; then
-            COMMIT_SUMMARY="${COMMIT_SUMMARY}
-... and $(( $(git rev-list --count origin/main..HEAD) - 20 )) more commits"
+            COMMIT_SUMMARY="${COMMIT_SUMMARY} ... and $(( $(git rev-list --count origin/main..HEAD) - 20 )) more commits"
           fi
           
           # Calculate diff size for auto-merge eligibility
@@ -228,29 +197,7 @@ Once this PR is merged, an automated PR will be created to cascade these changes
           fi
           
           # Create the PR
-          PR_BODY="## Production Release - Upstream Integration
-
-This PR completes the cascade of upstream changes to the main branch.
-
-### Cascade Path:
-1. \`fork_upstream\` → \`fork_integration\` ✅
-2. \`fork_integration\` → \`main\` 👈 **Current**
-
-### Changes Included:
-${COMMIT_SUMMARY}
-
-### Validation:
-- ✅ Build checks will run automatically
-- ✅ All upstream changes have been tested in integration
-- ⏳ Awaiting final approval for production
-
-### Metrics:
-- Total commits: $(git rev-list --count origin/main..HEAD)
-- Files changed: $(git diff --name-only origin/main..HEAD | wc -l)
-- Diff size: ${DIFF_LINES} lines
-
-### Notes:
-This is the final step in the upstream integration cascade. Once merged, these changes will be part of the next release."
+          PR_BODY="Production Release - Upstream Integration. This PR completes the cascade of upstream changes to the main branch. Total commits: $(git rev-list --count origin/main..HEAD), Diff size: ${DIFF_LINES} lines."
           
           PR_URL=$(gh pr create \
             --base main \
@@ -275,18 +222,7 @@ This is the final step in the upstream integration cascade. Once merged, these c
           fi
           
           # Create tracking issue
-          ISSUE_BODY="This issue tracks the final cascade PR to main branch.
-
-**PR**: $PR_URL
-
-### Status:
-- Diff size: ${DIFF_LINES} lines
-- Breaking changes: ${BREAKING_CHANGES}
-- Auto-merge eligible: $([[ "$DIFF_LINES" -lt 1000 ]] && [[ "$BREAKING_CHANGES" == "false" ]] && echo "Yes ✅" || echo "No ❌")
-
-Once the PR is merged, upstream changes will be included in the next release.
-
-Closes #$PR_NUMBER"
+          ISSUE_BODY="This issue tracks the final cascade PR to main branch. PR: $PR_URL. Diff size: ${DIFF_LINES} lines, Breaking changes: ${BREAKING_CHANGES}. Once merged, upstream changes will be included in the next release."
           
           gh issue create \
             --title "📦 Upstream Integration Complete - $(date +%Y-%m-%d)" \
@@ -313,15 +249,7 @@ Closes #$PR_NUMBER"
               # Create escalation issue
               gh issue create \
                 --title "🚨 ESCALATION: Cascade conflict unresolved for 48+ hours" \
-                --body "PR #$pr_number has unresolved conflicts blocking the cascade pipeline.
-                
-**Action Required**: Please resolve conflicts immediately or the cascade will be blocked.
-
-**PR**: #$pr_number
-**Created**: $(echo "$stale_prs" | jq -r --arg num "$pr_number" '.[] | select(.number == ($num | tonumber)) | .createdAt')
-**SLA Status**: ❌ EXCEEDED
-
-@${{ github.repository_owner }}" \
+                --body "PR #$pr_number has unresolved conflicts blocking the cascade pipeline. Action Required: Please resolve conflicts immediately. SLA Status: EXCEEDED. @${{ github.repository_owner }}" \
                 --label "escalation,high-priority,cascade-escalated" \
                 --assignee "${{ github.repository_owner }}"
               
@@ -345,23 +273,7 @@ Closes #$PR_NUMBER"
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          FAILURE_DETAILS="The automated cascade workflow failed.
-
-### Error Details
-- Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-- Branch: ${{ github.ref }}
-- Triggered by: ${{ github.event_name }}
-
-### Required Actions
-1. Review the workflow logs
-2. Identify the failure cause
-3. Fix any issues
-4. Re-run the cascade workflow
-
-### Impact
-The cascade pipeline is blocked until this issue is resolved.
-
-@${{ github.repository_owner }}"
+          FAILURE_DETAILS="The automated cascade workflow failed. Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Branch: ${{ github.ref }}. The cascade pipeline is blocked until this issue is resolved. @${{ github.repository_owner }}"
 
           gh issue create \
             --title "🚨 Cascade Pipeline Failure - $(date +%Y-%m-%d)" \

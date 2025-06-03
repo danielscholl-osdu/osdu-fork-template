@@ -48,43 +48,14 @@ jobs:
               # Create escalation issue
               issue_url=$(gh issue create \
                 --title "🚨 ESCALATION: Cascade conflict unresolved for 48+ hours (PR #$pr_number)" \
-                --body "**URGENT**: PR #$pr_number has unresolved conflicts blocking the cascade pipeline.
-                
-## Details
-- **PR**: $pr_url
-- **Title**: $pr_title
-- **Created**: $pr_created
-- **SLA Status**: ❌ EXCEEDED (48+ hours)
-
-## Impact
-The cascade pipeline is blocked, preventing upstream changes from reaching production.
-
-## Required Actions
-1. Assign a developer to resolve conflicts immediately
-2. Test the resolution thoroughly
-3. Request expedited review
-4. Merge to unblock the cascade
-
-## Escalation Path
-If not resolved within 4 hours of this issue:
-1. Contact repository maintainers directly
-2. Consider reverting problematic changes
-3. Evaluate emergency bypass procedures
-
-cc: @${{ github.repository_owner }}" \
+                --body "URGENT: PR #$pr_number has unresolved conflicts blocking the cascade pipeline. PR: $pr_url. Title: $pr_title. Created: $pr_created. SLA Status: EXCEEDED (48+ hours). The cascade pipeline is blocked. Assign a developer to resolve conflicts immediately. cc: @${{ github.repository_owner }}" \
                 --label "escalation,high-priority,cascade-escalated" \
                 --assignee "${{ github.repository_owner }}")
               
               echo "Created escalation issue: $issue_url"
               
               # Update PR with escalation notice
-              gh pr comment $pr_number --body "⚠️ **ESCALATION**: This conflict has exceeded the 48-hour SLA and has been escalated.
-
-**Escalation Issue**: $issue_url
-**Time Since Creation**: >48 hours
-**Action Required**: Immediate conflict resolution
-
-Please resolve conflicts as soon as possible to unblock the cascade pipeline."
+              gh pr comment $pr_number --body "ESCALATION: This conflict has exceeded the 48-hour SLA and has been escalated. Escalation Issue: $issue_url. Time Since Creation: >48 hours. Action Required: Immediate conflict resolution. Please resolve conflicts as soon as possible to unblock the cascade pipeline."
               
               # Add escalation label to PR
               gh pr edit $pr_number --add-label "cascade-escalated"
