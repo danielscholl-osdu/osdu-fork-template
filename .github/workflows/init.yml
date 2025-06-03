@@ -96,13 +96,32 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email github-actions[bot]@users.noreply.github.com
 
-      - name: Create initialization label
+      - name: Create all system labels
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh label create initialization \
-            --description "Issues related to repository initialization" \
-            --color "0366d6" || true
+          echo "Creating system labels from configuration..."
+          
+          # Read labels from JSON configuration
+          labels=$(cat .github/labels.json | jq -r '.labels[] | @base64')
+          
+          # Create each label
+          for label in $labels; do
+            _jq() {
+              echo ${label} | base64 --decode | jq -r ${1}
+            }
+            
+            name=$(_jq '.name')
+            description=$(_jq '.description')
+            color=$(_jq '.color')
+            
+            echo "Creating label: $name"
+            gh label create "$name" \
+              --description "$description" \
+              --color "$color" || echo "Label $name already exists"
+          done
+          
+          echo "✅ All system labels created"
 
       - name: Build welcome message
         id: build-issue-description
