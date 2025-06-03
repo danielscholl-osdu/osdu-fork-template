@@ -270,6 +270,23 @@ jobs:
             git push origin main
           fi
           
+          # Trigger validation workflow after cleanup push (with small delay for git push to complete)
+          echo "🔄 **Starting validation workflow...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          
+          # Wait a moment for the push to be fully processed
+          sleep 5
+          
+          if [ -n "$GH_TOKEN" ]; then
+            # Trigger validation workflow with post_init flag after cleanup is complete
+            GH_TOKEN=$GH_TOKEN gh workflow run validate.yml \
+              -f post_init=true
+            
+            echo "✅ **Validation workflow triggered!** Check the Actions tab for build results." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          else
+            # Fallback: manual instruction
+            echo "⚠️ **Manual validation recommended:** Please run the 'Validation' workflow manually from the Actions tab." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          fi
+          
           # Store upstream repo URL as secret using PAT if available
           if [ -n "$GH_TOKEN" ]; then
             echo "🔐 **Setting repository secret using Personal Access Token...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
@@ -396,20 +413,5 @@ jobs:
           **Happy coding!** 🚀
           EOF
           
-          # Trigger validation workflow for post-initialization check
-          echo "🔄 **Starting validation workflow...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-          
-          if [ -n "$GH_TOKEN" ]; then
-            # Trigger validation workflow with post_init flag
-            GH_TOKEN=$GH_TOKEN gh workflow run validate.yml \
-              -f post_init=true
-            
-            echo "✅ **Validation workflow triggered!** Check the Actions tab for build results." | gh issue comment "${{ github.event.issue.number }}" --body-file -
-            
-            # Close the issue as initialization is complete
-            gh issue close "${{ github.event.issue.number }}" --reason completed
-          else
-            # Fallback: close issue with manual instruction
-            echo "⚠️ **Manual validation recommended:** Please run the 'Validation' workflow manually from the Actions tab." | gh issue comment "${{ github.event.issue.number }}" --body-file -
-            gh issue close "${{ github.event.issue.number }}" --reason completed
-          fi
+          # Close the initialization issue
+          gh issue close "${{ github.event.issue.number }}" --reason completed
