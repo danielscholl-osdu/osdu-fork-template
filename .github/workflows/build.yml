@@ -7,6 +7,11 @@ on:
       - '!main'     # Exclude main branch
       - '!fork_integration'  # Exclude fork_integration as it's covered by validate
       - '!fork_upstream'     # Exclude fork_upstream as it's covered by validate
+  pull_request:
+    branches:
+      - main
+      - fork_integration
+      - fork_upstream
 
 permissions:
   contents: read

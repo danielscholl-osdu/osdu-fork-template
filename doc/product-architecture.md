@@ -63,6 +63,7 @@ This document covers:
 │  │         Workflow Suite          │    │
 │  │  • init.yml                     │    │
 │  │  • sync.yml                     │    │
+│  │  • cascade.yml                  │    │
 │  │  • validate.yml                 │    │
 │  │  • build.yml                    │    │
 │  │  • release.yml                  │    │
@@ -123,6 +124,8 @@ This document covers:
 │   ├── init.yml                  # Repository initialization (issue creation)
 │   ├── init-complete.yml         # Repository setup completion
 │   ├── sync.yml                  # Upstream synchronization
+│   ├── cascade.yml               # Cascade integration through branches
+│   ├── cascade-monitor.yml       # Cascade health monitoring
 │   ├── validate.yml              # PR validation
 │   ├── build.yml                 # Build automation
 │   └── release.yml               # Release management
@@ -280,7 +283,83 @@ jobs:
 - **Staging Integration**: Safe resolution in dedicated branch
 - **AI-Enhanced PRs**: Optional LLM-generated descriptions with diff limits
 
-### 4.4. Validation Architecture (validate.yml)
+### 4.4. Cascade Integration Architecture (cascade.yml & cascade-monitor.yml)
+
+**Design Principle**: Automated propagation of upstream changes through branch hierarchy with safety gates
+
+**Specification**: [Cascade Integration Workflow Specification](cascade-workflow.md)
+
+**Architecture Decision**: [ADR-009: Asymmetric Cascade Review Strategy](adr/009-asymmetric-cascade-review-strategy.md)
+
+The cascade system implements a two-phase integration pipeline that moves changes from `fork_upstream` through `fork_integration` to `main`:
+
+```yaml
+# Cascade workflow pattern
+name: Cascade Integration
+on:
+  push:
+    branches: [fork_upstream, fork_integration]
+
+jobs:
+  cascade-to-integration:
+    # Phase 1: fork_upstream → fork_integration
+    steps:
+      # 1. Check for active cascades (concurrency control)
+      - name: Check Cascade State
+        run: |
+          active=$(gh pr list --label "cascade-active")
+          if [ -n "$active" ]; then exit 0; fi
+      
+      # 2. Update integration with main (pre-merge)
+      - name: Sync Integration with Main
+        run: |
+          git checkout fork_integration
+          git merge origin/main --no-edit
+      
+      # 3. Create integration PR
+      - name: Create Integration PR
+        run: |
+          # Always requires manual review (safety gate)
+          gh pr create --label "upstream-sync,cascade-active"
+  
+  cascade-to-main:
+    # Phase 2: fork_integration → main
+    steps:
+      # Auto-merge eligible if all conditions met
+      - name: Evaluate Auto-merge
+        run: |
+          if [[ "$DIFF_LINES" -lt 1000 ]] && 
+             [[ "$BREAKING_CHANGES" == "false" ]]; then
+            gh pr merge --auto --squash
+          fi
+```
+
+**Key Architectural Decisions:**
+
+1. **Asymmetric Review Strategy (ADR-009)**:
+   - **Manual Review Required**: `fork_upstream` → `fork_integration` (first contact with external changes)
+   - **Auto-merge Eligible**: `fork_integration` → `main` (pre-validated changes, with conditions)
+
+2. **Pre-merge Main Integration**:
+   - Updates `fork_integration` with latest `main` BEFORE merging upstream
+   - Ensures upstream changes are tested against current feature development
+
+3. **Concurrency Control**:
+   - Single cascade pipeline active at any time
+   - Prevents race conditions and conflicting updates
+
+4. **SLA-based Monitoring** (cascade-monitor.yml):
+   - 48-hour SLA for conflict resolution
+   - Automated escalation for stale conflicts
+   - Health reporting every 6 hours
+
+**Safety Features:**
+- **State Tracking**: Labels track cascade progress (`cascade-active`, `cascade-blocked`, `cascade-ready`)
+- **Conflict Isolation**: Conflicts detected and isolated at integration level
+- **Auto-merge Criteria**: Size limits, no breaking changes, all checks passing
+- **Rollback Capability**: Clear identification of cascade commits for emergency rollback
+
+### 4.5. Validation Architecture (validate.yml)
 
 **Design Principle**: Comprehensive validation with clear feedback
 

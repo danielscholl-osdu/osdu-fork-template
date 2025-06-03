@@ -183,10 +183,21 @@ jobs:
             
           # Create a linked issue with basic content
           echo "Creating linked issue for PR #$PR_NUMBER"
-          gh issue create \
+          ISSUE_URL=$(gh issue create \
             --title "🔄 Upstream Sync - $(date +%Y-%m-%d)" \
             --body "This issue tracks the upstream sync PR #$PR_NUMBER and will close automatically when the PR is merged." \
-            --label "sync-update"
+            --label "sync-update")
+          
+          # Extract issue number and update PR to close the issue
+          ISSUE_NUMBER=$(basename $ISSUE_URL)
+          echo "Issue number: $ISSUE_NUMBER"
+          
+          # Update the PR body to include issue closure
+          UPDATED_PR_BODY="${PR_DESCRIPTION}
+
+          Closes #$ISSUE_NUMBER"
+          
+          gh pr edit $PR_NUMBER --body "$UPDATED_PR_BODY"
 
       - name: Create issue on failure
         if: failure()

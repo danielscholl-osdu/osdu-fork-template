@@ -13,6 +13,8 @@ Architecture Decision Records for Fork Management Template
 | 005 | Automated Conflict Management Strategy     | Accepted | 2025-05-28 | [ADR-005](005-conflict-management.md) |
 | 006 | Two-Workflow Initialization Pattern        | Accepted | 2025-05-28 | [ADR-006](006-two-workflow-initialization.md) |
 | 007 | Initialization Workflow Bootstrap Pattern  | Proposed | 2025-05-29 | [ADR-007](007-initialization-workflow-bootstrap.md) |
+| 008 | Centralized Label Management Strategy      | Accepted | 2025-06-03 | [ADR-008](008-centralized-label-management.md) |
+| 009 | Asymmetric Cascade Review Strategy         | Accepted | 2025-06-03 | [ADR-009](009-asymmetric-cascade-review-strategy.md) |
 
 ## Overview
 
@@ -41,6 +43,11 @@ These Architecture Decision Records document the key design choices made in the 
 - Self-updating initialization workflows
 - Ensures latest fixes are always available
 - Solves the template version bootstrap problem
+
+**Centralized Label Management (ADR-008)**
+- All labels defined in `.github/labels.json`
+- Created during repository initialization
+- Single source of truth for label definitions
 
 **Version Management (ADR-004)**
 - Release Please with Conventional Commits
