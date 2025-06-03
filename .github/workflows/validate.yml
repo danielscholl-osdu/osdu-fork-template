@@ -5,6 +5,13 @@ on:
     branches: [main, fork_integration, fork_upstream]
   push:
     branches: [main, fork_integration, fork_upstream]
+  workflow_dispatch:
+    inputs:
+      post_init:
+        description: 'Is this a post-initialization validation?'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read

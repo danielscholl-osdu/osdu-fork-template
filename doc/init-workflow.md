@@ -115,7 +115,7 @@ flowchart TD
     F --> G[Validate Build]
     G --> H[Configure Protection]
     H --> I[Complete Setup]
-    I --> J[Trigger Health Check]
+    I --> J[Trigger Validation]
     J --> K[Close Issue]
 ```
 
@@ -160,9 +160,9 @@ sequenceDiagram
     W->>I: 🔒 Enabling security features...
     W->>R: Configure security settings
     W->>I: 🎉 Initialization Complete!
-    W->>I: 🔄 Starting comprehensive health check...
-    W->>R: Trigger post-init validation workflow
-    W->>I: Health check results posted
+    W->>I: 🔄 Starting validation workflow...
+    W->>R: Trigger validate.yml with post_init flag
+    W->>I: ✅ Validation workflow triggered!
     W->>I: Close issue
 ```
 
@@ -228,60 +228,48 @@ fi
 - Skips build validation with informational message
 - Recommends manual verification after initialization
 
-### Post-Initialization Health Check
+### Post-Initialization Validation
 
-After the main initialization completes, a comprehensive health check workflow is automatically triggered to perform full validation of the repository.
+After the main initialization completes, the validation workflow is automatically triggered to verify the repository builds correctly.
 
-**Workflow**: `post-init-validation.yml`
+**Workflow**: `validate.yml`
 
-**Trigger**: Automatically dispatched by `init-complete.yml` using `workflow_dispatch`
+**Trigger**: Automatically dispatched by `init-complete.yml` using `workflow_dispatch` with `post_init=true`
 
-**Health Check Process**:
+**Validation Process**:
 
-1. **Repository Structure Verification**
-   ```bash
-   # Verify all required branches exist
-   for branch in main fork_upstream fork_integration; do
-     git rev-parse --verify origin/$branch
-   done
-   
-   # Check workflow environment file
-   source .github/workflow.env
-   test "$INITIALIZATION_COMPLETE" = "true"
-   ```
+The standard validation workflow performs comprehensive checks:
 
-2. **Project Type Detection**
-   - Identifies Java/Maven projects vs. other project types
-   - Configures appropriate validation strategy
+1. **Initialization Status Check**
+   - Verifies workflow environment file exists
+   - Confirms `INITIALIZATION_COMPLETE=true`
 
-3. **Full Build Validation** (Java Projects)
-   ```bash
-   # Complete Maven build with tests
-   mvn clean install -B -Dmaven.test.failure.ignore=true
-   
-   # Extract test results and build status
-   grep "Tests run:" build_output
-   grep "BUILD SUCCESS" build_output
-   ```
+2. **Repository State Check**
+   - Detects project type (Java/Maven or other)
+   - Identifies initialized vs. template state
 
-4. **Comprehensive Reporting**
-   - ✅ **Success**: Full build and tests pass
-   - ⚠️ **Warnings**: Build succeeds with warnings
-   - ❌ **Issues**: Build fails with detailed guidance
+3. **Build Validation** (Java Projects)
+   - Sets up JDK 17 with Maven caching
+   - Copies community Maven settings if available
+   - Runs full Maven build with tests
+   - Reports build status and test results
 
-**Issue Resolution Guidance**:
-When build issues are detected, the health check provides specific guidance:
+4. **Code Quality Checks**
+   - Validates commit messages (conventional commits)
+   - Checks for merge conflicts
+   - Verifies branch status
 
-- **Missing Dependencies**: Repository access and authentication issues
-- **Test Failures**: Environment-specific test problems
-- **Configuration Issues**: Setup requirements from upstream
-- **Network Issues**: Private repository access problems
+**Benefits of Using validate.yml**:
+- **No extra workflows**: Reuses existing validation infrastructure
+- **Consistent validation**: Same checks for init and ongoing development
+- **Automatic cleanup**: No one-time workflows left in repository
+- **Manual trigger**: Can be re-run anytime via Actions tab
 
 **User Experience**:
-- All progress posted to the initialization issue
-- Detailed error analysis and next steps
-- Issue automatically closed when health check completes
-- Full logs available in Actions tab for troubleshooting
+- Validation triggered automatically after initialization
+- Results visible in Actions tab
+- No additional issue comments (keeps issue clean)
+- Full logs available for troubleshooting
 
 ### State Management
 

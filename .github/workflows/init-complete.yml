@@ -396,17 +396,20 @@ jobs:
           **Happy coding!** 🚀
           EOF
           
-          # Trigger post-initialization health check
-          echo "🔄 **Starting comprehensive health check...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          # Trigger validation workflow for post-initialization check
+          echo "🔄 **Starting validation workflow...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           
           if [ -n "$GH_TOKEN" ]; then
-            # Trigger post-init validation workflow
-            GH_TOKEN=$GH_TOKEN gh workflow run post-init-validation.yml \
-              -f issue_number="${{ github.event.issue.number }}"
+            # Trigger validation workflow with post_init flag
+            GH_TOKEN=$GH_TOKEN gh workflow run validate.yml \
+              -f post_init=true
             
-            echo "Health check workflow dispatched. Results will be posted to this issue shortly." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            echo "✅ **Validation workflow triggered!** Check the Actions tab for build results." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            
+            # Close the issue as initialization is complete
+            gh issue close "${{ github.event.issue.number }}" --reason completed
           else
             # Fallback: close issue with manual instruction
-            echo "⚠️ **Manual health check recommended:** Please run the 'Post-Initialization Health Check' workflow manually from the Actions tab." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            echo "⚠️ **Manual validation recommended:** Please run the 'Validation' workflow manually from the Actions tab." | gh issue comment "${{ github.event.issue.number }}" --body-file -
             gh issue close "${{ github.event.issue.number }}" --reason completed
           fi
