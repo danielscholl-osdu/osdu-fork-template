@@ -95,7 +95,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           UPSTREAM_REPO: ${{ needs.validate_and_setup.outputs.upstream_repo }}
         run: |
-          echo "🔧 **Setting up upstream connection...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           
           # Convert to URL format
           if [[ "$UPSTREAM_REPO" == http* ]]; then
@@ -109,7 +108,6 @@ jobs:
           git fetch upstream --prune --tags
           
           # List available branches for debugging
-          echo "🔍 **Checking available branches in upstream repository...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           
           # Get all branches from upstream
           BRANCHES=$(git branch -r | grep upstream | sed 's/upstream\///' | grep -v HEAD | tr '\n' ' ')
@@ -151,16 +149,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🌿 **Creating branch structure...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-          
-          # Check if this is an OSDU partition repository
+          # Check if this is an OSDU partition repository (for debugging)
           if [[ "${{ needs.validate_and_setup.outputs.upstream_repo }}" == *"partition"* ]]; then
-            echo "📋 **Detected OSDU partition repository - checking for release branches...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-            
-            # List release branches for OSDU repos
+            # List release branches for OSDU repos (internal logging only)
             RELEASE_BRANCHES=$(git branch -r | grep upstream/release | sed 's/upstream\///' | tr '\n' ', ')
             if [ -n "$RELEASE_BRANCHES" ]; then
-              echo "Found release branches: $RELEASE_BRANCHES" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              echo "Debug: Found release branches: $RELEASE_BRANCHES"
             fi
           fi
           
@@ -178,46 +172,6 @@ jobs:
           git add .github
           git commit -m "chore: copy workflows from main branch"
           git push -u origin fork_integration
-
-      - name: Set up JDK for validation
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Validate upstream code builds
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "🔍 **Validating upstream code builds...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-          
-          # Check if it's a Java project
-          if [ -f "pom.xml" ] || [ -n "$(find . -name 'pom.xml' -type f)" ]; then
-            echo "📋 **Detected Java project - running build validation...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-            
-            # Setup Maven settings if available
-            if [ -f ".mvn/community-maven.settings.xml" ]; then
-              mkdir -p ~/.m2
-              cp .mvn/community-maven.settings.xml ~/.m2/settings.xml
-              echo "📋 **Using community Maven settings**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-            fi
-            
-            # Attempt to compile (not full build to avoid test failures on first sync)
-            if timeout 300 mvn clean compile -q -B 2>/dev/null; then
-              echo "✅ **Build validation passed - upstream code compiles successfully**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-            else
-              echo "⚠️ **Build validation completed with warnings**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-              echo "The upstream code may require additional setup:" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-              echo "- Check upstream README for build requirements" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-              echo "- Verify all dependencies are accessible" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-              echo "- Review \`.mvn/community-maven.settings.xml\` configuration" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-              echo "- Consider running \`mvn clean install\` manually after initialization" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-            fi
-          else
-            echo "ℹ️ **Non-Java project detected - skipping build validation**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-            echo "Manual verification may be needed after initialization." | gh issue comment "${{ github.event.issue.number }}" --body-file -
-          fi
 
       - name: Merge to main and setup secrets
         env:
@@ -248,7 +202,6 @@ jobs:
           git push origin main
           
           # Clean up template files immediately after merge, before branch protection
-          echo "🧹 **Cleaning up template documentation...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           
           # Remove template-specific documentation and files
           rm -rf doc/
@@ -267,7 +220,6 @@ jobs:
           fi
           
           # Trigger validation workflow after cleanup push (with small delay for git push to complete)
-          echo "🔄 **Starting validation workflow...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           
           # Wait a moment for the push to be fully processed
           sleep 5
@@ -286,7 +238,6 @@ jobs:
           
           # Store upstream repo URL as secret using PAT if available
           if [ -n "$GH_TOKEN" ]; then
-            echo "🔐 **Setting repository secret using Personal Access Token...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
             GH_TOKEN=$GH_TOKEN gh secret set UPSTREAM_REPO_URL --body "$UPSTREAM_URL"
           else
             echo "⚠️ **Warning:** Unable to set UPSTREAM_REPO_URL secret. Please set it manually or provide a GH_TOKEN secret with appropriate permissions." | gh issue comment "${{ github.event.issue.number }}" --body-file -
@@ -294,9 +245,7 @@ jobs:
           
           # Set repository variable for initialization status
           if [ -n "$GH_TOKEN" ]; then
-            echo "📋 **Setting initialization status variable...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
             GH_TOKEN=$GH_TOKEN gh variable set INITIALIZATION_COMPLETE --body "true"
-            echo "✅ **Repository variable set successfully**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           else
             echo "⚠️ **Warning:** Unable to set repository variable. Please set INITIALIZATION_COMPLETE=true manually in Settings → Secrets and variables → Actions → Variables." | gh issue comment "${{ github.event.issue.number }}" --body-file -
           fi
@@ -306,7 +255,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "🛡️ **Setting up branch protection...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           
           # Try to create branch protection rules
           if [ -n "$GH_TOKEN" ]; then
@@ -343,7 +291,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "🔒 **Enabling security features...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           
           # Enable security features if possible
           if [ -f .github/security-on.json ]; then
@@ -400,8 +347,6 @@ jobs:
           ✅ **Upstream Connection:** Connected to \`${{ needs.validate_and_setup.outputs.upstream_repo }}\`
 
           ✅ **Automated Workflows:** Sync, validation, and release workflows are active
-
-          ✅ **Build Validation:** Upstream code validated during initialization
 
           ✅ **Template Cleanup:** Removed template documentation (upstream README will be used)
 
