@@ -75,7 +75,7 @@ jobs:
           
       - name: "Fetch Upstream Version"
         run: |
-          git remote add upstream ${{ vars.UPSTREAM_REPO }}
+          git remote add upstream ${{ secrets.UPSTREAM_REPO_URL }}
           git fetch upstream --tags
           UPSTREAM_VERSION=$(git describe --tags --abbrev=0 upstream/main 2>/dev/null || echo "v0.0.0")
           echo "UPSTREAM_VERSION=$UPSTREAM_VERSION" >> $GITHUB_ENV

@@ -34,8 +34,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Add upstream remote using stored variable
-          git remote add upstream "${{ vars.UPSTREAM_REPO }}"
+          # Add upstream remote using stored secret
+          git remote add upstream "${{ secrets.UPSTREAM_REPO_URL }}"
 
       - name: Fetch latest from upstream
         run: |

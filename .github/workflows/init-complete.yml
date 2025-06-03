@@ -273,9 +273,10 @@ jobs:
           sleep 5
           
           if [ -n "$GH_TOKEN" ]; then
-            # Trigger validation workflow with post_init flag after cleanup is complete
+            # Trigger validation workflow with initialization status
             GH_TOKEN=$GH_TOKEN gh workflow run validate.yml \
-              -f post_init=true
+              -f post_init=true \
+              -f initialization_complete=true
             
             echo "✅ **Validation workflow triggered!** Check the Actions tab for build results." | gh issue comment "${{ github.event.issue.number }}" --body-file -
           else
@@ -291,14 +292,13 @@ jobs:
             echo "⚠️ **Warning:** Unable to set UPSTREAM_REPO_URL secret. Please set it manually or provide a GH_TOKEN secret with appropriate permissions." | gh issue comment "${{ github.event.issue.number }}" --body-file -
           fi
           
-          # Set repository variables to indicate initialization status
+          # Set repository variable for initialization status
           if [ -n "$GH_TOKEN" ]; then
-            echo "📋 **Setting repository variables...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            echo "📋 **Setting initialization status variable...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
             GH_TOKEN=$GH_TOKEN gh variable set INITIALIZATION_COMPLETE --body "true"
-            GH_TOKEN=$GH_TOKEN gh variable set UPSTREAM_REPO --body "$UPSTREAM_URL"
-            echo "✅ **Repository variables set successfully**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            echo "✅ **Repository variable set successfully**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           else
-            echo "⚠️ **Warning:** Unable to set repository variables. Please set INITIALIZATION_COMPLETE=true manually in Settings → Secrets and variables → Actions → Variables." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            echo "⚠️ **Warning:** Unable to set repository variable. Please set INITIALIZATION_COMPLETE=true manually in Settings → Secrets and variables → Actions → Variables." | gh issue comment "${{ github.event.issue.number }}" --body-file -
           fi
 
       - name: Configure branch protection

@@ -12,6 +12,11 @@ on:
         required: false
         type: boolean
         default: false
+      initialization_complete:
+        description: 'Force initialization status (used during post-init)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -37,13 +42,35 @@ jobs:
       - name: "Verify Initialization Status"
         id: check
         run: |
-          # Debug: Check repository variables
-          echo "🔍 Debug: INITIALIZATION_COMPLETE variable = '${{ vars.INITIALIZATION_COMPLETE }}'"
-          echo "🔍 Debug: UPSTREAM_REPO variable = '${{ vars.UPSTREAM_REPO }}'"
+          # Debug: Check all possible initialization indicators
           echo "🔍 Debug: Event name = '${{ github.event_name }}'"
+          echo "🔍 Debug: Repository variable INITIALIZATION_COMPLETE = '${{ vars.INITIALIZATION_COMPLETE }}'"
+          echo "🔍 Debug: Workflow input initialization_complete = '${{ inputs.initialization_complete }}'"
+          echo "🔍 Debug: Workflow input post_init = '${{ inputs.post_init }}'"
           
-          # Check repository variable instead of file
-          if [ "${{ vars.INITIALIZATION_COMPLETE }}" = "true" ]; then
+          # Check initialization status with multiple fallbacks
+          INITIALIZED=false
+          
+          # 1. If this is a manual trigger with initialization_complete input, use that
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.initialization_complete }}" = "true" ]; then
+            INITIALIZED=true
+            echo "✅ Initialization confirmed via workflow input"
+          # 2. Check repository variable (for non-manual triggers)
+          elif [ "${{ vars.INITIALIZATION_COMPLETE }}" = "true" ]; then
+            INITIALIZED=true
+            echo "✅ Initialization confirmed via repository variable"
+          # 3. Fallback: check for structural indicators (branches + Java code)
+          else
+            echo "🔍 Checking structural indicators for initialization..."
+            if git ls-remote --heads origin | grep -q "refs/heads/fork_upstream" && \
+               git ls-remote --heads origin | grep -q "refs/heads/fork_integration" && \
+               ([ -f "pom.xml" ] || [ -n "$(find . -name 'pom.xml' -type f 2>/dev/null)" ]); then
+              INITIALIZED=true
+              echo "✅ Initialization detected via structural indicators"
+            fi
+          fi
+          
+          if [ "$INITIALIZED" = "true" ]; then
             echo "initialized=true" >> $GITHUB_OUTPUT
             echo "✅ Repository is initialized"
           else
