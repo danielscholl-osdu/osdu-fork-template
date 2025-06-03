@@ -171,13 +171,12 @@ jobs:
           # Create fork_integration from fork_upstream
           git checkout -b fork_integration fork_upstream
           
-          # Add workflow env file
-          mkdir -p .github
-          echo "INITIALIZATION_COMPLETE=true" > .github/workflow.env
-          echo "UPSTREAM_REPO_URL=$UPSTREAM_URL" >> .github/workflow.env
-          
           # Copy essential files from main branch
           git checkout main -- .github/workflows/ .github/actions/ .github/dependabot.yml || true
+
+          # Add workflow env file
+          echo "INITIALIZATION_COMPLETE=true" > .github/workflow.env
+          echo "UPSTREAM_REPO_URL=$UPSTREAM_URL" >> .github/workflow.env
           
           git add .github
           git commit -m "chore: add workflow environment and copy workflows"
