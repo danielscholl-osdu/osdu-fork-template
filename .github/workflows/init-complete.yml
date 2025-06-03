@@ -19,7 +19,8 @@ jobs:
     name: Validate and setup repository
     if: |
       github.event.issue.state == 'open' &&
-      contains(github.event.issue.labels.*.name, 'initialization')
+      contains(github.event.issue.labels.*.name, 'initialization') &&
+      github.event.comment.user.login != 'github-actions[bot]'
     runs-on: ubuntu-latest
     outputs:
       upstream_repo: ${{ steps.validate.outputs.upstream_repo }}
