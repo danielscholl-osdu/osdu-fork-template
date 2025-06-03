@@ -37,15 +37,15 @@ jobs:
       - name: "Verify Initialization Status"
         id: check
         run: |
-          if [ -f ".github/workflow.env" ]; then
-            source .github/workflow.env
-            if [ "$INITIALIZATION_COMPLETE" = "true" ]; then
-              echo "initialized=true" >> $GITHUB_OUTPUT
-              echo "✅ Repository is initialized"
-            else
-              echo "initialized=false" >> $GITHUB_OUTPUT
-              echo "⏳ Repository initialization in progress"
-            fi
+          # Debug: Check repository variables
+          echo "🔍 Debug: INITIALIZATION_COMPLETE variable = '${{ vars.INITIALIZATION_COMPLETE }}'"
+          echo "🔍 Debug: UPSTREAM_REPO variable = '${{ vars.UPSTREAM_REPO }}'"
+          echo "🔍 Debug: Event name = '${{ github.event_name }}'"
+          
+          # Check repository variable instead of file
+          if [ "${{ vars.INITIALIZATION_COMPLETE }}" = "true" ]; then
+            echo "initialized=true" >> $GITHUB_OUTPUT
+            echo "✅ Repository is initialized"
           else
             echo "initialized=false" >> $GITHUB_OUTPUT
             echo "⏸️ Repository not yet initialized"

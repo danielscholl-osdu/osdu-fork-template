@@ -25,13 +25,9 @@ jobs:
       - name: "Verify Initialization Status"
         id: check
         run: |
-          if [ -f ".github/workflow.env" ]; then
-            source .github/workflow.env
-            if [ "$INITIALIZATION_COMPLETE" = "true" ]; then
-              echo "initialized=true" >> $GITHUB_OUTPUT
-            else
-              echo "initialized=false" >> $GITHUB_OUTPUT
-            fi
+          # Check repository variable instead of file
+          if [ "${{ vars.INITIALIZATION_COMPLETE }}" = "true" ]; then
+            echo "initialized=true" >> $GITHUB_OUTPUT
           else
             echo "initialized=false" >> $GITHUB_OUTPUT
           fi
@@ -79,7 +75,7 @@ jobs:
           
       - name: "Fetch Upstream Version"
         run: |
-          git remote add upstream ${{ secrets.UPSTREAM_REPO_URL }}
+          git remote add upstream ${{ vars.UPSTREAM_REPO }}
           git fetch upstream --tags
           UPSTREAM_VERSION=$(git describe --tags --abbrev=0 upstream/main 2>/dev/null || echo "v0.0.0")
           echo "UPSTREAM_VERSION=$UPSTREAM_VERSION" >> $GITHUB_ENV

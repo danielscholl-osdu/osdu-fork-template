@@ -173,13 +173,10 @@ jobs:
           
           # Copy essential files from main branch
           git checkout main -- .github/workflows/ .github/actions/ .github/dependabot.yml || true
-
-          # Add workflow env file
-          echo "INITIALIZATION_COMPLETE=true" > .github/workflow.env
-          echo "UPSTREAM_REPO_URL=$UPSTREAM_URL" >> .github/workflow.env
           
+          # Commit workflow files (no need for workflow.env anymore)
           git add .github
-          git commit -m "chore: add workflow environment and copy workflows"
+          git commit -m "chore: copy workflows from main branch"
           git push -u origin fork_integration
 
       - name: Set up JDK for validation
@@ -292,6 +289,16 @@ jobs:
             GH_TOKEN=$GH_TOKEN gh secret set UPSTREAM_REPO_URL --body "$UPSTREAM_URL"
           else
             echo "⚠️ **Warning:** Unable to set UPSTREAM_REPO_URL secret. Please set it manually or provide a GH_TOKEN secret with appropriate permissions." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          fi
+          
+          # Set repository variables to indicate initialization status
+          if [ -n "$GH_TOKEN" ]; then
+            echo "📋 **Setting repository variables...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            GH_TOKEN=$GH_TOKEN gh variable set INITIALIZATION_COMPLETE --body "true"
+            GH_TOKEN=$GH_TOKEN gh variable set UPSTREAM_REPO --body "$UPSTREAM_URL"
+            echo "✅ **Repository variables set successfully**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          else
+            echo "⚠️ **Warning:** Unable to set repository variables. Please set INITIALIZATION_COMPLETE=true manually in Settings → Secrets and variables → Actions → Variables." | gh issue comment "${{ github.event.issue.number }}" --body-file -
           fi
 
       - name: Configure branch protection
