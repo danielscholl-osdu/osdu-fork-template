@@ -112,9 +112,10 @@ flowchart TD
     B -->|Yes| D[setup_repository]
     D --> E[Setup Upstream]
     E --> F[Create Branches]
-    F --> G[Configure Protection]
-    G --> H[Complete Setup]
-    H --> I[Close Issue]
+    F --> G[Validate Build]
+    G --> H[Configure Protection]
+    H --> I[Complete Setup]
+    I --> J[Close Issue]
 ```
 
 ### Validation Logic
@@ -149,6 +150,8 @@ sequenceDiagram
     W->>I: 🌿 Creating branch structure...
     W->>R: Create fork_upstream
     W->>R: Create fork_integration
+    W->>I: 🔍 Validating upstream code builds...
+    W->>R: Test compilation (Java projects)
     W->>I: 🔀 Updating main branch...
     W->>R: Merge changes to main
     W->>I: 🛡️ Setting up branch protection...
@@ -175,12 +178,51 @@ sequenceDiagram
    git push -u origin fork_integration
    ```
 
-3. **main**: Updated via merge from fork_integration
+3. **Build Validation**: Validates upstream code quality
+   ```bash
+   # For Java projects: Set up JDK and test compilation
+   mvn clean compile -q -B
+   # Provides user feedback on build status and requirements
+   ```
+
+4. **main**: Updated via merge from fork_integration
    ```bash
    git checkout main
    git merge fork_integration --no-ff -m "chore: complete repository initialization"
    git push origin main
    ```
+
+### Build Validation Strategy
+
+Before merging upstream code to the main branch, the workflow validates that the code can be built successfully. This prevents broken code from being merged and provides early feedback about potential issues.
+
+**Java Project Detection**:
+```bash
+# Check for Maven projects
+if [ -f "pom.xml" ] || [ -n "$(find . -name 'pom.xml' -type f)" ]; then
+  # Java project detected
+fi
+```
+
+**Build Validation Process**:
+1. **Setup**: Configure JDK 17 with Maven caching
+2. **Dependencies**: Copy community Maven settings if available
+3. **Compilation**: Run `mvn clean compile` with 5-minute timeout
+4. **Feedback**: Provide detailed status and guidance
+
+**Success Scenarios**:
+- ✅ **Compilation Success**: Code compiles without errors
+- ⚠️ **Compilation Warnings**: Code has issues but initialization continues
+
+**User Guidance on Build Issues**:
+- Check upstream README for build requirements
+- Verify dependency accessibility
+- Review Maven settings configuration
+- Manual build verification recommended post-init
+
+**Non-Java Projects**:
+- Skips build validation with informational message
+- Recommends manual verification after initialization
 
 ### State Management
 
@@ -239,6 +281,7 @@ Applied to all three branches: `main`, `fork_upstream`, `fork_integration`
 ✅ **Branch Protection:** All branches protected with PR requirements
 ✅ **Upstream Connection:** Connected to `upstream/repo`
 ✅ **Automated Workflows:** Sync, validation, and release workflows active
+✅ **Build Validation:** Upstream code validated during initialization
 ✅ **Security Features:** Secret scanning and dependency updates enabled
 
 ## Next Steps

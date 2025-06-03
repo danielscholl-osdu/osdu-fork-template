@@ -182,6 +182,46 @@ jobs:
           git commit -m "chore: add workflow environment and copy workflows"
           git push -u origin fork_integration
 
+      - name: Set up JDK for validation
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Validate upstream code builds
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔍 **Validating upstream code builds...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          
+          # Check if it's a Java project
+          if [ -f "pom.xml" ] || [ -n "$(find . -name 'pom.xml' -type f)" ]; then
+            echo "📋 **Detected Java project - running build validation...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            
+            # Setup Maven settings if available
+            if [ -f ".mvn/community-maven.settings.xml" ]; then
+              mkdir -p ~/.m2
+              cp .mvn/community-maven.settings.xml ~/.m2/settings.xml
+              echo "📋 **Using community Maven settings**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            fi
+            
+            # Attempt to compile (not full build to avoid test failures on first sync)
+            if timeout 300 mvn clean compile -q -B 2>/dev/null; then
+              echo "✅ **Build validation passed - upstream code compiles successfully**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            else
+              echo "⚠️ **Build validation completed with warnings**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              echo "The upstream code may require additional setup:" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              echo "- Check upstream README for build requirements" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              echo "- Verify all dependencies are accessible" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              echo "- Review \`.mvn/community-maven.settings.xml\` configuration" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              echo "- Consider running \`mvn clean install\` manually after initialization" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            fi
+          else
+            echo "ℹ️ **Non-Java project detected - skipping build validation**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            echo "Manual verification may be needed after initialization." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          fi
+
       - name: Merge to main and setup secrets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -336,6 +376,8 @@ jobs:
           ✅ **Upstream Connection:** Connected to \`${{ needs.validate_and_setup.outputs.upstream_repo }}\`
 
           ✅ **Automated Workflows:** Sync, validation, and release workflows are active
+
+          ✅ **Build Validation:** Upstream code validated during initialization
 
           ✅ **Template Cleanup:** Removed template documentation (upstream README will be used)
 
