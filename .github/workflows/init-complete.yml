@@ -395,4 +395,17 @@ jobs:
           **Happy coding!** 🚀
           EOF
           
-          gh issue close "${{ github.event.issue.number }}" --reason completed
+          # Trigger post-initialization health check
+          echo "🔄 **Starting comprehensive health check...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          
+          if [ -n "$GH_TOKEN" ]; then
+            # Trigger post-init validation workflow
+            GH_TOKEN=$GH_TOKEN gh workflow run post-init-validation.yml \
+              -f issue_number="${{ github.event.issue.number }}"
+            
+            echo "Health check workflow dispatched. Results will be posted to this issue shortly." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+          else
+            # Fallback: close issue with manual instruction
+            echo "⚠️ **Manual health check recommended:** Please run the 'Post-Initialization Health Check' workflow manually from the Actions tab." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            gh issue close "${{ github.event.issue.number }}" --reason completed
+          fi

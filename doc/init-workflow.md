@@ -115,7 +115,8 @@ flowchart TD
     F --> G[Validate Build]
     G --> H[Configure Protection]
     H --> I[Complete Setup]
-    I --> J[Close Issue]
+    I --> J[Trigger Health Check]
+    J --> K[Close Issue]
 ```
 
 ### Validation Logic
@@ -159,6 +160,9 @@ sequenceDiagram
     W->>I: 🔒 Enabling security features...
     W->>R: Configure security settings
     W->>I: 🎉 Initialization Complete!
+    W->>I: 🔄 Starting comprehensive health check...
+    W->>R: Trigger post-init validation workflow
+    W->>I: Health check results posted
     W->>I: Close issue
 ```
 
@@ -223,6 +227,61 @@ fi
 **Non-Java Projects**:
 - Skips build validation with informational message
 - Recommends manual verification after initialization
+
+### Post-Initialization Health Check
+
+After the main initialization completes, a comprehensive health check workflow is automatically triggered to perform full validation of the repository.
+
+**Workflow**: `post-init-validation.yml`
+
+**Trigger**: Automatically dispatched by `init-complete.yml` using `workflow_dispatch`
+
+**Health Check Process**:
+
+1. **Repository Structure Verification**
+   ```bash
+   # Verify all required branches exist
+   for branch in main fork_upstream fork_integration; do
+     git rev-parse --verify origin/$branch
+   done
+   
+   # Check workflow environment file
+   source .github/workflow.env
+   test "$INITIALIZATION_COMPLETE" = "true"
+   ```
+
+2. **Project Type Detection**
+   - Identifies Java/Maven projects vs. other project types
+   - Configures appropriate validation strategy
+
+3. **Full Build Validation** (Java Projects)
+   ```bash
+   # Complete Maven build with tests
+   mvn clean install -B -Dmaven.test.failure.ignore=true
+   
+   # Extract test results and build status
+   grep "Tests run:" build_output
+   grep "BUILD SUCCESS" build_output
+   ```
+
+4. **Comprehensive Reporting**
+   - ✅ **Success**: Full build and tests pass
+   - ⚠️ **Warnings**: Build succeeds with warnings
+   - ❌ **Issues**: Build fails with detailed guidance
+
+**Issue Resolution Guidance**:
+When build issues are detected, the health check provides specific guidance:
+
+- **Missing Dependencies**: Repository access and authentication issues
+- **Test Failures**: Environment-specific test problems
+- **Configuration Issues**: Setup requirements from upstream
+- **Network Issues**: Private repository access problems
+
+**User Experience**:
+- All progress posted to the initialization issue
+- Detailed error analysis and next steps
+- Issue automatically closed when health check completes
+- Full logs available in Actions tab for troubleshooting
 
 ### State Management
 
