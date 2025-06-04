@@ -319,42 +319,22 @@ jobs:
           fi
           
           # Build completion message based on what was actually configured
-          MANUAL_STEPS=""
-          
           if [ -n "$GH_TOKEN" ]; then
             PROTECTION_STATUS="✅ **Branch Protection:** All branches are protected with PR requirements"
             SECRET_STATUS="✅ **Repository Secrets:** UPSTREAM_REPO_URL configured"
             SECURITY_STATUS="✅ **Security Features:** Secret scanning and dependency updates enabled"
+            MANUAL_STEPS=""
           else
             PROTECTION_STATUS="⚠️ **Branch Protection:** Requires manual setup"
             SECRET_STATUS="⚠️ **Repository Secrets:** Requires manual setup"  
             SECURITY_STATUS="⚠️ **Security Features:** Requires manual setup"
-            
-            MANUAL_STEPS="## ⚠️ Manual Configuration Required
-
-Since no GH_TOKEN was provided, please complete these steps:
-
-### 1. Branch Protection
-- Go to **Settings → Branches**
-- For each branch (\`main\`, \`fork_upstream\`, \`fork_integration\`):
-  - Require pull request reviews before merging
-  - Require status checks to pass
-  
-### 2. Repository Secret
-- Go to **Settings → Secrets and variables → Actions**
-- Add secret: \`UPSTREAM_REPO_URL\` = \`$UPSTREAM_URL\`
-
-### 3. Security Features
-- Go to **Settings → Security & analysis**
-- Enable: Dependency graph, Dependabot alerts, Secret scanning
-
-"
+            MANUAL_STEPS="Manual Configuration Required: Please set up branch protection, repository secrets (UPSTREAM_REPO_URL), and security features in repository settings."
           fi
           
           cat << EOF | gh issue comment "${{ github.event.issue.number }}" --body-file -
           🎉 **Initialization Complete!**
 
-          Your fork management repository is now ready! Here's what was set up:
+          Your fork management repository is now ready! Here is what was set up:
 
           ✅ **Branch Structure:**
           - \`main\` - Your stable development branch

@@ -15,6 +15,7 @@ Architecture Decision Records for Fork Management Template
 | 007 | Initialization Workflow Bootstrap Pattern  | Proposed | 2025-05-29 | [ADR-007](007-initialization-workflow-bootstrap.md) |
 | 008 | Centralized Label Management Strategy      | Accepted | 2025-06-03 | [ADR-008](008-centralized-label-management.md) |
 | 009 | Asymmetric Cascade Review Strategy         | Accepted | 2025-06-03 | [ADR-009](009-asymmetric-cascade-review-strategy.md) |
+| 010 | YAML-Safe Shell Scripting in GitHub Actions | Accepted | 2025-06-03 | [ADR-010](010-yaml-safe-shell-scripting.md) |
 
 ## Overview
 
