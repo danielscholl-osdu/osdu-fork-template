@@ -236,21 +236,22 @@ jobs:
             git checkout main -- "$file" || echo "File $file not found, skipping"
           done
           
-          # Copy fork workflows from template-workflows to workflows directory
+          # Add template remote to be able to track template updates
+          TEMPLATE_REPO_URL="${{ vars.TEMPLATE_REPO_URL || 'https://github.com/danielscholl-osdu/osdu-fork-template.git' }}"
+          git remote add template "$TEMPLATE_REPO_URL" || true
+          git fetch template main --depth=1
+          
+          # Copy fork workflows from template repository
           # This must happen before merge to avoid GitHub App workflow permission issues
-          echo "Copying fork-specific workflows from template-workflows..."
+          echo "Copying fork-specific workflows from template repository..."
+          git checkout template/main -- .github/template-workflows/
           if [ -d ".github/template-workflows" ]; then
             cp .github/template-workflows/*.yml .github/workflows/
             echo "Copied workflows:"
             ls .github/template-workflows/*.yml | xargs -I {} basename {}
           else
-            echo "⚠️ Warning: .github/template-workflows directory not found"
+            echo "⚠️ Warning: .github/template-workflows directory not found in template"
           fi
-          
-          # Add template remote to be able to track template updates
-          TEMPLATE_REPO_URL="${{ vars.TEMPLATE_REPO_URL || 'https://github.com/danielscholl-osdu/osdu-fork-template.git' }}"
-          git remote add template "$TEMPLATE_REPO_URL" || true
-          git fetch template main --depth=1
           
           # Initialize tracking files
           TRACKING_FILES=$(jq -r '.sync_rules.tracking_files[] | select(.auto_create == true) | .path' .github/sync-config.json)
@@ -356,25 +357,40 @@ jobs:
           
           git push origin main
           
-          # Trigger validation workflow after cleanup push (with small delay for git push to complete)
-          
-          # Wait a moment for the push to be fully processed
-          sleep 5
+          # Set repository variable for initialization status
+          if [ -n "$GH_TOKEN" ]; then
+            GH_TOKEN=$GH_TOKEN gh variable set INITIALIZATION_COMPLETE --body "true"
+          fi
+
+      - name: Trigger Validation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # Wait for GitHub to process the newly pushed workflows
+          echo "⏳ Waiting for GitHub to process new workflows..."
+          sleep 15
           
           if [ -n "$GH_TOKEN" ]; then
-            # Trigger validation workflow with initialization status
-            GH_TOKEN=$GH_TOKEN gh workflow run validate.yml \
-              -f post_init=true \
-              -f initialization_complete=true
-            
-            # Validation workflow triggered - will run automatically
+            # Check if validation workflow exists before triggering
+            echo "🔍 Checking if validation workflow is available..."
+            if GH_TOKEN=$GH_TOKEN gh workflow view validate.yml >/dev/null 2>&1; then
+              echo "✅ Validation workflow found - triggering..."
+              if GH_TOKEN=$GH_TOKEN gh workflow run validate.yml \
+                -f post_init=true \
+                -f initialization_complete=true; then
+                echo "✅ Validation workflow triggered successfully"
+              else
+                echo "⚠️ Failed to trigger validation workflow"
+                echo "⚠️ **Note:** You can manually run the 'Validation' workflow from the Actions tab." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              fi
+            else
+              echo "⚠️ Validation workflow not yet available - GitHub may still be processing the push"
+              echo "⚠️ **Note:** Validation workflow will run automatically on future commits, or you can run it manually from the Actions tab." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            fi
           else
-            # Fallback: manual instruction
             echo "⚠️ **Manual validation recommended:** Please run the 'Validation' workflow manually from the Actions tab." | gh issue comment "${{ github.event.issue.number }}" --body-file -
           fi
-          
-          # Set repository variable for initialization status
-          GH_TOKEN=$GH_TOKEN gh variable set INITIALIZATION_COMPLETE --body "true"
 
       - name: Branch Protection
         env:
