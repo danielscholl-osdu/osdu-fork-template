@@ -72,6 +72,26 @@ jobs:
           This will take a few minutes. I'll update you with progress!
           EOF
 
+      - name: Set UPSTREAM_REPO_URL Variable
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          REPO="${{ steps.validate.outputs.upstream_repo }}"
+          if [[ "$REPO" == http* ]]; then
+            REPO_URL="$REPO.git"
+          else
+            REPO_URL="https://github.com/$REPO.git"
+          fi
+          echo "Setting UPSTREAM_REPO_URL variable to: $REPO_URL"
+          echo "URL length: ${#REPO_URL}"
+          if [ -n "$GH_TOKEN" ]; then
+            if ! GH_TOKEN=$GH_TOKEN gh variable set UPSTREAM_REPO_URL --body "$REPO_URL"; then
+              echo "Failed to set UPSTREAM_REPO_URL variable"
+            fi
+          else
+            echo "GH_TOKEN not available, skipping variable configuration"
+          fi
+
   setup_repository:
     name: Setup Repository
     needs: validate_and_setup
@@ -89,25 +109,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config pull.rebase false
-
-      - name: Configure Variables
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          # Set repository variables using GH_TOKEN
-          VARIABLES_SUCCESS=true
-          if [ -n "$GH_TOKEN" ]; then
-            echo "Setting UPSTREAM_REPO_URL variable to: $REPO_URL"
-            echo "URL length: ${#REPO_URL}"
-            if ! echo "$REPO_URL" | GH_TOKEN=$GH_TOKEN gh variable set UPSTREAM_REPO_URL --body-file -; then
-              echo "Failed to set UPSTREAM_REPO_URL variable"
-              VARIABLES_SUCCESS=false
-            fi
-          else
-            echo "GH_TOKEN not available, skipping variable configuration"
-            VARIABLES_SUCCESS=false
-          fi
-          echo "VARIABLES_SUCCESS=$VARIABLES_SUCCESS" >> $GITHUB_ENV
 
       - name: Upstream Repository
         env:
@@ -162,6 +163,26 @@ jobs:
           echo "✅ Using default branch: $DEFAULT_BRANCH" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           echo "DEFAULT_BRANCH=$DEFAULT_BRANCH" >> $GITHUB_ENV
           
+      - name: Configure Variables
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          REPO_URL: ${{ env.REPO_URL }}
+        run: |
+          # Set repository variables using GH_TOKEN
+          VARIABLES_SUCCESS=true
+          if [ -n "$GH_TOKEN" ]; then
+            echo "Setting UPSTREAM_REPO_URL variable to: $REPO_URL"
+            echo "URL length: ${#REPO_URL}"
+            if ! GH_TOKEN=$GH_TOKEN gh variable set UPSTREAM_REPO_URL --body "$REPO_URL"; then
+              echo "Failed to set UPSTREAM_REPO_URL variable"
+              VARIABLES_SUCCESS=false
+            fi
+          else
+            echo "GH_TOKEN not available, skipping variable configuration"
+            VARIABLES_SUCCESS=false
+          fi
+          echo "VARIABLES_SUCCESS=$VARIABLES_SUCCESS" >> $GITHUB_ENV
+
       - name: Branch Structure
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
