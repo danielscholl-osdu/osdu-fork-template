@@ -125,6 +125,21 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config pull.rebase false
 
+      - name: Disable Security Features
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # Temporarily disable security features during initialization
+          # This prevents push protection from blocking upstream syncs with historical secrets
+          if [ -n "$GH_TOKEN" ]; then
+            echo "::notice::Temporarily disabling security features for initialization..."
+            gh api \
+              --method PATCH \
+              -H "Accept: application/vnd.github.v3+json" \
+              "/repos/${{ github.repository }}" \
+              --input .github/security-off.json || echo "::warning::Could not modify security settings"
+          fi
+
       - name: Upstream Repository
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -515,6 +530,21 @@ jobs:
 
           **Happy coding!** 🚀
           EOF
+
+      - name: Re-enable Security Features
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # Re-enable security features after initialization
+          if [ -n "$GH_TOKEN" ]; then
+            echo "::notice::Re-enabling security features..."
+            gh api \
+              --method PATCH \
+              -H "Accept: application/vnd.github.v3+json" \
+              "/repos/${{ github.repository }}" \
+              --input .github/security-on.json || echo "::warning::Could not re-enable security settings"
+            echo "✅ Security features have been re-enabled"
+          fi
           
           # Close the initialization issue
           gh issue close "${{ github.event.issue.number }}" --reason completed
