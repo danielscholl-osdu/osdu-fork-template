@@ -365,36 +365,6 @@ jobs:
             GH_TOKEN=$GH_TOKEN gh variable set INITIALIZATION_COMPLETE --body "true"
           fi
 
-      - name: Trigger Validation
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          # Wait for GitHub to process the newly pushed workflows
-          echo "⏳ Waiting for GitHub to process new workflows..."
-          sleep 15
-          
-          if [ -n "$GH_TOKEN" ]; then
-            # Check if validation workflow exists before triggering
-            echo "🔍 Checking if validation workflow is available..."
-            if GH_TOKEN=$GH_TOKEN gh workflow view validate.yml >/dev/null 2>&1; then
-              echo "✅ Validation workflow found - triggering..."
-              if GH_TOKEN=$GH_TOKEN gh workflow run validate.yml \
-                -f post_init=true \
-                -f initialization_complete=true; then
-                echo "✅ Validation workflow triggered successfully"
-              else
-                echo "⚠️ Failed to trigger validation workflow"
-                echo "⚠️ **Note:** You can manually run the 'Validation' workflow from the Actions tab." | gh issue comment "${{ github.event.issue.number }}" --body-file -
-              fi
-            else
-              echo "⚠️ Validation workflow not yet available - GitHub may still be processing the push"
-              echo "⚠️ **Note:** Validation workflow will run automatically on future commits, or you can run it manually from the Actions tab." | gh issue comment "${{ github.event.issue.number }}" --body-file -
-            fi
-          else
-            echo "⚠️ **Manual validation recommended:** Please run the 'Validation' workflow manually from the Actions tab." | gh issue comment "${{ github.event.issue.number }}" --body-file -
-          fi
-
       - name: Branch Protection
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
