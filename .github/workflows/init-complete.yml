@@ -246,6 +246,8 @@ jobs:
           echo "Copying fork-specific workflows from template repository..."
           git checkout template/main -- .github/template-workflows/
           if [ -d ".github/template-workflows" ]; then
+            # Ensure workflows directory exists
+            mkdir -p .github/workflows
             cp .github/template-workflows/*.yml .github/workflows/
             echo "Copied workflows:"
             ls .github/template-workflows/*.yml | xargs -I {} basename {}
