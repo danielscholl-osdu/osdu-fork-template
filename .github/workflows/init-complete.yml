@@ -93,6 +93,7 @@ jobs:
       - name: Upstream Repository
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           UPSTREAM_REPO: ${{ needs.validate_and_setup.outputs.upstream_repo }}
         run: |
           # Convert to URL format
@@ -103,12 +104,17 @@ jobs:
           fi
 
           # Add upstream repository URL as secret
+          SECRETS_SUCCESS=true
           if [ -n "$GH_TOKEN" ]; then
             echo "Setting UPSTREAM_REPO_URL secret to: $REPO_URL"
             if ! GH_TOKEN=$GH_TOKEN gh secret set UPSTREAM_REPO_URL --body "$REPO_URL"; then
               echo "⚠️ **Warning:** Failed to set UPSTREAM_REPO_URL secret" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              SECRETS_SUCCESS=false
             fi
+          else
+            SECRETS_SUCCESS=false
           fi
+          echo "SECRETS_SUCCESS=$SECRETS_SUCCESS" >> $GITHUB_ENV
           
           # Add upstream remote
           git remote add upstream $REPO_URL
