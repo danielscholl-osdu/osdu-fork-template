@@ -6,8 +6,8 @@ This document specifies the two-workflow initialization pattern for the Fork Man
 
 The initialization process is split into two focused workflows that handle distinct phases:
 
-1. **`init.yml`** - User interface and issue management (222 lines)
-2. **`init-complete.yml`** - Repository setup and configuration (180 lines)
+1. **`init.yml`** - User interface and issue management (~40 lines, streamlined)
+2. **`init-complete.yml`** - Repository setup and configuration (~300 lines, comprehensive)
 
 This separation provides better error handling, clearer user communication, and improved maintainability compared to the previous single-workflow approach.
 
@@ -273,15 +273,21 @@ The standard validation workflow performs comprehensive checks:
 
 ### State Management
 
-**Environment File**: `.github/workflow.env`
+**Repository Variables**:
 ```bash
-INITIALIZATION_COMPLETE=true
-UPSTREAM_REPO_URL=$UPSTREAM_URL
+gh variable set INITIALIZATION_COMPLETE --body "true"
 ```
 
-**Secrets Configuration**:
+**Repository Secrets**:
 ```bash
-echo "$UPSTREAM_URL" | gh secret set UPSTREAM_REPO_URL
+gh secret set UPSTREAM_REPO_URL --body "$UPSTREAM_URL"
+```
+
+**Validation Detection**: Uses workflow inputs for immediate availability during manual triggers:
+```yaml
+workflow_dispatch:
+  inputs:
+    initialization_complete: true  # Bypasses timing issues
 ```
 
 ### Branch Protection Configuration

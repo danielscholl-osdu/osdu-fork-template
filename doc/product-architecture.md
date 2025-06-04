@@ -166,11 +166,9 @@ jobs:
     # Create user-friendly welcome issue with instructions
     # Support GitHub (owner/repo) and GitLab (URL) formats
     
-  update_readme:
-    # Add initialization status banner to README
 ```
 
-#### **init-complete.yml** - Repository Setup and Configuration (180 lines)
+#### **init-complete.yml** - Repository Setup and Configuration (~300 lines)
 ```yaml
 # User response handling
 name: Complete Initialization
@@ -185,17 +183,20 @@ jobs:
     
   setup_repository:
     # Create branch structure from upstream
-    # Configure workflows and secrets
+    # Configure workflows, secrets, and variables
     # Set up branch protection rules
-    # Update README and close issue
+    # Trigger validation workflow
+    # Self-cleanup initialization files
 ```
 
 **Key Improvements:**
 - **Separation of Concerns**: User interaction vs. system setup
-- **Better UX**: Friendly messages with emoji and progress updates
-- **State Management**: `.github/workflow.env` as primary initialization indicator
+- **Better UX**: Minimal issue comments, consolidated commits
+- **State Management**: Repository variables + workflow inputs for immediate availability
 - **Error Handling**: Clear validation with actionable feedback
-- **Maintainability**: Two focused workflows (222 + 180 lines vs. previous 492 lines)
+- **Self-Cleanup**: Removes initialization workflows after completion
+- **Integrated Validation**: Automatically triggers build validation
+- **Maintainability**: Two focused workflows (~40 + ~300 lines, streamlined)
 
 **Bootstrap Pattern (ADR-007):**
 The initialization workflow implements a self-updating bootstrap pattern to ensure that bug fixes and improvements are immediately available to new repositories:

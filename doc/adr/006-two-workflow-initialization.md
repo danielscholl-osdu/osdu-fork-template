@@ -21,17 +21,20 @@ The initialization process naturally divides into two distinct phases:
 ## Decision
 Split the initialization process into two focused workflows:
 
-1. **`init.yml`** - User interface and issue management (222 lines)
+1. **`init.yml`** - User interface and issue management (~40 lines, streamlined)
    - Triggered on push to main branch (template creation)
    - Creates initialization issue with user-friendly instructions
-   - Updates README with initialization status
    - Handles template vs. instance detection
+   - **Removed**: README status updates (unnecessary noise)
 
-2. **`init-complete.yml`** - Repository setup and configuration (180 lines)
+2. **`init-complete.yml`** - Repository setup and configuration (~300 lines, comprehensive)
    - Triggered on issue comments (user providing upstream repo)
    - Validates user input with clear error messages
    - Performs repository setup and configuration
-   - Provides progress updates and completion notification
+   - **Enhanced**: Repository variable state management
+   - **Enhanced**: Automatic validation workflow triggering
+   - **Streamlined**: Minimal issue comments, consolidated commits
+   - **Added**: Self-cleanup of initialization workflows
 
 ## Rationale
 

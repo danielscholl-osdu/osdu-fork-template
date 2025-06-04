@@ -24,16 +24,19 @@ The validation workflow provides comprehensive quality gates for pull requests a
 ```yaml
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
-    branches:
-      - main
-      - fork_integration
-      - fork_upstream
+    branches: [main, fork_integration, fork_upstream]
   push:
-    branches:
-      - main
-      - fork_integration
-      - fork_upstream
+    branches: [main, fork_integration, fork_upstream]
+  workflow_dispatch:
+    inputs:
+      post_init:
+        description: 'Is this a post-initialization validation?'
+        type: boolean
+        default: false
+      initialization_complete:
+        description: 'Force initialization status (used during post-init)'
+        type: boolean  
+        default: false
 ```
 
 ### Permissions

@@ -1,4 +1,4 @@
-name: Complete Initialization
+name: Initialize Complete
 
 on:
   issue_comment:
@@ -318,16 +318,37 @@ jobs:
             git push origin main
           fi
           
-          # Post completion message and close issue
-          # Check what was actually configured
+          # Build completion message based on what was actually configured
+          MANUAL_STEPS=""
+          
           if [ -n "$GH_TOKEN" ]; then
             PROTECTION_STATUS="✅ **Branch Protection:** All branches are protected with PR requirements"
-            SECRET_STATUS="✅ **Repository Secret:** UPSTREAM_REPO_URL configured"
+            SECRET_STATUS="✅ **Repository Secrets:** UPSTREAM_REPO_URL configured"
             SECURITY_STATUS="✅ **Security Features:** Secret scanning and dependency updates enabled"
           else
-            PROTECTION_STATUS="⚠️ **Branch Protection:** Manual configuration required (Settings → Branches)"
-            SECRET_STATUS="⚠️ **Repository Secret:** Manual configuration required (Settings → Secrets → Actions)"
-            SECURITY_STATUS="⚠️ **Security Features:** Manual configuration required (Settings → Security & analysis)"
+            PROTECTION_STATUS="⚠️ **Branch Protection:** Requires manual setup"
+            SECRET_STATUS="⚠️ **Repository Secrets:** Requires manual setup"  
+            SECURITY_STATUS="⚠️ **Security Features:** Requires manual setup"
+            
+            MANUAL_STEPS="## ⚠️ Manual Configuration Required
+
+Since no GH_TOKEN was provided, please complete these steps:
+
+### 1. Branch Protection
+- Go to **Settings → Branches**
+- For each branch (\`main\`, \`fork_upstream\`, \`fork_integration\`):
+  - Require pull request reviews before merging
+  - Require status checks to pass
+  
+### 2. Repository Secret
+- Go to **Settings → Secrets and variables → Actions**
+- Add secret: \`UPSTREAM_REPO_URL\` = \`$UPSTREAM_URL\`
+
+### 3. Security Features
+- Go to **Settings → Security & analysis**
+- Enable: Dependency graph, Dependabot alerts, Secret scanning
+
+"
           fi
           
           cat << EOF | gh issue comment "${{ github.event.issue.number }}" --body-file -
@@ -352,10 +373,12 @@ jobs:
 
           $SECURITY_STATUS
 
+          $MANUAL_STEPS
+
           ## Next Steps
 
           1. **Review the workflows** in the Actions tab
-          2. **Customize the README** with your project-specific information
+          2. **Customize the README** with your project-specific information  
           3. **Start developing** by creating feature branches from \`main\`
           4. **Sync with upstream** will happen automatically via the sync workflow
 
