@@ -32,14 +32,14 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Validate repository input
+      - name: Validate
         id: validate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Get the comment body and clean it
           COMMENT="${{ github.event.comment.body }}"
-          REPO=$(echo "$COMMENT" | tr -d '[:space:]' | head -1)
+          REPO=$(echo "$COMMENT" | head -1 | xargs)
           
           echo "Processing comment: $REPO"
           
