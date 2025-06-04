@@ -11,15 +11,18 @@ The initialization process is split into two focused workflows that handle disti
 
 This separation provides better error handling, clearer user communication, and improved maintainability compared to the previous single-workflow approach.
 
-## Architecture Decision
+## Architecture Decisions
 
-**Reference**: [ADR-006: Two-Workflow Initialization Pattern](adr/006-two-workflow-initialization.md)
+**References**: 
+- [ADR-006: Two-Workflow Initialization Pattern](adr/006-two-workflow-initialization.md)
+- [ADR-015: Template-Workflows Separation Pattern](adr/015-template-workflows-separation-pattern.md)
 
 **Key Benefits**:
 - **Separation of Concerns**: User interaction vs. system setup
 - **Better UX**: Friendly messages with progress updates
 - **Maintainability**: Focused workflows easier to debug and modify
 - **State Management**: Clear initialization indicators
+- **Clean Fork Repositories**: Only production workflows copied (no template pollution)
 
 ## Workflow 1: init.yml - User Interface
 
@@ -181,14 +184,21 @@ sequenceDiagram
    # Copy files according to sync configuration
    git checkout main -- .github/sync-config.json
    
-   # Copy directories, files, and essential workflows from main
-   # based on .github/sync-config.json rules
+   # Copy directories and files from main based on .github/sync-config.json rules
+   # Copy template configuration and support files
+   
+   # Add template remote for workflow and template updates
+   git remote add template "$TEMPLATE_REPO_URL"
+   git fetch template main --depth=1
+   
+   # Copy fork production workflows from template-workflows/ (ADR-015)
+   git checkout template/main -- .github/template-workflows/
+   mkdir -p .github/workflows
+   cp .github/template-workflows/*.yml .github/workflows/
    
    # Initialize tracking files including .github/.template-sync-commit
-   # Add template remote for future template updates
-   git remote add template "$TEMPLATE_REPO_URL"
    
-   git commit -m "chore: copy workflows from main branch"
+   git commit -m "chore: copy configuration and workflows from main branch"
    git push -u origin fork_integration
    ```
 
@@ -420,6 +430,8 @@ Prevents multiple initialization attempts on the same issue while allowing paral
 ## References
 
 - [ADR-006: Two-Workflow Initialization Pattern](adr/006-two-workflow-initialization.md)
-- [Product Architecture: Initialization](product-architecture.md#42-two-workflow-initialization-architecture-adr-006)
+- [ADR-015: Template-Workflows Separation Pattern](adr/015-template-workflows-separation-pattern.md)
+- [Product Architecture: Initialization](product-architecture.md#42-initialize-architecture-initylm--init-completeyml)
+- [Workflow Distribution Strategy](workflow-strategy.md)
 - [Sync Workflow Specification](sync-workflow.md)
 - [Build Workflow Specification](build-workflow.md)
