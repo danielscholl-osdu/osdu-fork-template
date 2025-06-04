@@ -99,7 +99,7 @@ jobs:
           if [ -n "$GH_TOKEN" ]; then
             echo "Setting UPSTREAM_REPO_URL variable to: $REPO_URL"
             echo "URL length: ${#REPO_URL}"
-            if ! GH_TOKEN=$GH_TOKEN gh variable set UPSTREAM_REPO_URL --body "$REPO_URL"; then
+            if ! echo "$REPO_URL" | GH_TOKEN=$GH_TOKEN gh variable set UPSTREAM_REPO_URL --body-file -; then
               echo "Failed to set UPSTREAM_REPO_URL variable"
               VARIABLES_SUCCESS=false
             fi
