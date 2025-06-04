@@ -178,8 +178,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "🔀 **Updating main branch...**" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-          
           # Merge fork_integration into main with conflict resolution
           git checkout main
           
@@ -228,7 +226,7 @@ jobs:
               -f post_init=true \
               -f initialization_complete=true
             
-            echo "✅ **Validation workflow triggered!** Check the Actions tab for build results." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            # Validation workflow triggered - will run automatically
           else
             # Fallback: manual instruction
             echo "⚠️ **Manual validation recommended:** Please run the 'Validation' workflow manually from the Actions tab." | gh issue comment "${{ github.event.issue.number }}" --body-file -
