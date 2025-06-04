@@ -20,16 +20,22 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
       - name: Install Security Tools
         run: |
           # Install Trivy
           echo "Installing Trivy..."
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.49.1
           
-          echo "Installing Claude CLI..."
-          npm install -g @anthropic-ai/claude-cli
-            
-            # Create .mcp.json in the repository root for Claude
+          # Install Claude Code
+          echo "Installing Claude Code..."
+          npm install -g @anthropic-ai/claude-code
+          
+          # Create .mcp.json in the repository root for Claude
           cat > .mcp.json << 'EOF'
           {
             "mcpServers": {
@@ -47,7 +53,7 @@ jobs:
           }
           EOF
           
-          echo "Claude CLI installed and configured with mvn.mcp"
+          echo "Claude Code installed and MCP configured"
 
       - name: Setup Python and PR Generator
         run: |
@@ -120,88 +126,35 @@ jobs:
           # Get the changes for the PR description
           CHANGES=$(git log --pretty=format:"* %s" fork_upstream..$SYNC_BRANCH)
           
-          # Check if any LLM API key is available for enhanced PR description
-          USE_LLM=false
-          LLM_MODEL=""
+          # Prepare fallback description for PR
+          FALLBACK_DESCRIPTION="Automated PR to sync with upstream repository changes."$'\n\n'"### Changes from upstream:"$'\n'"${CHANGES}"
+          echo "FALLBACK_DESCRIPTION<<EOF" >> $GITHUB_ENV
+          echo "$FALLBACK_DESCRIPTION" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
           
-          # Check for Anthropic API key (default)
-          if [[ -n "$ANTHROPIC_API_KEY" ]]; then
-            USE_LLM=true
-            LLM_MODEL="claude-4"
-            echo "Using Anthropic Claude 4 Sonnet for PR description generation"
-            echo "USE_LLM=true" >> $GITHUB_ENV
-          # Check for Azure OpenAI API key
-          elif [[ -n "$AZURE_API_KEY" && -n "$AZURE_API_BASE" ]]; then
-            USE_LLM=true
-            LLM_MODEL="azure/gpt-4o"
-            echo "Using Azure OpenAI GPT-4o for PR description generation"
-            echo "USE_LLM=true" >> $GITHUB_ENV
-          # Check for OpenAI API key
-          elif [[ -n "$OPENAI_API_KEY" ]]; then
-            USE_LLM=true
-            LLM_MODEL="gpt-4.1"
-            echo "Using OpenAI GPT-4 for PR description generation"
-            echo "USE_LLM=true" >> $GITHUB_ENV
-          else
-            echo "No LLM API keys found. Using default PR description."
-            echo "USE_LLM=false" >> $GITHUB_ENV
-          fi
-          
-          # Calculate diff size to avoid generating prompts that exceed model limits
-          MAX_DIFF_LINES=20000
-          DIFF_LINES=$(git diff fork_upstream | wc -l | tr -d ' ')
-          # Ensure DIFF_LINES is a valid numeric value
-          if [[ -z "$DIFF_LINES" || ! "$DIFF_LINES" =~ ^[0-9]+$ ]]; then
-            DIFF_LINES=0
-          fi
-          echo "Diff contains $DIFF_LINES lines"
-          
-          # Initialize security analysis variable
-          SECURITY_ANALYSIS=""
-          
-          # Run security analysis if we have Anthropic API key
-          if [[ -n "$ANTHROPIC_API_KEY" ]]; then
-            echo "Running AI enhanced security vulnerability analysis..."            
-          fi
+      - name: Create enhanced sync PR
+        id: create-pr
+        uses: ./.github/actions/create-enhanced-pr
+        with:
+          github-token: ${{ secrets.GH_TOKEN }}
+          base-branch: fork_upstream
+          head-branch: ${{ env.SYNC_BRANCH }}
+          pr-title: "⬆️ Sync with upstream ${{ env.UPSTREAM_VERSION }}"
+          fallback-description: ${{ env.FALLBACK_DESCRIPTION }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          azure-api-key: ${{ secrets.AZURE_API_KEY }}
+          azure-api-base: ${{ secrets.AZURE_API_BASE }}
+          azure-api-version: ${{ secrets.AZURE_API_VERSION }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          target-branch-for-aipr: fork_upstream
+          use-vulns-flag: 'true'
 
-          if [[ -n "$LLM_MODEL" && "$DIFF_LINES" -le "$MAX_DIFF_LINES" ]]; then
-            # Generate PR description using aipr
-            echo "Generating PR description using $LLM_MODEL..."
-            # Save current branch and target for reference
-            CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-            TARGET_BRANCH="fork_upstream"
-
-            # Use the aipr tool with the --vulns flag and diff limit parameter
-            PR_DESCRIPTION=$(aipr -t $TARGET_BRANCH --vulns -p meta -m $LLM_MODEL --max-diff-lines $MAX_DIFF_LINES)
-
-            echo "Generated enhanced PR description using $LLM_MODEL"
-          else
-            if [[ "$DIFF_LINES" -gt "$MAX_DIFF_LINES" ]]; then
-              echo "Diff is larger than $MAX_DIFF_LINES lines; skipping aipr description"
-            fi
-            # Use default PR description
-            PR_DESCRIPTION="Automated PR to sync with upstream repository changes."$'\n\n'"### Changes from upstream:"$'\n'"${CHANGES}"
-            echo "Using default PR description"
-          fi
-          
-          # Append security analysis if available
-          if [[ -n "$SECURITY_ANALYSIS" ]]; then
-            PR_DESCRIPTION="${PR_DESCRIPTION}"$'\n\n'"## 🛡️ Security Analysis"$'\n\n'"${SECURITY_ANALYSIS}"
-            echo "Added security analysis to PR description"
-          fi
-          
-          # Create PR with description
-          echo "Creating PR from branch $SYNC_BRANCH to fork_upstream"
-          PR_URL=$(gh pr create \
-            --base fork_upstream \
-            --head $SYNC_BRANCH \
-            --title "⬆️ Sync with upstream $UPSTREAM_VERSION" \
-            --body "${PR_DESCRIPTION}")
-          
-          echo "PR created: $PR_URL"
-          
-          # Extract PR number with simple string manipulation
-          PR_NUMBER=$(basename $PR_URL)
+      - name: Create linked issue and update PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          PR_URL="${{ steps.create-pr.outputs.pr-url }}"
+          PR_NUMBER="${{ steps.create-pr.outputs.pr-number }}
           echo "PR number: $PR_NUMBER"
             
           # Create a linked issue with basic content

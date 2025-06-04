@@ -81,7 +81,7 @@ Implement the fork management system as a GitHub Template Repository with automa
 - **GitHub Lock-in**: Tied specifically to GitHub's template repository feature
 - **Limited Customization**: Initial setup options are constrained by issue form capabilities
 - **Bootstrap Complexity**: Self-modifying workflows add complexity to initialization
-- **Update Propagation**: Changes to template don't automatically update existing repositories
+- ~~**Update Propagation**: Changes to template don't automatically update existing repositories~~ **[RESOLVED by ADR-011, ADR-012]**
 
 ## Implementation Details
 

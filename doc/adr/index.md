@@ -16,6 +16,10 @@ Architecture Decision Records for Fork Management Template
 | 008 | Centralized Label Management Strategy      | Accepted | 2025-06-03 | [ADR-008](008-centralized-label-management.md) |
 | 009 | Asymmetric Cascade Review Strategy         | Accepted | 2025-06-03 | [ADR-009](009-asymmetric-cascade-review-strategy.md) |
 | 010 | YAML-Safe Shell Scripting in GitHub Actions | Accepted | 2025-06-03 | [ADR-010](010-yaml-safe-shell-scripting.md) |
+| 011 | Configuration-Driven Template Synchronization | Accepted | 2025-06-04 | [ADR-011](011-configuration-driven-template-sync.md) |
+| 012 | Template Update Propagation Strategy | Accepted | 2025-06-04 | [ADR-012](012-template-update-propagation-strategy.md) |
+| 013 | Reusable GitHub Actions Pattern for PR Creation | Accepted | 2025-06-04 | [ADR-013](013-reusable-github-actions-pattern.md) |
+| 014 | AI-Enhanced Development Workflow Integration | Accepted | 2025-06-04 | [ADR-014](014-ai-enhanced-development-workflow.md) |
 
 ## Overview
 
@@ -54,3 +58,23 @@ These Architecture Decision Records document the key design choices made in the 
 - Release Please with Conventional Commits
 - Automated semantic versioning
 - Upstream version reference tracking
+
+**Configuration-Driven Template Sync (ADR-011)**
+- `.github/sync-config.json` defines what files get synced
+- Selective synchronization between template and forked repositories
+- Automated cleanup of template-specific content
+
+**Template Update Propagation (ADR-012)**
+- Weekly automated template updates via `template-sync.yml`
+- AI-enhanced PR descriptions for template changes
+- Solves template drift problem for forked repositories
+
+**Reusable GitHub Actions (ADR-013)**
+- Custom composite action for AI-enhanced PR creation
+- DRY principle for common workflow functionality
+- Centralized AI integration with multiple provider support
+
+**AI-Enhanced Workflows (ADR-014)**
+- Claude Code CLI integration with MCP server support
+- Multi-provider AI support (Anthropic, Azure OpenAI, OpenAI)
+- AI-powered security analysis and PR description generation

@@ -165,8 +165,40 @@ jobs:
           # Create fork_integration from fork_upstream
           git checkout -b fork_integration fork_upstream
           
-          # Copy essential files from main branch
-          git checkout main -- .github/workflows/ .github/actions/ .github/dependabot.yml || true
+          # Copy files according to sync configuration
+          # First, get the sync configuration
+          git checkout main -- .github/sync-config.json
+          
+          # Copy directories that should be synced entirely
+          DIRECTORIES=$(jq -r '.sync_rules.directories[] | .path' .github/sync-config.json)
+          for dir in $DIRECTORIES; do
+            echo "Copying directory: $dir"
+            git checkout main -- "$dir/" || echo "Directory $dir not found, skipping"
+          done
+          
+          # Copy individual files
+          FILES=$(jq -r '.sync_rules.files[] | .path' .github/sync-config.json)
+          for file in $FILES; do
+            echo "Copying file: $file"
+            git checkout main -- "$file" || echo "File $file not found, skipping"
+          done
+          
+          # Copy essential workflows only (not template-only workflows)
+          mkdir -p .github/workflows
+          WORKFLOWS=$(jq -r '.sync_rules.workflows.essential[] | .path' .github/sync-config.json)
+          for workflow in $WORKFLOWS; do
+            echo "Copying essential workflow: $workflow"
+            git checkout main -- "$workflow" || echo "Workflow $workflow not found, skipping"
+          done
+          
+          # Initialize tracking files
+          TRACKING_FILES=$(jq -r '.sync_rules.tracking_files[] | select(.auto_create == true) | .path' .github/sync-config.json)
+          for tracking_file in $TRACKING_FILES; do
+            echo "Initializing tracking file: $tracking_file"
+            mkdir -p "$(dirname "$tracking_file")"
+            echo "" > "$tracking_file"
+            git add "$tracking_file"
+          done
           
           # Commit workflow files (no need for workflow.env anymore)
           git add .github
@@ -197,15 +229,38 @@ jobs:
             git commit -m "chore: complete repository initialization (conflicts resolved using upstream versions)"
           fi
           
-          # Clean up template files before pushing (combine with merge commit)
-          rm -rf doc/
-          rm -f .github/copilot-instructions.md
-          rm -f CLAUDE.md
-          rm -rf .claude/
+          # Clean up template files using sync configuration
+          echo "Cleaning up template-specific files..."
           
-          # Remove initialization workflows (no longer needed after setup)
-          rm -f .github/workflows/init.yml
-          rm -f .github/workflows/init-complete.yml
+          # Read cleanup rules from sync configuration
+          SYNC_CONFIG=".github/sync-config.json"
+          
+          # Remove directories specified in cleanup rules
+          CLEANUP_DIRS=$(jq -r '.cleanup_rules.directories[]? | .path' "$SYNC_CONFIG" 2>/dev/null || echo "")
+          for dir in $CLEANUP_DIRS; do
+            if [ -d "$dir" ]; then
+              echo "Removing template directory: $dir"
+              rm -rf "$dir"
+            fi
+          done
+          
+          # Remove files specified in cleanup rules
+          CLEANUP_FILES=$(jq -r '.cleanup_rules.files[]? | .path' "$SYNC_CONFIG" 2>/dev/null || echo "")
+          for file in $CLEANUP_FILES; do
+            if [ -f "$file" ]; then
+              echo "Removing template file: $file"
+              rm -f "$file"
+            fi
+          done
+          
+          # Remove workflows specified in cleanup rules
+          CLEANUP_WORKFLOWS=$(jq -r '.cleanup_rules.workflows[]? | .path' "$SYNC_CONFIG" 2>/dev/null || echo "")
+          for workflow in $CLEANUP_WORKFLOWS; do
+            if [ -f "$workflow" ]; then
+              echo "Removing initialization workflow: $workflow"
+              rm -f "$workflow"
+            fi
+          done
           
           # Add cleanup to the merge commit if there are changes
           git add -A

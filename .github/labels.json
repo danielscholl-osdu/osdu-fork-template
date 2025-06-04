@@ -104,6 +104,16 @@
       "name": "release-tracking",
       "description": "Tracks release-related activities",
       "color": "5319e7"
+    },
+    {
+      "name": "template-sync-failed",
+      "description": "Template synchronization failures",
+      "color": "d73a4a"
+    },
+    {
+      "name": "template-update",
+      "description": "Updates from template repository",
+      "color": "0075ca"
     }
   ]
 }
