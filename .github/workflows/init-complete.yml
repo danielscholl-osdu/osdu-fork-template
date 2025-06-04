@@ -205,6 +205,10 @@ jobs:
           rm -f CLAUDE.md
           rm -rf .claude/
           
+          # Remove initialization workflows (no longer needed after setup)
+          rm -f .github/workflows/init.yml
+          rm -f .github/workflows/init-complete.yml
+          
           # Add cleanup to the merge commit if there are changes
           git add -A
           if ! git diff --staged --quiet; then
