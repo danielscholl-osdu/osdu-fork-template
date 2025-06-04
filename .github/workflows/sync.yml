@@ -6,7 +6,7 @@ on:
   workflow_dispatch:      # Allow manual trigger
 
 jobs:
-  Sync:
+  sync:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -154,7 +154,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           PR_URL="${{ steps.create-pr.outputs.pr-url }}"
-          PR_NUMBER="${{ steps.create-pr.outputs.pr-number }}
+          PR_NUMBER="${{ steps.create-pr.outputs.pr-number }}"
           echo "PR number: $PR_NUMBER"
             
           # Create a linked issue with basic content

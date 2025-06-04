@@ -6,7 +6,7 @@ on:
   workflow_dispatch:      # Allow manual trigger
 
 jobs:
-  template-sync:
+  sync:
     runs-on: ubuntu-latest
     permissions:
       contents: write
