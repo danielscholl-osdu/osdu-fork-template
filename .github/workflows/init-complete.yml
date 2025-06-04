@@ -236,9 +236,16 @@ jobs:
             git checkout main -- "$file" || echo "File $file not found, skipping"
           done
           
-          # Note: Fork workflows are in template-workflows/ and will be copied during merge cleanup
-          # Just ensure the workflows directory exists for now
-          mkdir -p .github/workflows
+          # Copy fork workflows from template-workflows to workflows directory
+          # This must happen before merge to avoid GitHub App workflow permission issues
+          echo "Copying fork-specific workflows from template-workflows..."
+          if [ -d ".github/template-workflows" ]; then
+            cp .github/template-workflows/*.yml .github/workflows/
+            echo "Copied workflows:"
+            ls .github/template-workflows/*.yml | xargs -I {} basename {}
+          else
+            echo "⚠️ Warning: .github/template-workflows directory not found"
+          fi
           
           # Add template remote to be able to track template updates
           TEMPLATE_REPO_URL="${{ vars.TEMPLATE_REPO_URL || 'https://github.com/danielscholl-osdu/osdu-fork-template.git' }}"
@@ -268,9 +275,9 @@ jobs:
             git add "$tracking_file"
           done
           
-          # Commit workflow files (no need for workflow.env anymore)
+          # Commit all copied files including workflows
           git add .github
-          git commit -m "chore: copy workflows from main branch"
+          git commit -m "chore: copy configuration and workflows from main branch"
           git push -u origin fork_integration
 
       - name: Merge to Main
@@ -297,22 +304,12 @@ jobs:
             git commit -m "chore: complete repository initialization (conflicts resolved using upstream versions)"
           fi
           
-          # Replace development workflows with template workflows
-          echo "Replacing template development workflows with fork workflows..."
+          # Clean up template development workflows and template-workflows directory
+          echo "Cleaning up template development workflows..."
           
           # Remove all dev-* workflows (template development only)
           echo "Removing template development workflows..."
           rm -f .github/workflows/dev-*.yml
-          
-          # Copy template workflows to active workflows directory
-          echo "Copying fork-specific workflows from template-workflows..."
-          if [ -d ".github/template-workflows" ]; then
-            cp .github/template-workflows/*.yml .github/workflows/
-            echo "Copied workflows:"
-            ls .github/template-workflows/*.yml | xargs -I {} basename {}
-          else
-            echo "⚠️ Warning: .github/template-workflows directory not found"
-          fi
           
           # Remove the template-workflows directory (no longer needed)
           echo "Cleaning up template-workflows directory..."
