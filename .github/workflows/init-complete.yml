@@ -73,7 +73,7 @@ jobs:
           EOF
 
   setup_repository:
-    name: Setup repository structure
+    name: Setup Repository
     needs: validate_and_setup
     if: needs.validate_and_setup.outputs.should_proceed == 'true'
     runs-on: ubuntu-latest
@@ -90,24 +90,29 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config pull.rebase false
 
-      - name: Setup upstream repository
+      - name: Upstream Repository
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           UPSTREAM_REPO: ${{ needs.validate_and_setup.outputs.upstream_repo }}
         run: |
-          
           # Convert to URL format
           if [[ "$UPSTREAM_REPO" == http* ]]; then
             REPO_URL="$UPSTREAM_REPO.git"
           else
             REPO_URL="https://github.com/$UPSTREAM_REPO.git"
           fi
+
+          # Add upstream repository URL as secret
+          if [ -n "$GH_TOKEN" ]; then
+            echo "Setting UPSTREAM_REPO_URL secret to: $REPO_URL"
+            if ! GH_TOKEN=$GH_TOKEN gh secret set UPSTREAM_REPO_URL --body "$REPO_URL"; then
+              echo "⚠️ **Warning:** Failed to set UPSTREAM_REPO_URL secret" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            fi
+          fi
           
           # Add upstream remote
           git remote add upstream $REPO_URL
           git fetch upstream --prune --tags
-          
-          # List available branches for debugging
           
           # Get all branches from upstream
           BRANCHES=$(git branch -r | grep upstream | sed 's/upstream\///' | grep -v HEAD | tr '\n' ' ')
@@ -141,11 +146,9 @@ jobs:
           fi
           
           echo "✅ Using default branch: $DEFAULT_BRANCH" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-          
           echo "DEFAULT_BRANCH=$DEFAULT_BRANCH" >> $GITHUB_ENV
-          echo "UPSTREAM_URL=$REPO_URL" >> $GITHUB_ENV
-
-      - name: Create branch structure
+          
+      - name: Branch Structure
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -224,7 +227,7 @@ jobs:
           git commit -m "chore: copy workflows from main branch"
           git push -u origin fork_integration
 
-      - name: Merge to main and setup secrets
+      - name: Merge to Main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -306,38 +309,10 @@ jobs:
             echo "⚠️ **Manual validation recommended:** Please run the 'Validation' workflow manually from the Actions tab." | gh issue comment "${{ github.event.issue.number }}" --body-file -
           fi
           
-          # Store upstream repo URL as secret using PAT if available
-          SECRETS_SUCCESS=true
-          echo "Debug: UPSTREAM_URL value is: '$UPSTREAM_URL'"
-          
-          if [ -z "$UPSTREAM_URL" ]; then
-            echo "⚠️ **Error:** UPSTREAM_URL is empty. Cannot set secret." | gh issue comment "${{ github.event.issue.number }}" --body-file -
-            SECRETS_SUCCESS=false
-          elif [ -n "$GH_TOKEN" ]; then
-            echo "Setting UPSTREAM_REPO_URL secret to: $UPSTREAM_URL"
-            if ! GH_TOKEN=$GH_TOKEN gh secret set UPSTREAM_REPO_URL --body "$UPSTREAM_URL"; then
-              echo "⚠️ **Warning:** Failed to set UPSTREAM_REPO_URL secret" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-              SECRETS_SUCCESS=false
-            fi
-          else
-            echo "⚠️ **Warning:** Unable to set UPSTREAM_REPO_URL secret. Please set it manually or provide a GH_TOKEN secret with appropriate permissions." | gh issue comment "${{ github.event.issue.number }}" --body-file -
-            SECRETS_SUCCESS=false
-          fi
-          
           # Set repository variable for initialization status
-          if [ -n "$GH_TOKEN" ]; then
-            if ! GH_TOKEN=$GH_TOKEN gh variable set INITIALIZATION_COMPLETE --body "true"; then
-              echo "⚠️ **Warning:** Failed to set repository variable" | gh issue comment "${{ github.event.issue.number }}" --body-file -
-              SECRETS_SUCCESS=false
-            fi
-          else
-            echo "⚠️ **Warning:** Unable to set repository variable. Please set INITIALIZATION_COMPLETE=true manually in Settings → Secrets and variables → Actions → Variables." | gh issue comment "${{ github.event.issue.number }}" --body-file -
-            SECRETS_SUCCESS=false
-          fi
-          
-          echo "SECRETS_SUCCESS=$SECRETS_SUCCESS" >> $GITHUB_ENV
+          GH_TOKEN=$GH_TOKEN gh variable set INITIALIZATION_COMPLETE --body "true"
 
-      - name: Configure branch protection
+      - name: Branch Protection
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -381,7 +356,7 @@ jobs:
           
           echo "BRANCH_PROTECTION_SUCCESS=$BRANCH_PROTECTION_SUCCESS" >> $GITHUB_ENV
 
-      - name: Enable security features
+      - name: Configure Security
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -407,21 +382,10 @@ jobs:
           
           echo "SECURITY_SUCCESS=$SECURITY_SUCCESS" >> $GITHUB_ENV
 
-      - name: Update README status
+      - name: Update Status
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Update README to remove initialization status if it still exists
-          git pull origin main
-          if grep -q "Repository Status: Initialization Required" README.md; then
-            # Remove the initialization status section
-            sed -i '/## 🔄 Repository Status: Initialization Required/,/---/d' README.md
-            
-            git add README.md
-            git commit -m "docs: remove initialization status from README"
-            git push origin main
-          fi
-          
           # Build completion message based on actual success/failure
           if [ "$BRANCH_PROTECTION_SUCCESS" = "true" ]; then
             PROTECTION_STATUS="✅ **Branch Protection:** All branches are protected with PR requirements"
