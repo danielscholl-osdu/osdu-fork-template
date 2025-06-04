@@ -11,7 +11,7 @@ The sync workflow automates the integration of upstream changes into fork reposi
 **Reference**: [ADR-001: Three-Branch Fork Management Strategy](adr/001-three-branch-strategy.md)
 
 **Key Benefits**:
-- **Automated Sync**: Weekly upstream integration without manual intervention
+- **Automated Sync**: Daily upstream integration without manual intervention
 - **Conflict Safety**: Conflicts isolated in dedicated integration branch
 - **AI Enhancement**: Optional LLM-generated PR descriptions for better context
 - **Scalable Process**: Handles repositories of varying sizes and complexity
@@ -22,7 +22,7 @@ The sync workflow automates the integration of upstream changes into fork reposi
 ```yaml
 on:
   schedule:
-    - cron: '0 0 * * 0'  # Weekly Sunday midnight UTC
+    - cron: '0 0 * * *'  # Daily at midnight UTC
   workflow_dispatch:     # Manual trigger capability
 ```
 
@@ -61,6 +61,32 @@ flowchart TD
 ```
 
 ### Phase 1: Environment Setup
+
+**Security Tools Installation**:
+```bash
+# Install Trivy for vulnerability scanning
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.49.1
+
+# Install Claude Code for AI-enhanced analysis
+npm install -g @anthropic-ai/claude-code
+
+# Configure MCP (Model Context Protocol) for Maven projects
+cat > .mcp.json << 'EOF'
+{
+  "mcpServers": {
+    "mvn-mcp-server": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/danielscholl-osdu/mvn-mcp-server@main", "mvn-mcp-server"],
+      "env": {}
+    }
+  }
+}
+EOF
+
+# Install pr-generator-agent for AI-enhanced PR descriptions
+pip install pr-generator-agent
+```
 
 **Repository Configuration**:
 ```bash
@@ -137,24 +163,23 @@ fi
 #### Clean Merge Path
 
 **AI-Enhanced PR Description**:
-```yaml
-# Check diff size for AI processing
-DIFF_LINES=$(git diff --stat origin/main..HEAD | tail -1 | awk '{print $4}' | tr -d '+')
+```bash
+# Calculate diff size to avoid generating prompts that exceed model limits
+MAX_DIFF_LINES=20000
+DIFF_LINES=$(git diff fork_upstream | wc -l | tr -d ' ')
 
-if [ "${DIFF_LINES:-0}" -le "$DIFF_SIZE_LIMIT" ]; then
-  # Generate AI-enhanced description
-  if [ -n "$CLAUDE_API_KEY" ] || [ -n "$OPENAI_API_KEY" ]; then
-    DESCRIPTION=$(generate_ai_description)
-  fi
+if [[ "$USE_LLM" == "true" && "$DIFF_LINES" -le "$MAX_DIFF_LINES" ]]; then
+  # Use aipr tool with vulnerability analysis
+  PR_DESCRIPTION=$(aipr -t fork_upstream --vulns -p meta -m $LLM_MODEL --max-diff-lines $MAX_DIFF_LINES 2>/dev/null || echo "")
 fi
 ```
 
 **PR Creation**:
 ```yaml
 gh pr create \
-  --title "feat: sync upstream changes $(date +%Y-%m-%d)" \
+  --title "⬆️ Sync with upstream $UPSTREAM_VERSION" \
   --body "$PR_DESCRIPTION" \
-  --base main \
+  --base fork_upstream \
   --head "$BRANCH_NAME" \
   --label "upstream-sync"
 ```
@@ -185,9 +210,9 @@ gh issue create \
 ### Phase 5: AI-Enhanced Descriptions
 
 **Supported Providers**:
-- **Claude (Anthropic)**: Primary choice for code analysis
-- **OpenAI GPT-4**: Fallback option
-- **Gemini**: Additional provider support
+- **Claude (Anthropic)**: Primary choice (`claude-4` model)
+- **Azure OpenAI**: Secondary option (`azure/gpt-4o` model)  
+- **OpenAI GPT-4**: Tertiary option (`gpt-4.1` model)
 
 **Prompt Template**:
 ```
@@ -315,12 +340,13 @@ done
 # Required
 UPSTREAM_REPO_URL: Set during initialization
 
-# Optional AI Enhancement
-CLAUDE_API_KEY: For Claude-powered descriptions
-OPENAI_API_KEY: For GPT-4 powered descriptions
+# Optional AI Enhancement  
+ANTHROPIC_API_KEY: For Claude-powered descriptions
+AZURE_API_KEY: For Azure OpenAI powered descriptions (with AZURE_API_BASE, AZURE_API_VERSION)
+OPENAI_API_KEY: For OpenAI GPT-4 powered descriptions
 
 # Behavior Customization
-SYNC_SCHEDULE: Default "0 0 * * 0" (weekly)
+SYNC_SCHEDULE: Default "0 0 * * *" (daily)
 DIFF_SIZE_LIMIT: Default 20000 lines
 AUTO_MERGE_THRESHOLD: Default 1000 lines
 ```
@@ -328,7 +354,7 @@ AUTO_MERGE_THRESHOLD: Default 1000 lines
 ### Workflow Customization
 ```yaml
 # Custom sync schedule
-- cron: '0 2 * * 1'  # Monday 2 AM
+- cron: '0 2 * * 1'  # Monday 2 AM (change from default daily)
 
 # Custom diff limits
 env:

@@ -177,8 +177,18 @@ sequenceDiagram
 2. **fork_integration**: Created from fork_upstream
    ```bash
    git checkout -b fork_integration fork_upstream
-   # Add workflow.env and copy essential files
-   git commit -m "chore: add workflow environment and copy workflows"
+   
+   # Copy files according to sync configuration
+   git checkout main -- .github/sync-config.json
+   
+   # Copy directories, files, and essential workflows from main
+   # based on .github/sync-config.json rules
+   
+   # Initialize tracking files including .github/.template-sync-commit
+   # Add template remote for future template updates
+   git remote add template "$TEMPLATE_REPO_URL"
+   
+   git commit -m "chore: copy workflows from main branch"
    git push -u origin fork_integration
    ```
 
@@ -278,16 +288,14 @@ The standard validation workflow performs comprehensive checks:
 gh variable set INITIALIZATION_COMPLETE --body "true"
 ```
 
-**Repository Secrets**:
+**Repository Variables**:
 ```bash
-gh secret set UPSTREAM_REPO_URL --body "$UPSTREAM_URL"
+gh variable set UPSTREAM_REPO_URL --body "$UPSTREAM_URL"
 ```
 
-**Validation Detection**: Uses workflow inputs for immediate availability during manual triggers:
-```yaml
-workflow_dispatch:
-  inputs:
-    initialization_complete: true  # Bypasses timing issues
+**Validation Detection**: Uses repository variables:
+```bash
+gh variable set INITIALIZATION_COMPLETE --body "true"
 ```
 
 ### Branch Protection Configuration
