@@ -235,34 +235,46 @@ jobs:
           fi
           
           # Store upstream repo URL as secret using PAT if available
+          SECRETS_SUCCESS=true
           if [ -n "$GH_TOKEN" ]; then
-            GH_TOKEN=$GH_TOKEN gh secret set UPSTREAM_REPO_URL --body "$UPSTREAM_URL"
+            if ! GH_TOKEN=$GH_TOKEN gh secret set UPSTREAM_REPO_URL --body "$UPSTREAM_URL"; then
+              echo "⚠️ **Warning:** Failed to set UPSTREAM_REPO_URL secret" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              SECRETS_SUCCESS=false
+            fi
           else
             echo "⚠️ **Warning:** Unable to set UPSTREAM_REPO_URL secret. Please set it manually or provide a GH_TOKEN secret with appropriate permissions." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            SECRETS_SUCCESS=false
           fi
           
           # Set repository variable for initialization status
           if [ -n "$GH_TOKEN" ]; then
-            GH_TOKEN=$GH_TOKEN gh variable set INITIALIZATION_COMPLETE --body "true"
+            if ! GH_TOKEN=$GH_TOKEN gh variable set INITIALIZATION_COMPLETE --body "true"; then
+              echo "⚠️ **Warning:** Failed to set repository variable" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              SECRETS_SUCCESS=false
+            fi
           else
             echo "⚠️ **Warning:** Unable to set repository variable. Please set INITIALIZATION_COMPLETE=true manually in Settings → Secrets and variables → Actions → Variables." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            SECRETS_SUCCESS=false
           fi
+          
+          echo "SECRETS_SUCCESS=$SECRETS_SUCCESS" >> $GITHUB_ENV
 
       - name: Configure branch protection
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
+          BRANCH_PROTECTION_SUCCESS=true
           
           # Try to create branch protection rules
           if [ -n "$GH_TOKEN" ]; then
             # Use PAT for branch protection
             for branch in main fork_upstream fork_integration; do
-              GH_TOKEN=$GH_TOKEN gh api \
+              if ! GH_TOKEN=$GH_TOKEN gh api \
                 --method PUT \
                 -H "Accept: application/vnd.github.v3+json" \
                 "/repos/${{ github.repository }}/branches/$branch/protection" \
-                --input - << 'EOF' || echo "⚠️ Failed to protect branch $branch"
+                --input - << 'EOF'
           {
             "required_status_checks": {
               "strict": true,
@@ -278,30 +290,44 @@ jobs:
             "allow_deletions": false
           }
           EOF
+              then
+                echo "⚠️ Failed to protect branch $branch"
+                BRANCH_PROTECTION_SUCCESS=false
+              fi
             done
           else
             echo "⚠️ **Warning:** Unable to set branch protection rules. Please configure manually or provide a GH_TOKEN secret with appropriate permissions." | gh issue comment "${{ github.event.issue.number }}" --body-file -
             echo "To set up branch protection manually, go to Settings → Branches for each of: main, fork_upstream, fork_integration" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            BRANCH_PROTECTION_SUCCESS=false
           fi
+          
+          echo "BRANCH_PROTECTION_SUCCESS=$BRANCH_PROTECTION_SUCCESS" >> $GITHUB_ENV
 
       - name: Enable security features
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
+          SECURITY_SUCCESS=true
           
           # Enable security features if possible
           if [ -f .github/security-on.json ]; then
             if [ -n "$GH_TOKEN" ]; then
-              GH_TOKEN=$GH_TOKEN gh api \
+              if ! GH_TOKEN=$GH_TOKEN gh api \
                 --method PATCH \
                 -H "Accept: application/vnd.github.v3+json" \
                 "/repos/${{ github.repository }}" \
-                --input .github/security-on.json || echo "⚠️ Some security features may require manual configuration"
+                --input .github/security-on.json; then
+                echo "⚠️ Some security features may require manual configuration"
+                SECURITY_SUCCESS=false
+              fi
             else
               echo "⚠️ **Note:** Security features require manual configuration. Go to Settings → Security & analysis" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              SECURITY_SUCCESS=false
             fi
           fi
+          
+          echo "SECURITY_SUCCESS=$SECURITY_SUCCESS" >> $GITHUB_ENV
 
       - name: Update README status
         env:
@@ -318,17 +344,47 @@ jobs:
             git push origin main
           fi
           
-          # Build completion message based on what was actually configured
-          if [ -n "$GH_TOKEN" ]; then
+          # Build completion message based on actual success/failure
+          if [ "$BRANCH_PROTECTION_SUCCESS" = "true" ]; then
             PROTECTION_STATUS="✅ **Branch Protection:** All branches are protected with PR requirements"
-            SECRET_STATUS="✅ **Repository Secrets:** UPSTREAM_REPO_URL configured"
-            SECURITY_STATUS="✅ **Security Features:** Secret scanning and dependency updates enabled"
-            MANUAL_STEPS=""
           else
             PROTECTION_STATUS="⚠️ **Branch Protection:** Requires manual setup"
+          fi
+          
+          if [ "$SECRETS_SUCCESS" = "true" ]; then
+            SECRET_STATUS="✅ **Repository Secrets:** UPSTREAM_REPO_URL configured"
+          else
             SECRET_STATUS="⚠️ **Repository Secrets:** Requires manual setup"  
+          fi
+          
+          if [ "$SECURITY_SUCCESS" = "true" ]; then
+            SECURITY_STATUS="✅ **Security Features:** Secret scanning and dependency updates enabled"
+          else
             SECURITY_STATUS="⚠️ **Security Features:** Requires manual setup"
-            MANUAL_STEPS="Manual Configuration Required: Please set up branch protection, repository secrets (UPSTREAM_REPO_URL), and security features in repository settings."
+          fi
+          
+          # Only show manual steps if something actually failed
+          MANUAL_STEPS=""
+          if [ "$BRANCH_PROTECTION_SUCCESS" != "true" ] || [ "$SECRETS_SUCCESS" != "true" ] || [ "$SECURITY_SUCCESS" != "true" ]; then
+            MANUAL_STEPS="
+          ## Manual Configuration Required
+          
+          Some features require manual setup:"
+            
+            if [ "$BRANCH_PROTECTION_SUCCESS" != "true" ]; then
+              MANUAL_STEPS="$MANUAL_STEPS
+          - **Branch Protection:** Go to Settings → Branches for each of: main, fork_upstream, fork_integration"
+            fi
+            
+            if [ "$SECRETS_SUCCESS" != "true" ]; then
+              MANUAL_STEPS="$MANUAL_STEPS
+          - **Repository Secrets:** Set UPSTREAM_REPO_URL in Settings → Secrets and variables → Actions"
+            fi
+            
+            if [ "$SECURITY_SUCCESS" != "true" ]; then
+              MANUAL_STEPS="$MANUAL_STEPS
+          - **Security Features:** Enable in Settings → Security & analysis"
+            fi
           fi
           
           cat << EOF | gh issue comment "${{ github.event.issue.number }}" --body-file -
