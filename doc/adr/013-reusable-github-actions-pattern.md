@@ -176,23 +176,27 @@ runs:
 
 ### Usage Patterns in Workflows
 
-#### Sync Workflow Usage
+#### Sync Workflow Limitation
+**Important**: The reusable action pattern **cannot be used in the sync workflow** (`sync.yml`) because:
+- Sync workflow runs from `fork_upstream` branch (contains only upstream code)
+- `create-enhanced-pr` action only exists on `main` branch (template infrastructure)
+- GitHub Actions cannot access actions from different branches
+
+**Solution**: Embed PR creation logic directly in sync workflow instead of using reusable action.
+
 ```yaml
+# ❌ This DOES NOT work in sync.yml (action not available on fork_upstream branch)
 - name: Create enhanced sync PR
-  id: create-pr
-  uses: ./.github/actions/create-enhanced-pr
-  with:
-    base-branch: fork_upstream
-    head-branch: ${{ env.SYNC_BRANCH }}
-    pr-title: "⬆️ Sync with upstream ${{ env.UPSTREAM_VERSION }}"
-    fallback-description: ${{ env.FALLBACK_DESCRIPTION }}
-    use-vulns-flag: 'true'  # Enable security analysis for sync PRs
-    
-- name: Process PR results
+  uses: ./.github/actions/create-enhanced-pr  # Action doesn't exist on fork_upstream
+  
+# ✅ This works in sync.yml (embedded logic)
+- name: Create enhanced sync PR
+  env:
+    GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   run: |
-    echo "Created PR: ${{ steps.create-pr.outputs.pr-url }}"
-    echo "PR number: ${{ steps.create-pr.outputs.pr-number }}"
-    echo "Used AI: ${{ steps.create-pr.outputs.used-aipr }}"
+    # Detect available LLM provider and generate PR description
+    # [embedded logic as implemented in sync.yml]
 ```
 
 #### Template Sync Workflow Usage
@@ -251,21 +255,46 @@ runs:
 - **Learning Curve**: Team needs to understand action interface
 - **Local Development**: Harder to test workflows locally
 - **Action Complexity**: Composite action has multiple steps and conditional logic
+- **Branch Dependency Limitation**: Actions cannot be used by workflows running from different branches
 
 ### Mitigation Strategies
 - **Comprehensive Documentation**: Clear examples and parameter documentation
 - **Integration Testing**: Test action behavior in actual workflow contexts
 - **Backward Compatibility**: Maintain stable interface as action evolves
 - **Error Logging**: Clear logging to help debug action issues
+- **Branch-Aware Design**: Document which workflows can/cannot use the action pattern
+
+### Branch Dependency Limitation
+
+**Key Discovery**: GitHub Actions can only reference actions that exist on the same branch where the workflow is running.
+
+#### When to Use Reusable Action
+✅ **Use action for workflows that run from `main` branch:**
+- `template-sync.yml` - runs from main, action available
+- `build.yml` - runs from main, action available  
+- `validate.yml` - runs from main, action available
+- Future workflows on main branch
+
+#### When to Embed Logic Directly
+❌ **Embed logic for workflows that run from other branches:**
+- `sync.yml` - runs from `fork_upstream` branch, action not available
+- Any workflows triggered to run on feature branches
+- Workflows that checkout different branches before running
+
+#### Implementation Strategy
+- **Primary Pattern**: Use reusable action where possible (main branch workflows)
+- **Fallback Pattern**: Embed logic directly when branch limitations prevent action usage
+- **Consistency**: Maintain same AI enhancement logic in both patterns
 
 ## Success Criteria
 
-- ✅ **Code Duplication Eliminated**: No repeated PR creation logic in workflows
-- ✅ **Consistent Behavior**: All PRs created with identical enhancement logic
-- ✅ **Easy Integration**: New workflows can easily adopt enhanced PR creation
+- ⚠️ **Code Duplication Reduced**: Most PR creation logic centralized in reusable action (limited by branch dependencies)
+- ✅ **Consistent Behavior**: All PRs created with identical enhancement logic (action + embedded patterns)
+- ✅ **Easy Integration**: New main-branch workflows can easily adopt enhanced PR creation
 - ✅ **Maintained Functionality**: All existing PR creation features preserved
-- ✅ **Improved Maintainability**: Changes to PR creation logic only require single update
+- ⚠️ **Improved Maintainability**: Changes to PR creation logic require updates in action + sync workflow
 - ✅ **Enhanced Flexibility**: Easy to customize PR creation for specific use cases
+- ✅ **Branch-Aware Design**: Clear guidance on when to use action vs embedded logic
 
 ## Future Evolution
 

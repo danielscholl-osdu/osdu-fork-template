@@ -135,20 +135,86 @@ jobs:
           
       - name: Create enhanced sync PR
         id: create-pr
-        uses: ./.github/actions/create-enhanced-pr
-        with:
-          github-token: ${{ secrets.GH_TOKEN }}
-          base-branch: fork_upstream
-          head-branch: ${{ env.SYNC_BRANCH }}
-          pr-title: "⬆️ Sync with upstream ${{ env.UPSTREAM_VERSION }}"
-          fallback-description: ${{ env.FALLBACK_DESCRIPTION }}
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          azure-api-key: ${{ secrets.AZURE_API_KEY }}
-          azure-api-base: ${{ secrets.AZURE_API_BASE }}
-          azure-api-version: ${{ secrets.AZURE_API_VERSION }}
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          target-branch-for-aipr: fork_upstream
-          use-vulns-flag: 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AZURE_API_KEY: ${{ secrets.AZURE_API_KEY }}
+          AZURE_API_BASE: ${{ secrets.AZURE_API_BASE }}
+          AZURE_API_VERSION: ${{ secrets.AZURE_API_VERSION }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          # Detect available LLM provider
+          USE_LLM=false
+          LLM_MODEL=""
+          
+          # Check for Anthropic API key (primary)
+          if [[ -n "$ANTHROPIC_API_KEY" ]]; then
+            USE_LLM=true
+            LLM_MODEL="claude-4"
+            echo "Using Anthropic Claude for PR description generation"
+          # Check for Azure OpenAI API key (secondary)
+          elif [[ -n "$AZURE_API_KEY" && -n "$AZURE_API_BASE" ]]; then
+            USE_LLM=true
+            LLM_MODEL="azure/gpt-4o"
+            echo "Using Azure OpenAI GPT-4o for PR description generation"
+          # Check for OpenAI API key (tertiary)
+          elif [[ -n "$OPENAI_API_KEY" ]]; then
+            USE_LLM=true
+            LLM_MODEL="gpt-4.1"
+            echo "Using OpenAI GPT-4 for PR description generation"
+          else
+            echo "No LLM API keys found. Using fallback PR description."
+          fi
+          
+          # Calculate diff size to avoid generating prompts that exceed model limits
+          MAX_DIFF_LINES=20000
+          DIFF_LINES=$(git diff fork_upstream | wc -l | tr -d ' ')
+          # Ensure DIFF_LINES is a valid numeric value
+          if [[ -z "$DIFF_LINES" || ! "$DIFF_LINES" =~ ^[0-9]+$ ]]; then
+            DIFF_LINES=0
+          fi
+          echo "Diff contains $DIFF_LINES lines"
+          
+          # Generate PR description using AI if available
+          if [[ "$USE_LLM" == "true" && "$DIFF_LINES" -le "$MAX_DIFF_LINES" ]]; then
+            echo "Generating AI-enhanced PR description using $LLM_MODEL..."
+            
+            # Use aipr tool with vulnerability analysis
+            PR_DESCRIPTION=$(aipr -t fork_upstream --vulns -p meta -m $LLM_MODEL --max-diff-lines $MAX_DIFF_LINES 2>/dev/null || echo "")
+            
+            if [[ -n "$PR_DESCRIPTION" ]]; then
+              echo "Generated enhanced PR description using $LLM_MODEL"
+            else
+              echo "AI generation failed, using fallback description"
+              PR_DESCRIPTION="$FALLBACK_DESCRIPTION"
+            fi
+          else
+            if [[ "$DIFF_LINES" -gt "$MAX_DIFF_LINES" ]]; then
+              echo "Diff is larger than $MAX_DIFF_LINES lines; using fallback description"
+            fi
+            PR_DESCRIPTION="$FALLBACK_DESCRIPTION"
+          fi
+          
+          # Create the PR
+          echo "Creating PR from branch $SYNC_BRANCH to fork_upstream"
+          PR_URL=$(gh pr create \
+            --base fork_upstream \
+            --head $SYNC_BRANCH \
+            --title "⬆️ Sync with upstream $UPSTREAM_VERSION" \
+            --body "$PR_DESCRIPTION")
+          
+          echo "PR created: $PR_URL"
+          
+          # Extract PR number for output
+          PR_NUMBER=$(basename "$PR_URL")
+          echo "PR number: $PR_NUMBER"
+          
+          # Set outputs for next step
+          echo "pr-url=$PR_URL" >> $GITHUB_OUTPUT
+          echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "PR_DESCRIPTION<<EOF" >> $GITHUB_ENV
+          echo "$PR_DESCRIPTION" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Create linked issue and update PR
         env:
@@ -170,7 +236,7 @@ jobs:
           echo "Issue number: $ISSUE_NUMBER"
           
           # Update the PR body to include issue closure
-          UPDATED_PR_BODY="${PR_DESCRIPTION}
+          UPDATED_PR_BODY="$PR_DESCRIPTION
 
           Closes #$ISSUE_NUMBER"
           
