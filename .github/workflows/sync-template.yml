@@ -46,13 +46,20 @@ jobs:
           
           # Check if we have a record of the last synced template commit
           LAST_SYNC_FILE=".github/.template-sync-commit"
-          if [ -f "$LAST_SYNC_FILE" ] && [ -s "$LAST_SYNC_FILE" ]; then
-            LAST_SYNC_COMMIT=$(cat "$LAST_SYNC_FILE")
-            echo "Last synced commit: $LAST_SYNC_COMMIT"
+          if [ -f "$LAST_SYNC_FILE" ]; then
+            LAST_SYNC_COMMIT=$(cat "$LAST_SYNC_FILE" 2>/dev/null || echo "")
+            if [ -n "$LAST_SYNC_COMMIT" ]; then
+              echo "Last synced commit: $LAST_SYNC_COMMIT"
+            else
+              echo "⚠️ Template sync tracking file exists but is empty - auto-bootstrapping"
+              NEEDS_BOOTSTRAP=true
+            fi
           else
-            # First time sync - auto-bootstrap by using a much older baseline
-            echo "⚠️ Template sync tracking file missing or empty - auto-bootstrapping"
-            
+            echo "⚠️ Template sync tracking file missing - auto-bootstrapping"
+            NEEDS_BOOTSTRAP=true
+          fi
+          
+          if [ "${NEEDS_BOOTSTRAP:-false}" = "true" ]; then            
             # Try to find a reasonable baseline - use the first commit that has .github files
             BASELINE_COMMIT=$(git log template/main --reverse --oneline -- .github/ | head -1 | cut -d' ' -f1)
             
@@ -70,6 +77,12 @@ jobs:
             mkdir -p "$(dirname "$LAST_SYNC_FILE")"
             echo "$BASELINE_COMMIT" > "$LAST_SYNC_FILE"
             echo "Created tracking file with baseline commit"
+          fi
+          
+          # Ensure we have a valid LAST_SYNC_COMMIT
+          if [ -z "$LAST_SYNC_COMMIT" ]; then
+            echo "ERROR: Failed to determine last sync commit"
+            exit 1
           fi
           
           # Check if there are new commits in template

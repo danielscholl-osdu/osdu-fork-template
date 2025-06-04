@@ -191,12 +191,31 @@ jobs:
             git checkout main -- "$workflow" || echo "Workflow $workflow not found, skipping"
           done
           
+          # Add template remote to be able to track template updates
+          TEMPLATE_REPO_URL="${{ vars.TEMPLATE_REPO_URL || 'https://github.com/danielscholl-osdu/osdu-fork-template.git' }}"
+          git remote add template "$TEMPLATE_REPO_URL" || true
+          git fetch template main --depth=1
+          
           # Initialize tracking files
           TRACKING_FILES=$(jq -r '.sync_rules.tracking_files[] | select(.auto_create == true) | .path' .github/sync-config.json)
           for tracking_file in $TRACKING_FILES; do
             echo "Initializing tracking file: $tracking_file"
             mkdir -p "$(dirname "$tracking_file")"
-            echo "" > "$tracking_file"
+            
+            # Special handling for template sync commit file
+            if [[ "$tracking_file" == ".github/.template-sync-commit" ]]; then
+              # We need to find the template commit that matches our current template files
+              # Since we just created this from the template, we can use the template's current HEAD
+              # But ideally we'd want the exact commit this was forked from
+              # For now, use the current template HEAD as baseline (may include some changes we already have)
+              TEMPLATE_BASELINE=$(git rev-parse template/main)
+              echo "$TEMPLATE_BASELINE" > "$tracking_file"
+              echo "Initialized $tracking_file with template commit: $TEMPLATE_BASELINE"
+            else
+              # For other tracking files, create empty
+              echo "" > "$tracking_file"
+            fi
+            
             git add "$tracking_file"
           done
           
