@@ -74,13 +74,21 @@ jobs:
             exit 1
           fi
           
-          # Check that required label types exist
-          type_labels=$(jq -r '.labels[] | select(.category == "type") | .name' .github/labels.json)
-          if [ -z "$type_labels" ]; then
-            echo "❌ No type labels defined"
+          # Check that labels are properly structured (labels.json is for fork repos)
+          label_count=$(jq -r '.labels | length' .github/labels.json)
+          if [ "$label_count" -lt 1 ]; then
+            echo "❌ No labels defined in configuration"
             exit 1
           fi
-          echo "✅ Labels configuration is valid"
+          
+          # Validate label structure (each label should have name, description, color)
+          invalid_labels=$(jq -r '.labels[] | select(.name == null or .description == null or .color == null) | .name // "unnamed"' .github/labels.json)
+          if [ -n "$invalid_labels" ]; then
+            echo "❌ Invalid label structure found: $invalid_labels"
+            exit 1
+          fi
+          
+          echo "✅ Labels configuration is valid (found $label_count labels for fork repositories)"
 
   test-documentation:
     name: Test Documentation
