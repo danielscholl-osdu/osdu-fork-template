@@ -182,13 +182,6 @@ jobs:
           echo "ISSUE_URL=$issue_url" >> "$GITHUB_OUTPUT"
           echo "Created initialization issue: $issue_url"
 
-      - name: Add monitoring comment
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE_URL: ${{ steps.create-issue.outputs.ISSUE_URL }}
-        run: |
-          gh issue comment "$ISSUE_URL" \
-            --body "👀 **Monitoring for your response...** Once you provide the upstream repository, initialization will begin automatically!"
 
   update_readme:
     name: Update README

@@ -199,25 +199,19 @@ jobs:
             git commit -m "chore: complete repository initialization (conflicts resolved using upstream versions)"
           fi
           
-          git push origin main
-          
-          # Clean up template files immediately after merge, before branch protection
-          
-          # Remove template-specific documentation and files
+          # Clean up template files before pushing (combine with merge commit)
           rm -rf doc/
           rm -f .github/copilot-instructions.md
           rm -f CLAUDE.md
           rm -rf .claude/
           
-          # Note: The upstream repository's README will be used after merge
-          # No need to create a new README as upstream content will take precedence
-          
-          # Commit cleanup changes
+          # Add cleanup to the merge commit if there are changes
           git add -A
           if ! git diff --staged --quiet; then
-            git commit -m "chore: clean up template files after initialization"
-            git push origin main
+            git commit --amend --no-edit
           fi
+          
+          git push origin main
           
           # Trigger validation workflow after cleanup push (with small delay for git push to complete)
           
