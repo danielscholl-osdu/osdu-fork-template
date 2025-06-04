@@ -117,7 +117,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Configure Git
         run: |
@@ -282,12 +282,6 @@ jobs:
           # Commit all copied files including workflows
           git add .github
           git commit -m "chore: copy configuration and workflows from main branch"
-          
-          # Use GH_TOKEN for push if available (needed for workflow files)
-          if [ -n "$GH_TOKEN" ]; then
-            echo "Using GH_TOKEN for push (workflow files require workflows permission)"
-            git remote set-url origin "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git"
-          fi
           git push -u origin fork_integration
 
       - name: Merge to Main
@@ -364,11 +358,6 @@ jobs:
             git commit --amend --no-edit
           fi
           
-          # Use GH_TOKEN for push if available (needed for workflow files)
-          if [ -n "$GH_TOKEN" ]; then
-            echo "Using GH_TOKEN for main branch push (workflow files require workflows permission)"
-            git remote set-url origin "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git"
-          fi
           git push origin main
           
           # Set repository variable for initialization status
