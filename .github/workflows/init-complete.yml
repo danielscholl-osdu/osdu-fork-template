@@ -308,7 +308,13 @@ jobs:
           
           # Store upstream repo URL as secret using PAT if available
           SECRETS_SUCCESS=true
-          if [ -n "$GH_TOKEN" ]; then
+          echo "Debug: UPSTREAM_URL value is: '$UPSTREAM_URL'"
+          
+          if [ -z "$UPSTREAM_URL" ]; then
+            echo "⚠️ **Error:** UPSTREAM_URL is empty. Cannot set secret." | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            SECRETS_SUCCESS=false
+          elif [ -n "$GH_TOKEN" ]; then
+            echo "Setting UPSTREAM_REPO_URL secret to: $UPSTREAM_URL"
             if ! GH_TOKEN=$GH_TOKEN gh secret set UPSTREAM_REPO_URL --body "$UPSTREAM_URL"; then
               echo "⚠️ **Warning:** Failed to set UPSTREAM_REPO_URL secret" | gh issue comment "${{ github.event.issue.number }}" --body-file -
               SECRETS_SUCCESS=false
