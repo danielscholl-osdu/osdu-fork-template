@@ -171,6 +171,30 @@ on:
 - **Copied during repository initialization** via `init-complete.yml`
 - **Self-updating capability** - template sync can update itself
 
+#### Auto-Bootstrap for Existing Repositories
+**Problem**: Repositories created before template sync implementation lack tracking files.
+
+**Solution**: Auto-bootstrap detection and initialization:
+```bash
+# Detect missing or empty tracking file
+if [ -f "$LAST_SYNC_FILE" ] && [ -s "$LAST_SYNC_FILE" ]; then
+  LAST_SYNC_COMMIT=$(cat "$LAST_SYNC_FILE")
+else
+  # Auto-bootstrap: find earliest .github commit as baseline
+  BASELINE_COMMIT=$(git log template/main --reverse --oneline -- .github/ | head -1 | cut -d' ' -f1)
+  
+  # Create tracking file immediately
+  echo "$BASELINE_COMMIT" > .github/.template-sync-commit
+  LAST_SYNC_COMMIT="$BASELINE_COMMIT"
+fi
+```
+
+**Benefits**:
+- **Seamless Migration**: Existing repositories can adopt template sync without manual intervention
+- **Smart Baseline**: Uses earliest template infrastructure commit, not arbitrary date
+- **Immediate Tracking**: Creates tracking file during detection to prevent future bootstrap issues
+- **Comprehensive Updates**: First sync includes all template improvements since baseline
+
 #### Template Repository Configuration
 ```json
 {
@@ -258,6 +282,8 @@ git add .github/.template-sync-commit
 - ✅ **Security updates propagate to forks within 24 hours (manual trigger)**
 - ✅ **Teams can easily review and understand template changes**
 - ✅ **Template drift problem is eliminated across all repositories**
+- ✅ **Existing repositories auto-bootstrap template sync without manual setup**
+- ✅ **Auto-bootstrap creates comprehensive update PRs covering all missing template features**
 
 ## Monitoring and Analytics
 
