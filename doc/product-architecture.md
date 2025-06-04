@@ -136,8 +136,7 @@ This document covers:
 └── ISSUE_TEMPLATE/               # Issue templates
     └── init-config.yml           # Initialization issue
 ```
-
-### 4.2. Two-Workflow Initialization Architecture (ADR-006)
+### 4.2 Initialize Architecture (init.yml & init-complete.yml)
 
 **Design Principle**: Separated user interaction from repository setup for better UX and maintainability
 
@@ -145,7 +144,7 @@ This document covers:
 
 The initialization process is split into two focused workflows:
 
-#### **init.yml** - User Interface and Issue Management (222 lines)
+#### **init.yml** - User Interface and Issue Management
 ```yaml
 # Repository initialization trigger
 name: Initialize Fork
@@ -168,10 +167,10 @@ jobs:
     
 ```
 
-#### **init-complete.yml** - Repository Setup and Configuration (~300 lines)
+#### **init-complete.yml** - Repository Setup and Configuration
 ```yaml
 # User response handling
-name: Complete Initialization
+name: Initialize Complete
 on:
   issue_comment:
     types: [created]
@@ -189,25 +188,14 @@ jobs:
     # Self-cleanup initialization files
 ```
 
-**Key Improvements:**
-- **Separation of Concerns**: User interaction vs. system setup
-- **Better UX**: Minimal issue comments, consolidated commits
-- **State Management**: Repository variables + workflow inputs for immediate availability
-- **Error Handling**: Clear validation with actionable feedback
-- **Self-Cleanup**: Removes initialization workflows after completion
-- **Integrated Validation**: Automatically triggers build validation
-- **Maintainability**: Two focused workflows (~40 + ~300 lines, streamlined)
-
 **Bootstrap Pattern (ADR-007):**
+
 The initialization workflow implements a self-updating bootstrap pattern to ensure that bug fixes and improvements are immediately available to new repositories:
 
 1. **Bootstrap Problem**: Template-created repositories run workflows from the initial commit, missing subsequent fixes
 2. **Solution**: Workflows update themselves from the template repository before executing initialization
-3. **Critical Fixes Addressed**:
-   - `--allow-unrelated-histories`: Handles merging branches with different commit histories
-   - `-X theirs` merge strategy: Automatically resolves conflicts in common files (README.md, .gitignore)
-4. **Benefits**: All initialization improvements reach new repositories immediately
-5. **Implementation**: Two-phase approach - update workflows, then execute with latest version
+3. **Benefits**: All initialization improvements reach new repositories immediately
+4. **Implementation**: Two-phase approach - update workflows, then execute with latest version
 
 ### 4.3. Synchronization Architecture (sync.yml)
 
@@ -232,50 +220,11 @@ jobs:
       issues: write
       
     steps:
-      # 1. Fetch upstream changes
       - name: Fetch Upstream
-        run: |
-          git remote add upstream ${{ env.UPSTREAM_REPO }}
-          git fetch upstream main
-          git checkout fork_upstream
-          git reset --hard upstream/main
-          git push origin fork_upstream --force
-      
-      # 2. Attempt integration
-      - name: Test Integration
-        id: integration
-        run: |
-          git checkout fork_integration
-          git merge fork_upstream
-          if git diff --check; then
-            echo "conflicts=false" >> $GITHUB_OUTPUT
-          else
-            echo "conflicts=true" >> $GITHUB_OUTPUT
-          fi
-        continue-on-error: true
-      
-      # 3. Handle conflicts or clean merge
-      - name: Create Conflict Issue
-        if: steps.integration.outputs.conflicts == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: 'Merge Conflicts Detected',
-              body: 'Manual resolution required...',
-              labels: ['conflict', 'upstream-sync']
-            })
-      
-      - name: Create Integration PR
-        if: steps.integration.outputs.conflicts == 'false'
-        run: |
-          gh pr create \
-            --title "feat: sync upstream changes $(date +%Y%m%d)" \
-            --body "$PR_BODY" \
-            --head fork_integration \
-            --base main
+
+      - name: Create Pull Request
+
+      - name: Handle Failure
 ```
 
 **Key Features:**
@@ -284,7 +233,8 @@ jobs:
 - **Staging Integration**: Safe resolution in dedicated branch
 - **AI-Enhanced PRs**: Optional LLM-generated descriptions with diff limits
 
-### 4.4. Cascade Integration Architecture (cascade.yml & cascade-monitor.yml)
+
+### 4.4. Cascade Architecture (cascade.yml & cascade-monitor.yml)
 
 **Design Principle**: Automated propagation of upstream changes through branch hierarchy with safety gates
 

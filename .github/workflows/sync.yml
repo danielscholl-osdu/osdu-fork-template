@@ -20,9 +20,34 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
 
-      - name: Install Trivy
+      - name: Install Security Tools
         run: |
+          # Install Trivy
+          echo "Installing Trivy..."
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.49.1
+          
+          echo "Installing Claude CLI..."
+          npm install -g @anthropic-ai/claude-cli
+            
+            # Create .mcp.json in the repository root for Claude
+          cat > .mcp.json << 'EOF'
+          {
+            "mcpServers": {
+              "mvn-mcp-server": {
+                "type": "stdio",
+                "command": "uvx",
+                "args": [
+                  "--from",
+                  "git+https://github.com/danielscholl-osdu/mvn-mcp-server@main",
+                  "mvn-mcp-server"
+                ],
+                "env": {}
+              }
+            }
+          }
+          EOF
+          
+          echo "Claude CLI installed and configured with mvn.mcp"
 
       - name: Setup Python and PR Generator
         run: |
@@ -33,11 +58,15 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create a global exclude file to prevent .mcp.json from being tracked
+          echo ".mcp.json" > ~/.gitignore_global
+          git config core.excludesfile ~/.gitignore_global
 
           # Add upstream remote using stored secret
           git remote add upstream "${{ secrets.UPSTREAM_REPO_URL }}"
 
-      - name: Fetch latest from upstream
+      - name: Fetch Upstream
         run: |
           # Fetch latest from upstream
           git fetch upstream --prune
@@ -53,24 +82,7 @@ jobs:
           fi
           echo "DEFAULT_BRANCH=$DEFAULT_BRANCH" >> $GITHUB_ENV
 
-      - name: Create required labels
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          # Create labels if they don't exist
-          gh label create sync-failed \
-            --description "Issues related to sync failures" \
-            --color "d73a4a" || true
-            
-          gh label create needs-resolution \
-            --description "Requires manual conflict resolution" \
-            --color "fbca04" || true
-            
-          gh label create sync-update \
-            --description "Tracks upstream sync updates" \
-            --color "0075ca" || true
-
-      - name: Create sync branch and PR
+      - name: Create Pull Request
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -116,7 +128,7 @@ jobs:
           if [[ -n "$ANTHROPIC_API_KEY" ]]; then
             USE_LLM=true
             LLM_MODEL="claude-4"
-            echo "Using Anthropic Claude 3.5 Sonnet for PR description generation"
+            echo "Using Anthropic Claude 4 Sonnet for PR description generation"
             echo "USE_LLM=true" >> $GITHUB_ENV
           # Check for Azure OpenAI API key
           elif [[ -n "$AZURE_API_KEY" && -n "$AZURE_API_BASE" ]]; then
@@ -143,6 +155,14 @@ jobs:
             DIFF_LINES=0
           fi
           echo "Diff contains $DIFF_LINES lines"
+          
+          # Initialize security analysis variable
+          SECURITY_ANALYSIS=""
+          
+          # Run security analysis if we have Anthropic API key
+          if [[ -n "$ANTHROPIC_API_KEY" ]]; then
+            echo "Running AI enhanced security vulnerability analysis..."            
+          fi
 
           if [[ -n "$LLM_MODEL" && "$DIFF_LINES" -le "$MAX_DIFF_LINES" ]]; then
             # Generate PR description using aipr
@@ -160,11 +180,14 @@ jobs:
               echo "Diff is larger than $MAX_DIFF_LINES lines; skipping aipr description"
             fi
             # Use default PR description
-            PR_DESCRIPTION="Automated PR to sync with upstream repository changes.
-
-            ### Changes from upstream:
-            ${CHANGES}"
+            PR_DESCRIPTION="Automated PR to sync with upstream repository changes."$'\n\n'"### Changes from upstream:"$'\n'"${CHANGES}"
             echo "Using default PR description"
+          fi
+          
+          # Append security analysis if available
+          if [[ -n "$SECURITY_ANALYSIS" ]]; then
+            PR_DESCRIPTION="${PR_DESCRIPTION}"$'\n\n'"## 🛡️ Security Analysis"$'\n\n'"${SECURITY_ANALYSIS}"
+            echo "Added security analysis to PR description"
           fi
           
           # Create PR with description
@@ -199,7 +222,7 @@ jobs:
           
           gh pr edit $PR_NUMBER --body "$UPDATED_PR_BODY"
 
-      - name: Create issue on failure
+      - name: Handle Failure
         if: failure()
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}

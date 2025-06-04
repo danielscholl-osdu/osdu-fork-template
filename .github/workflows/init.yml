@@ -181,5 +181,3 @@ jobs:
             --label "initialization")
           echo "ISSUE_URL=$issue_url" >> "$GITHUB_OUTPUT"
           echo "Created initialization issue: $issue_url"
-
-
