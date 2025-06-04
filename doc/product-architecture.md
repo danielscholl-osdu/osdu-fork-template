@@ -118,23 +118,47 @@ This document covers:
 
 ### 4.1. Workflow Component Structure
 
+**Template-Workflows Separation Pattern (ADR-015):**
+
 ```
 .github/
-├── workflows/                    # Main workflow suite
+├── workflows/                    # Template development workflows (NOT copied to forks)
 │   ├── init.yml                  # Repository initialization (issue creation)
 │   ├── init-complete.yml         # Repository setup completion
+│   ├── dev-ci.yml               # Template testing and validation
+│   ├── dev-test.yml             # Template workflow testing
+│   └── dev-release.yml          # Template version releases
+├── template-workflows/           # Fork production workflows (COPIED to forks)
 │   ├── sync.yml                  # Upstream synchronization
-│   ├── cascade.yml               # Cascade integration through branches
-│   ├── cascade-monitor.yml       # Cascade health monitoring
 │   ├── validate.yml              # PR validation
 │   ├── build.yml                 # Build automation
-│   └── release.yml               # Release management
-├── actions/                      # Composite actions
+│   ├── release.yml               # Release management
+│   ├── cascade.yml               # Cascade integration through branches
+│   ├── cascade-monitor.yml       # Cascade health monitoring
+│   ├── sync-template.yml         # Template repository updates
+│   └── dependabot-validation.yml # Dependabot PR automation
+├── actions/                      # Composite actions (copied with workflows)
 │   ├── pr-status/                # PR status reporting
 │   ├── java-build/               # Java build automation
 │   └── java-build-status/        # Build status reporting
-└── ISSUE_TEMPLATE/               # Issue templates
+└── ISSUE_TEMPLATE/               # Issue templates (copied during init)
     └── init-config.yml           # Initialization issue
+```
+
+**Fork Repository Structure (After Initialization):**
+```
+.github/
+├── workflows/                    # Clean production workflows only
+│   ├── sync.yml                  # Copied from template-workflows
+│   ├── validate.yml              # Copied from template-workflows
+│   ├── build.yml                 # Copied from template-workflows
+│   ├── release.yml               # Copied from template-workflows
+│   ├── cascade.yml               # Copied from template-workflows
+│   ├── cascade-monitor.yml       # Copied from template-workflows
+│   ├── sync-template.yml         # Copied from template-workflows
+│   └── dependabot-validation.yml # Copied from template-workflows
+├── actions/                      # Copied composite actions
+└── .template-sync-commit         # Template version tracking
 ```
 ### 4.2 Initialize Architecture (init.yml & init-complete.yml)
 
@@ -182,10 +206,11 @@ jobs:
     
   setup_repository:
     # Create branch structure from upstream
-    # Configure workflows, secrets, and variables
+    # Copy production workflows from template-workflows/ to workflows/
+    # Configure secrets, variables, and repository settings
     # Set up branch protection rules
-    # Trigger validation workflow
-    # Self-cleanup initialization files
+    # Trigger validation workflow  
+    # Self-cleanup initialization files and template-workflows directory
 ```
 
 **Bootstrap Pattern (ADR-007):**
@@ -196,6 +221,16 @@ The initialization workflow implements a self-updating bootstrap pattern to ensu
 2. **Solution**: Workflows update themselves from the template repository before executing initialization
 3. **Benefits**: All initialization improvements reach new repositories immediately
 4. **Implementation**: Two-phase approach - update workflows, then execute with latest version
+
+**Template-Workflows Separation Pattern (ADR-015):**
+
+The architecture implements clean separation between template development and fork production workflows:
+
+1. **Workflow Pollution Problem**: Template repositories mixing development and production workflows caused forks to inherit irrelevant template infrastructure
+2. **Solution**: Store fork workflows in `.github/template-workflows/`, template workflows in `.github/workflows/`
+3. **Copy Process**: During initialization, copy from `template-workflows/` to `workflows/` in fork
+4. **Benefits**: Clean fork repositories, clear maintenance boundaries, security isolation
+5. **Authentication**: Requires Personal Access Token (PAT) with `workflows` permission for GitHub App workflow limitations
 
 ### 4.3. Synchronization Architecture (sync.yml)
 

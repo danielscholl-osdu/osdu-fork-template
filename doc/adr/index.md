@@ -20,6 +20,7 @@ Architecture Decision Records for Fork Management Template
 | 012 | Template Update Propagation Strategy | Accepted | 2025-06-04 | [ADR-012](012-template-update-propagation-strategy.md) |
 | 013 | Reusable GitHub Actions Pattern for PR Creation | Accepted | 2025-06-04 | [ADR-013](013-reusable-github-actions-pattern.md) |
 | 014 | AI-Enhanced Development Workflow Integration | Accepted | 2025-06-04 | [ADR-014](014-ai-enhanced-development-workflow.md) |
+| 015 | Template-Workflows Separation Pattern | Accepted | 2025-06-04 | [ADR-015](015-template-workflows-separation-pattern.md) |
 
 ## Overview
 
@@ -78,3 +79,9 @@ These Architecture Decision Records document the key design choices made in the 
 - Claude Code CLI integration with MCP server support
 - Multi-provider AI support (Anthropic, Azure OpenAI, OpenAI)
 - AI-powered security analysis and PR description generation
+
+**Template-Workflows Separation (ADR-015)**
+- Clean separation between template development and fork production workflows
+- `.github/workflows/` for template development (not copied)
+- `.github/template-workflows/` for fork production workflows (copied during init)
+- Eliminates workflow pollution in fork repositories
