@@ -70,16 +70,16 @@ jobs:
           echo ".mcp.json" > ~/.gitignore_global
           git config core.excludesfile ~/.gitignore_global
 
-          # Add upstream remote using stored secret
-          if [ -z "${{ secrets.UPSTREAM_REPO_URL }}" ]; then
-            echo "::error::UPSTREAM_REPO_URL secret is not configured. Please set it in repository settings."
-            echo "This secret should contain the URL of your upstream repository (e.g., https://github.com/Azure/osdu-infrastructure.git)"
+          # Add upstream remote using stored variable
+          if [ -z "${{ vars.UPSTREAM_REPO_URL }}" ]; then
+            echo "::error::UPSTREAM_REPO_URL variable is not configured. Please set it in repository settings."
+            echo "This variable should contain the URL of your upstream repository (e.g., https://github.com/Azure/osdu-infrastructure.git)"
             exit 1
           fi
           
-          echo "Adding upstream remote: ${{ secrets.UPSTREAM_REPO_URL }}"
-          git remote add upstream "${{ secrets.UPSTREAM_REPO_URL }}" || {
-            echo "::error::Failed to add upstream remote. Please check the UPSTREAM_REPO_URL secret."
+          echo "Adding upstream remote: ${{ vars.UPSTREAM_REPO_URL }}"
+          git remote add upstream "${{ vars.UPSTREAM_REPO_URL }}" || {
+            echo "::error::Failed to add upstream remote. Please check the UPSTREAM_REPO_URL variable."
             exit 1
           }
 

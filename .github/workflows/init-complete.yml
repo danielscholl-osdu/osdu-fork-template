@@ -90,23 +90,23 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config pull.rebase false
 
-      - name: Configure Secrets
+      - name: Configure Variables
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          # Set repository secrets using GH_TOKEN
-          SECRETS_SUCCESS=true
+          # Set repository variables using GH_TOKEN
+          VARIABLES_SUCCESS=true
           if [ -n "$GH_TOKEN" ]; then
-            echo "Setting UPSTREAM_REPO_URL secret..."
-            if ! GH_TOKEN=$GH_TOKEN gh secret set UPSTREAM_REPO_URL --body "$REPO_URL"; then
-              echo "Failed to set UPSTREAM_REPO_URL secret"
-              SECRETS_SUCCESS=false
+            echo "Setting UPSTREAM_REPO_URL variable..."
+            if ! GH_TOKEN=$GH_TOKEN gh variable set UPSTREAM_REPO_URL --body "$REPO_URL"; then
+              echo "Failed to set UPSTREAM_REPO_URL variable"
+              VARIABLES_SUCCESS=false
             fi
           else
-            echo "GH_TOKEN not available, skipping secret configuration"
-            SECRETS_SUCCESS=false
+            echo "GH_TOKEN not available, skipping variable configuration"
+            VARIABLES_SUCCESS=false
           fi
-          echo "SECRETS_SUCCESS=$SECRETS_SUCCESS" >> $GITHUB_ENV
+          echo "VARIABLES_SUCCESS=$VARIABLES_SUCCESS" >> $GITHUB_ENV
 
       - name: Upstream Repository
         env:
@@ -406,10 +406,10 @@ jobs:
             PROTECTION_STATUS="⚠️ **Branch Protection:** Requires manual setup"
           fi
           
-          if [ "$SECRETS_SUCCESS" = "true" ]; then
-            SECRET_STATUS="✅ **Repository Secrets:** UPSTREAM_REPO_URL configured"
+          if [ "$VARIABLES_SUCCESS" = "true" ]; then
+            VARIABLE_STATUS="✅ **Repository Variables:** UPSTREAM_REPO_URL configured"
           else
-            SECRET_STATUS="⚠️ **Repository Secrets:** Requires manual setup"  
+            VARIABLE_STATUS="⚠️ **Repository Variables:** Requires manual setup"  
           fi
           
           if [ "$SECURITY_SUCCESS" = "true" ]; then
@@ -420,7 +420,7 @@ jobs:
           
           # Only show manual steps if something actually failed
           MANUAL_STEPS=""
-          if [ "$BRANCH_PROTECTION_SUCCESS" != "true" ] || [ "$SECRETS_SUCCESS" != "true" ] || [ "$SECURITY_SUCCESS" != "true" ]; then
+          if [ "$BRANCH_PROTECTION_SUCCESS" != "true" ] || [ "$VARIABLES_SUCCESS" != "true" ] || [ "$SECURITY_SUCCESS" != "true" ]; then
             MANUAL_STEPS="
           ## Manual Configuration Required
           
@@ -431,9 +431,9 @@ jobs:
           - **Branch Protection:** Go to Settings → Branches for each of: main, fork_upstream, fork_integration"
             fi
             
-            if [ "$SECRETS_SUCCESS" != "true" ]; then
+            if [ "$VARIABLES_SUCCESS" != "true" ]; then
               MANUAL_STEPS="$MANUAL_STEPS
-          - **Repository Secrets:** Set UPSTREAM_REPO_URL in Settings → Secrets and variables → Actions"
+          - **Repository Variables:** Set UPSTREAM_REPO_URL in Settings → Secrets and variables → Actions → Variables"
             fi
             
             if [ "$SECURITY_SUCCESS" != "true" ]; then
@@ -460,7 +460,7 @@ jobs:
 
           ✅ **Template Cleanup:** Removed template documentation (upstream README will be used)
 
-          $SECRET_STATUS
+          $VARIABLE_STATUS
 
           $SECURITY_STATUS
 
