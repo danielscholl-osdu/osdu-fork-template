@@ -21,6 +21,7 @@ Architecture Decision Records for Fork Management Template
 | 013 | Reusable GitHub Actions Pattern for PR Creation | Accepted | 2025-06-04 | [ADR-013](013-reusable-github-actions-pattern.md) |
 | 014 | AI-Enhanced Development Workflow Integration | Accepted | 2025-06-04 | [ADR-014](014-ai-enhanced-development-workflow.md) |
 | 015 | Template-Workflows Separation Pattern | Accepted | 2025-06-04 | [ADR-015](015-template-workflows-separation-pattern.md) |
+| 016 | Initialization Security Handling | Accepted | 2025-01-06 | [ADR-016](016-initialization-security-handling.md) |
 
 ## Overview
 
@@ -85,3 +86,9 @@ These Architecture Decision Records document the key design choices made in the 
 - `.github/workflows/` for template development (not copied)
 - `.github/template-workflows/` for fork production workflows (copied during init)
 - Eliminates workflow pollution in fork repositories
+
+**Initialization Security Handling (ADR-016)**
+- Temporarily disables push protection during initialization
+- Allows syncing upstream repositories with historical secrets
+- Re-enables full security immediately after initialization
+- Simple and maintainable approach without complex error handling
