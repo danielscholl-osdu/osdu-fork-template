@@ -90,6 +90,7 @@ jobs:
           echo "DEFAULT_BRANCH=$DEFAULT_BRANCH" >> $GITHUB_ENV
 
       - name: Create Pull Request
+        id: sync-changes
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -115,8 +116,11 @@ jobs:
           # Check if there are any changes to commit
           if git diff --quiet fork_upstream; then
             echo "No changes to sync from upstream"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
             exit 0
           fi
+          
+          echo "has_changes=true" >> $GITHUB_OUTPUT
           
           # Push changes with force flag to handle any branch name conflicts
           git push -f origin $SYNC_BRANCH
@@ -129,11 +133,16 @@ jobs:
           
           # Prepare fallback description for PR
           FALLBACK_DESCRIPTION="Automated PR to sync with upstream repository changes."$'\n\n'"### Changes from upstream:"$'\n'"${CHANGES}"
+          
+          # Set environment variables for subsequent steps
+          echo "SYNC_BRANCH=$SYNC_BRANCH" >> $GITHUB_ENV
+          echo "UPSTREAM_VERSION=$UPSTREAM_VERSION" >> $GITHUB_ENV
           echo "FALLBACK_DESCRIPTION<<EOF" >> $GITHUB_ENV
           echo "$FALLBACK_DESCRIPTION" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
           
       - name: Create enhanced sync PR
+        if: steps.sync-changes.outputs.has_changes == 'true'
         id: create-pr
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -143,6 +152,11 @@ jobs:
           AZURE_API_VERSION: ${{ secrets.AZURE_API_VERSION }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          # Get environment variables from previous step
+          SYNC_BRANCH="${{ env.SYNC_BRANCH }}"
+          UPSTREAM_VERSION="${{ env.UPSTREAM_VERSION }}"
+          FALLBACK_DESCRIPTION="${{ env.FALLBACK_DESCRIPTION }}"
+          
           # Detect available LLM provider
           USE_LLM=false
           LLM_MODEL=""
@@ -199,7 +213,7 @@ jobs:
           echo "Creating PR from branch $SYNC_BRANCH to fork_upstream"
           PR_URL=$(gh pr create \
             --base fork_upstream \
-            --head $SYNC_BRANCH \
+            --head "$SYNC_BRANCH" \
             --title "⬆️ Sync with upstream $UPSTREAM_VERSION" \
             --body "$PR_DESCRIPTION")
           
@@ -217,6 +231,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Create linked issue and update PR
+        if: steps.sync-changes.outputs.has_changes == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
