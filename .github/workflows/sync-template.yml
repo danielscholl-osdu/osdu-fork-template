@@ -1,4 +1,4 @@
-name: Sync Template Updates
+name: Sync Template
 
 on:
   schedule:

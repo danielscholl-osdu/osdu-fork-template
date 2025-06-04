@@ -82,6 +82,14 @@ Files and directories removed during repository initialization to eliminate temp
 - `CLAUDE.md` - Template-specific Claude instructions
 - `.github/copilot-instructions.md` - Template-specific AI instructions
 
+#### Template-Specific Templates Removed
+- `.github/ISSUE_TEMPLATE/branch-protection-reminder.md` - Template initialization issue template
+- `.github/ISSUE_TEMPLATE/init-error.md` - Template initialization issue template
+- `.github/ISSUE_TEMPLATE/init-request.md` - Template initialization issue template
+- `.github/ISSUE_TEMPLATE/init-started.md` - Template initialization issue template
+- `.github/PULL_REQUEST_TEMPLATE/init-pr.md` - Template initialization PR template
+- `.github/PULL_REQUEST_TEMPLATE/cleanup-pr.md` - Template initialization PR template
+
 #### Workflows Removed
 - `init.yml` - One-time initialization workflow
 - `init-complete.yml` - One-time setup workflow
