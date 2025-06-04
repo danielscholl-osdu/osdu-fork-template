@@ -20,12 +20,27 @@ jobs:
     if: |
       github.event.issue.state == 'open' &&
       contains(github.event.issue.labels.*.name, 'initialization') &&
-      github.event.comment.user.login != 'github-actions[bot]'
+      github.event.comment.user.login != 'github-actions[bot]' &&
+      vars.IS_TEMPLATE != 'true'
     runs-on: ubuntu-latest
     outputs:
       upstream_repo: ${{ steps.validate.outputs.upstream_repo }}
       should_proceed: ${{ steps.validate.outputs.should_proceed }}
     steps:
+      - name: Template Repository Protection Check
+        run: |
+          if [[ "${{ vars.IS_TEMPLATE }}" == "true" ]]; then
+            echo "🛡️ BLOCKED: This workflow is blocked in template development repositories"
+            echo "The IS_TEMPLATE variable is set to 'true', which prevents initialization workflows from running."
+            echo "This is a safety mechanism to prevent accidental initialization of the template repository itself."
+            echo ""
+            echo "If you're trying to test initialization:"
+            echo "1. Create a test repository from this template"
+            echo "2. Run the initialization workflow in that repository instead"
+            exit 1
+          fi
+          echo "✅ Safety check passed - proceeding with initialization"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -221,13 +236,9 @@ jobs:
             git checkout main -- "$file" || echo "File $file not found, skipping"
           done
           
-          # Copy essential workflows only (not template-only workflows)
+          # Note: Fork workflows are in template-workflows/ and will be copied during merge cleanup
+          # Just ensure the workflows directory exists for now
           mkdir -p .github/workflows
-          WORKFLOWS=$(jq -r '.sync_rules.workflows.essential[] | .path' .github/sync-config.json)
-          for workflow in $WORKFLOWS; do
-            echo "Copying essential workflow: $workflow"
-            git checkout main -- "$workflow" || echo "Workflow $workflow not found, skipping"
-          done
           
           # Add template remote to be able to track template updates
           TEMPLATE_REPO_URL="${{ vars.TEMPLATE_REPO_URL || 'https://github.com/danielscholl-osdu/osdu-fork-template.git' }}"
@@ -286,8 +297,29 @@ jobs:
             git commit -m "chore: complete repository initialization (conflicts resolved using upstream versions)"
           fi
           
+          # Replace development workflows with template workflows
+          echo "Replacing template development workflows with fork workflows..."
+          
+          # Remove all dev-* workflows (template development only)
+          echo "Removing template development workflows..."
+          rm -f .github/workflows/dev-*.yml
+          
+          # Copy template workflows to active workflows directory
+          echo "Copying fork-specific workflows from template-workflows..."
+          if [ -d ".github/template-workflows" ]; then
+            cp .github/template-workflows/*.yml .github/workflows/
+            echo "Copied workflows:"
+            ls .github/template-workflows/*.yml | xargs -I {} basename {}
+          else
+            echo "⚠️ Warning: .github/template-workflows directory not found"
+          fi
+          
+          # Remove the template-workflows directory (no longer needed)
+          echo "Cleaning up template-workflows directory..."
+          rm -rf .github/template-workflows/
+          
           # Clean up template files using sync configuration
-          echo "Cleaning up template-specific files..."
+          echo "Cleaning up remaining template-specific files..."
           
           # Read cleanup rules from sync configuration
           SYNC_CONFIG=".github/sync-config.json"
