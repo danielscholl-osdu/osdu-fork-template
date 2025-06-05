@@ -138,6 +138,22 @@ jobs:
               -H "Accept: application/vnd.github.v3+json" \
               "/repos/${{ github.repository }}" \
               --input .github/security-off.json || echo "::warning::Could not modify security settings"
+            
+            # Wait longer for settings to propagate
+            echo "::notice::Waiting for security settings to propagate..."
+            sleep 15
+            
+            # Verify settings were applied
+            echo "::notice::Verifying security settings..."
+            PUSH_PROTECTION_STATUS=$(gh api "/repos/${{ github.repository }}" --jq '.security_and_analysis.secret_scanning_push_protection.status // "unknown"')
+            echo "Push protection status: $PUSH_PROTECTION_STATUS"
+            
+            if [ "$PUSH_PROTECTION_STATUS" != "disabled" ]; then
+              echo "::warning::Push protection may still be active. This could be due to organization-level settings."
+            fi
+          else
+            echo "::warning::GH_TOKEN not available. Push protection cannot be disabled automatically."
+            echo "::warning::If upstream contains secrets, the sync may fail and require manual intervention."
           fi
 
       - name: Upstream Repository
@@ -229,7 +245,42 @@ jobs:
           
           # Create fork_upstream from upstream's default branch
           git checkout -b fork_upstream upstream/$DEFAULT_BRANCH
-          git push -u origin fork_upstream
+          
+          # Try to push with error handling for push protection
+          echo "::notice::Pushing fork_upstream branch..."
+          if ! git push -u origin fork_upstream 2>&1 | tee push_output.txt; then
+            if grep -q "GH013: Repository rule violations found" push_output.txt; then
+              echo "::error::Push blocked by push protection despite attempting to disable it."
+              echo "::notice::This may be due to organization-level push protection settings."
+              echo "::notice::To resolve this issue, you can:"
+              echo "::notice::1. Use the secret allowlist URLs provided in the error"
+              echo "::notice::2. Ask your organization admin to temporarily disable push protection"
+              echo "::notice::3. Manually disable push protection in repository settings"
+              
+              # Extract and display secret allowlist URLs if available
+              if grep -q "unblock-secret" push_output.txt; then
+                echo "::notice::Secret allowlist URLs:"
+                grep -o 'https://github.com/.*/unblock-secret/.*' push_output.txt | while read -r url; do
+                  echo "::notice::  - $url"
+                done
+              fi
+              
+              # Create an issue for manual resolution
+              gh issue create \
+                --title "🔒 Push Protection Blocking Initialization" \
+                --body "The initialization workflow was blocked by push protection. Please see the workflow logs for resolution options: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+                --label "initialization,security" || true
+              
+              exit 1
+            else
+              # Some other push error
+              echo "::error::Push failed for unknown reason:"
+              cat push_output.txt
+              exit 1
+            fi
+          fi
+          
+          echo "::notice::Successfully pushed fork_upstream branch"
           
           # Create fork_integration from fork_upstream
           git checkout -b fork_integration fork_upstream
