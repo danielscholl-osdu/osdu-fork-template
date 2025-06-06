@@ -110,7 +110,7 @@ sequenceDiagram
 ### Configuration
 ```yaml
 - name: Run Release Please
-  uses: google-github-actions/release-please-action@v4
+  uses: googleapis/release-please-action@v4
   id: release
   with:
     release-type: simple

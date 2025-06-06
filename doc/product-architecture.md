@@ -430,7 +430,7 @@ jobs:
     steps:
       # 1. Release Please automation
       - name: Create Release
-        uses: google-github-actions/release-please-action@v4
+        uses: googleapis/release-please-action@v4
         id: release
         with:
           release-type: simple
