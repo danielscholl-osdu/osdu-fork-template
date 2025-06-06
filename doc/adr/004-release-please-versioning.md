@@ -108,7 +108,7 @@ Adopt Google's Release Please action for automated version management with Conve
 ### Release Please Configuration
 ```yaml
 # .github/workflows/release.yml
-- uses: google-github-actions/release-please-action@v3
+- uses: googleapis/release-please-action@v3
   with:
     release-type: simple
     package-name: fork-management-template
