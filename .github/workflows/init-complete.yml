@@ -276,26 +276,29 @@ jobs:
           
           # Try to push with error handling for push protection
           echo "::notice::Pushing fork_upstream branch..."
-          if ! git push -u origin fork_upstream 2>&1 | tee push_output.txt; then
+          
+          # Capture both stdout and stderr, and preserve exit code
+          set +e  # Don't exit on command failure
+          git push -u origin fork_upstream 2>&1 | tee push_output.txt
+          PUSH_EXIT_CODE=${PIPESTATUS[0]}
+          set -e  # Re-enable exit on error
+          
+          if [ $PUSH_EXIT_CODE -ne 0 ]; then
             if grep -q "GH013: Repository rule violations found" push_output.txt; then
               echo "::error::Push blocked by push protection due to secrets"
               
-              # Extract secret allowlist URLs
-              SECRETS_INFO=""
-              if grep -q "unblock-secret" push_output.txt; then
-                SECRETS_INFO=$(grep -o 'https://github.com/.*/unblock-secret/.*' push_output.txt | head -20)
-              fi
+              # Extract secret allowlist URLs (improved regex to handle ANSI codes)
+              SECRETS_INFO=$(grep -Eo 'https://github\.com/.+/secret-scanning/unblock-secret/[A-Za-z0-9]+' \
+                             push_output.txt | head -20)
               
-              # Extract blob IDs if available
-              BLOB_IDS=""
-              if grep -q "blob_id:" push_output.txt; then
-                BLOB_IDS=$(grep -o 'blob_id: [a-f0-9]*' push_output.txt | cut -d' ' -f2 | head -20)
-              fi
+              # Extract blob IDs (corrected pattern: GitHub uses "blob id: " with space)
+              BLOB_IDS=$(grep -Eo 'blob id: *[a-f0-9]+' push_output.txt \
+                         | sed -E 's/^blob id: *//' | head -20)
               
               # Create detailed issue with resolution steps
-              ISSUE_BODY="## 🔒 Push Protection Blocking Initialization"
-              ISSUE_BODY="${ISSUE_BODY}\n\nThe initialization workflow was blocked by push protection. This is likely due to secrets detected in the upstream repository's git history."
-              ISSUE_BODY="${ISSUE_BODY}\n\n### Detected Issues\n"
+              ISSUE_BODY="## 🔒 Push Protection Blocking Initialization\n\n"
+              ISSUE_BODY="${ISSUE_BODY}The initialization workflow was blocked by push protection. This is likely due to secrets detected in the upstream repository's git history.\n\n"
+              ISSUE_BODY="${ISSUE_BODY}### Detected Issues\n\n"
               
               if [ -n "$BLOB_IDS" ]; then
                 ISSUE_BODY="${ISSUE_BODY}### Detected Secret Blob IDs\n\`\`\`\n${BLOB_IDS}\n\`\`\`\n\n"
@@ -306,15 +309,15 @@ jobs:
               ISSUE_BODY="${ISSUE_BODY}   - **Important**: This requires manual action - GitHub requires human approval for security\n"
               ISSUE_BODY="${ISSUE_BODY}   - Click each URL below in your browser while logged into GitHub\n"
               ISSUE_BODY="${ISSUE_BODY}   - Review each secret and click \"Allow secret\" if it's safe to include\n"
-              ISSUE_BODY="${ISSUE_BODY}   - After allowing all secrets, comment the upstream repo URL on the original issue to re-run initialization\n"
+              ISSUE_BODY="${ISSUE_BODY}   - After allowing all secrets, comment the upstream repo URL on the original issue to re-run initialization\n\n"
               
               if [ -n "$SECRETS_INFO" ]; then
-                ISSUE_BODY="${ISSUE_BODY}\n   **Secret Allowlist URLs** (click each one):\n"
+                ISSUE_BODY="${ISSUE_BODY}   **Secret Allowlist URLs** (click each one):\n"
                 while IFS= read -r url; do
-                  ISSUE_BODY="${ISSUE_BODY}   - [Allow Secret](${url})\n"
+                  [ -n "$url" ] && ISSUE_BODY="${ISSUE_BODY}   - [Allow Secret](${url})\n"
                 done <<< "$SECRETS_INFO"
               else
-                ISSUE_BODY="${ISSUE_BODY}\n   ⚠️ No allowlist URLs detected in output - check workflow logs\n"
+                ISSUE_BODY="${ISSUE_BODY}   ⚠️ No allowlist URLs detected in output - check workflow logs\n"
               fi
               
               ISSUE_BODY="${ISSUE_BODY}\n2. **Alternative: Organization Admin Action**\n"
@@ -335,22 +338,15 @@ jobs:
               ISSUE_BODY="${ISSUE_BODY}1. Close this issue\n"
               ISSUE_BODY="${ISSUE_BODY}2. Re-run the initialization by commenting the upstream repository URL on the original initialization issue"
               
-              # Use printf to properly handle newlines
+              # Create issue with improved content
               printf "%b" "$ISSUE_BODY" | gh issue create \
                 --title "🔒 Push Protection Blocking Initialization - Action Required" \
                 --body-file - \
                 --label "initialization,security,blocked" || true
               
               # Also comment on the original issue
-              COMMENT_BODY="❌ **Initialization blocked by push protection**\n\n"
-              COMMENT_BODY="${COMMENT_BODY}The upstream repository contains secrets that are being blocked by GitHub's push protection.\n\n"
-              COMMENT_BODY="${COMMENT_BODY}**Next Steps:**\n"
-              COMMENT_BODY="${COMMENT_BODY}1. 📋 I've created a detailed issue with allowlist URLs - check issues labeled 'security'\n"
-              COMMENT_BODY="${COMMENT_BODY}2. 🔓 Visit each allowlist URL and click 'Allow secret'\n"
-              COMMENT_BODY="${COMMENT_BODY}3. 🔄 Re-run initialization by commenting \`${{ needs.validate_and_setup.outputs.upstream_repo }}\` again\n\n"
-              COMMENT_BODY="${COMMENT_BODY}The second run will succeed once secrets are allowlisted!"
-              
-              printf "%b" "$COMMENT_BODY" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+              COMMENT_MSG="❌ **Initialization blocked by push protection**\n\nThe upstream repository contains secrets that are being blocked by GitHub's push protection.\n\n**Next Steps:**\n1. 📋 I've created a detailed issue with allowlist URLs - check issues labeled 'security'\n2. 🔓 Visit each allowlist URL and click 'Allow secret'\n3. 🔄 Re-run initialization by commenting \`${{ needs.validate_and_setup.outputs.upstream_repo }}\` again\n\nThe second run will succeed once secrets are allowlisted!"
+              printf "%b" "$COMMENT_MSG" | gh issue comment "${{ github.event.issue.number }}" --body-file -
               
               exit 1
             else
@@ -359,9 +355,9 @@ jobs:
               cat push_output.txt
               exit 1
             fi
+          else
+            echo "::notice::Successfully pushed fork_upstream branch"
           fi
-          
-          echo "::notice::Successfully pushed fork_upstream branch"
           
           # Create fork_integration from fork_upstream
           git checkout -b fork_integration fork_upstream
@@ -429,7 +425,28 @@ jobs:
           # Commit all copied files including workflows
           git add .github
           git commit -m "chore: copy configuration and workflows from main branch"
-          git push -u origin fork_integration
+          
+          # Push fork_integration with error handling
+          echo "::notice::Pushing fork_integration branch..."
+          set +e
+          git push -u origin fork_integration 2>&1 | tee push_integration_output.txt
+          PUSH_INTEGRATION_EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          
+          if [ $PUSH_INTEGRATION_EXIT_CODE -ne 0 ]; then
+            if grep -q "GH013: Repository rule violations found" push_integration_output.txt; then
+              echo "::error::fork_integration push also blocked by push protection"
+              echo "::notice::This is expected if the upstream repository contains secrets"
+              echo "::notice::The same allowlist URLs from the previous error will resolve this issue"
+              exit 1
+            else
+              echo "::error::fork_integration push failed for unknown reason:"
+              cat push_integration_output.txt
+              exit 1
+            fi
+          else
+            echo "::notice::Successfully pushed fork_integration branch"
+          fi
 
       - name: Merge to Main
         env:
