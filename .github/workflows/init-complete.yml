@@ -169,19 +169,19 @@ jobs:
             if [ "$PUSH_PROTECTION_STATUS" != "disabled" ]; then
               if [ "$ORG_PUSH_PROTECTION" == "enabled" ]; then
                 echo "::warning::Organization-level push protection is enforced and cannot be overridden"
-                echo "ORG_LEVEL_PROTECTION=true" >> $GITHUB_ENV
+                echo "ORG_PUSH_PROTECTION_ENABLED=true" >> $GITHUB_ENV
               else
                 echo "::warning::Push protection may still be active due to unknown reasons"
-                echo "ORG_LEVEL_PROTECTION=unknown" >> $GITHUB_ENV
+                echo "ORG_PUSH_PROTECTION_ENABLED=unknown" >> $GITHUB_ENV
               fi
             else
               echo "::notice::Push protection successfully disabled at repository level"
-              echo "ORG_LEVEL_PROTECTION=false" >> $GITHUB_ENV
+              echo "ORG_PUSH_PROTECTION_ENABLED=false" >> $GITHUB_ENV
             fi
           else
             echo "::warning::GH_TOKEN not available. Push protection cannot be disabled automatically."
             echo "::warning::If upstream contains secrets, the sync may fail and require manual intervention."
-            echo "ORG_LEVEL_PROTECTION=unknown" >> $GITHUB_ENV
+            echo "ORG_PUSH_PROTECTION_ENABLED=unknown" >> $GITHUB_ENV
           fi
 
       - name: Upstream Repository
@@ -301,7 +301,7 @@ jobs:
                   BLOB_IDS=$(grep -o 'blob_id: [a-f0-9]*' push_output.txt | cut -d' ' -f2 | head -20)
                 fi
                 
-                if [ $PUSH_ATTEMPT -eq 1 ] && [ "$ORG_LEVEL_PROTECTION" != "true" ]; then
+                if [ $PUSH_ATTEMPT -eq 1 ] && [ "$ORG_PUSH_PROTECTION_ENABLED" != "true" ]; then
                   # First attempt failed, provide immediate guidance and try alternative approach
                   echo "::notice::Push blocked by secrets - providing resolution guidance..."
                   
@@ -343,7 +343,7 @@ jobs:
                   ISSUE_BODY="${ISSUE_BODY}\n\nThe initialization workflow was blocked by push protection. This is likely due to secrets detected in the upstream repository's git history."
                   ISSUE_BODY="${ISSUE_BODY}\n\n### Detected Issues\n"
                   
-                  if [ "$ORG_LEVEL_PROTECTION" == "true" ]; then
+                  if [ "$ORG_PUSH_PROTECTION_ENABLED" == "true" ]; then
                     ISSUE_BODY="${ISSUE_BODY}⚠️ **Organization-level push protection is enabled** - This cannot be overridden at the repository level.\n\n"
                   fi
                   
