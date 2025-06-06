@@ -78,6 +78,10 @@
         {
           "path": ".github/template-workflows/cascade-monitor.yml",
           "description": "Cascade monitoring and SLA management"
+        },
+        {
+          "path": ".github/template-workflows/claude.yml",
+          "description": "Claude PR Assistant for AI-enhanced development workflow"
         }
       ],
       "template_only": [
