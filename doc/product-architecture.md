@@ -521,7 +521,44 @@ jobs:
 }
 ```
 
-### 5.3. Conflict Resolution Workflow
+### 5.3. Development and Integration Flow
+
+```mermaid
+gitGraph
+    checkout main
+    commit id: "Init Repo" tag: "0.0.0"
+
+    branch fork_upstream
+    checkout fork_upstream
+    commit id: "Upstream Sync 1" tag: "upstream-v1.0.0"
+
+    checkout main
+    branch fork_integration
+    checkout fork_integration
+
+    merge fork_upstream
+
+    commit id: "Conflict Resolution 1"
+
+    checkout fork_upstream
+    commit id: "Upstream Sync 2" tag: "upstream-v2.0.0"
+
+    checkout fork_integration
+    merge fork_upstream
+
+    commit id: "Conflict Resolution 2"
+
+    checkout main
+    commit id: "Feature Work 1" tag: "0.0.1"
+    commit id: "Feature Work 2" tag: "0.1.0"
+
+    merge fork_integration tag: "2.0.0"
+
+    commit id: "Feature Work 3" tag: "2.1.1"
+    commit id: "Feature Work 4" tag: "2.1.2"
+```
+
+### 5.4. Conflict Resolution Workflow
 
 ```
 1. Upstream Sync → fork_upstream (automated)

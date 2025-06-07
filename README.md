@@ -17,16 +17,37 @@ This project follows an AI-driven development workflow:
 - 🔄 **Automated Workflows** - GitHub Actions with AI-enhanced PR descriptions and conflict resolution
 - 🎯 **AI-First Architecture** - Designed with clear patterns for AI understanding and modification
 
-This repository provides an automated template for managing long-lived forks of upstream repositories, ensuring controlled synchronization and release management. To understand conceptionally what is trying to be accomplished in this effort, see the [Overview OnePager](doc/overview.md). For detailed design and requirements, see the [Product Requirements Document](doc/prd.md).
+**→ See [AI Development Principles](AI_PRINCIPLES.md) for our approach to building quality code with AI agents**
 
-## Features
+## What is Fork Management Template?
 
-This template automates the process of maintaining a fork while keeping it updated with upstream changes. When you create a repository from this template, it will:
+This template automates the complex task of maintaining long-lived forks of upstream repositories. It's designed for teams who need to:
 
-- Set up a structured branch strategy for controlled upstream synchronization
-- Configure automated workflows to handle syncing, validation, and releases
-- Enforce branch protection rules to maintain repository integrity
-- Manage releases with semantic versioning and upstream tracking
+- **Preserve local enhancements** while staying current with upstream changes
+- **Automate conflict detection** and resolution workflows
+- **Maintain release correlation** between fork and upstream versions
+- **Enable AI-driven development** with structured patterns and documentation
+
+**Perfect for**: OSDU projects, enterprise forks, research variations, or any scenario requiring controlled upstream synchronization.
+
+## Core Architecture
+
+The template implements a **three-branch strategy** that creates controlled integration checkpoints:
+
+```
+fork_upstream → fork_integration → main
+   (mirror)      (conflicts)     (stable)
+```
+
+This flow ensures upstream changes are validated before reaching your stable branch, with AI-enhanced conflict analysis at each stage.
+
+## Key Features
+
+✅ **Automated Daily Sync** - Pulls upstream changes with conflict detection  
+✅ **AI-Enhanced Analysis** - Intelligent PR descriptions and conflict categorization  
+✅ **Branch Protection** - Prevents accidental damage to stable branches  
+✅ **Release Correlation** - Tracks your versions against upstream releases  
+✅ **Multi-AI Ready** - Optimized for Claude Code and GitHub Copilot collaboration
 
 ## Prerequisites
 
@@ -45,114 +66,27 @@ Before starting, ensure you have:
 3. Create repository
 
 ### 2. Initialize Repository
-1. Go to Actions → Select "Initialize Fork" → Click "Run workflow" (if not already running)
-2. An initialization issue will appear in the Issues tab
-3. Follow the instructions in the issue from the bot to complete setup
+1. Go to Actions → Select "Initialize Fork" → Click "Run workflow"
+2. Follow the setup instructions in the auto-created issue
+3. Configure your upstream repository and sync settings
 
-## Branch Structure
+**Next Steps**: See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed workflow guidance
 
-The permanent branches control how upstream updates flow through validation before reaching the main branch:
+## How It Works
 
-```
-             ┌────────────────────────┐
-             │ fork_upstream          │
-             │ (Tracks Upstream)      │
-             └────────────────────────┘
-                      ↓
-             ┌───────────────────────┐
-             │ fork_integration      │
-             │ (Conflict Resolution) │
-             └───────────────────────┘
-                      ↓
-             ┌───────────────────────┐
-             │ main                  │
-             │ (Stable)              │
-             └───────────────────────┘
-              ↑                     ↑
-        Feature Branches       Certified Tags
-        (Feature1, etc.)      (Downstream Pull)
-```
+1. **Daily Automation**: Checks upstream for changes and creates sync PRs
+2. **Conflict Analysis**: AI categorizes conflicts and suggests resolution approaches  
+3. **Staged Integration**: Changes flow through validation checkpoints
+4. **Release Tracking**: Maintains correlation between your versions and upstream
 
-## Automated Workflows
+**See detailed architecture diagrams and workflows**: [Product Architecture](doc/product-architecture.md)
 
-These workflows keep your fork in sync, enforce validation rules, and manage releases automatically:
+## Documentation
 
-### 1. Upstream Sync
-- Scheduled automatic sync from upstream repository
-- Manual sync available via Actions tab
-- Automated conflict detection and notification
-- [Details →](doc/sync-workflow.md)
-
-### 2. Validation
-- Enforces commit format and branch status
-- Prevents merging of invalid PRs
-- Ensures code quality and consistency
-- [Details →](doc/validation-workflow.md)
-
-### 3. Release Management
-- Automated versioning and changelogs
-- Tracks upstream versions with release tags
-- [Details →](doc/release-workflow.md)
-
-## Development Workflow
-
-```mermaid
-gitGraph
-    checkout main
-    commit id: "Init Repo" tag: "0.0.0"
-
-    branch upstream
-    checkout upstream
-    commit id: "Upstream Sync 1" tag: "upstream-v1.0.0"
-
-    checkout main
-    branch integration
-    checkout integration
-
-
-    merge upstream 
-
-
-    commit id: "Bugfix 1"
-
-    checkout upstream
-    commit id: "Upstream Sync 2" tag: "upstream-v2.0.0"
-
-    checkout integration
-    merge upstream
-
-
-    commit id: "Bugfix 2"
-
-    checkout main
-    commit id: "Feature Work 1" tag: "0.0.1"
-    commit id: "Feature Work 2" tag: "0.1.0"
-
-    merge integration tag: "2.0.0"
-
-    commit id: "Feature Work 3" tag: "2.1.1"
-    commit id: "Feature Work 4" tag: "2.1.2"
-
-```
-
-### 1. Feature Development
-1. Branch from main: `git checkout -b feature/my-feature main`
-2. Make changes and test
-3. Use conventional commits:
-   ```
-   feat: new feature
-   fix: bug fix
-   feat!: breaking change
-   ```
-4. Create PR → Review → Merge
-
-### 2. Upstream Sync Process
-1. Auto-sync PR created daily
-2. Review changes
-3. Resolve conflicts if needed
-4. Merge sync PR
-
-### 3. Release Process
-1. Merge to main with conventional commits
-2. Release Please handles versioning and changelog
-3. Release includes upstream version tracking
+- 📚 **[CONTRIBUTING.md](CONTRIBUTING.md)** - Step-by-step workflows for contributors and users
+- 🤖 **[AI_PRINCIPLES.md](AI_PRINCIPLES.md)** - AI-first development principles and practices
+- 🧠 **[AI_EVOLUTION.md](AI_EVOLUTION.md)** - Historical context and patterns for AI agents
+- ⚙️ **[CLAUDE.md](CLAUDE.md)** - AI agent instructions and development guidelines
+- 🔍 **[Overview](doc/overview.md)** - Conceptual understanding of fork management
+- 📋 **[Product Requirements](doc/prd.md)** - Detailed design and requirements
+- 📖 **[ADRs](doc/adr/)** - Architectural decisions and rationale
