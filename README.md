@@ -15,9 +15,7 @@ This project follows an AI-driven development workflow:
 - 📋 **AI Task Assignment** - Issues labeled with `copilot` are designed for AI implementation
 - 📚 **AI-Friendly Documentation** - Comprehensive guides for AI agents in [CLAUDE.md](CLAUDE.md)
 - 🔄 **Automated Workflows** - GitHub Actions with AI-enhanced PR descriptions and conflict resolution
-- 🎯 **AI-First Architecture** - Designed with clear patterns for AI understanding and modification
-
-> **→** See [AI Development Principles](AI_PRINCIPLES.md) for our approach to building quality code with AI agents
+- 🎯 **AI-First Architecture** - Designed with clear patterns for AI understanding and modification ([AI Principles](AI_PRINCIPLES.md))
 
 ## What is Fork Management Template?
 
