@@ -440,12 +440,6 @@ jobs:
             git add ".github/copilot-instructions.md"
           fi
           
-          # Copy MCP server configuration for GitHub Copilot Agent
-          if [ -f ".github/fork-resources/mcp-config.json" ]; then
-            echo "Installing MCP server configuration for GitHub Copilot Agent..."
-            cp ".github/fork-resources/mcp-config.json" ".github/mcp-config.json"
-            git add ".github/mcp-config.json"
-          fi
           
           # Copy GitHub Copilot firewall configuration
           if [ -f ".github/fork-resources/copilot-firewall-config.json" ]; then
@@ -650,7 +644,9 @@ jobs:
 
           ✅ **Automated Workflows:** Sync, validation, and release workflows are active
 
-          ✅ **AI Enhancement:** GitHub Copilot Agent configured with Maven MCP Server and firewall allowlist for OSDU domains
+          ✅ **AI Enhancement:** GitHub Copilot Agent firewall allowlist configured for OSDU domains
+          
+          ⚠️ **MCP Configuration:** Maven MCP Server requires manual setup (see new issue created above)
 
           ✅ **Template Cleanup:** Removed template documentation (upstream README will be used)
 
@@ -669,6 +665,81 @@ jobs:
 
           **Happy coding!** 🚀
           EOF
+
+      - name: Create MCP Configuration Issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create issue for manual MCP configuration
+          cat << 'EOF' > mcp-setup.md
+          # 🤖 Configure MCP Server for GitHub Copilot Agent
+          
+          To enable the Maven MCP Server for GitHub Copilot Agent in this repository, you need to manually configure it in the repository settings.
+          
+          ## Configuration Steps
+          
+          1. **Navigate to Repository Settings**:
+             - Go to your repository on GitHub.com
+             - Click on **Settings** (you must be a repository admin)
+             - In the left sidebar under "Code & automation", click **Copilot** → **Copilot agent**
+          
+          2. **Add MCP Configuration**:
+             - Scroll to the **MCP configuration** section
+             - Replace the existing JSON with:
+          
+          ```json
+          {
+            "mcpServers": {
+              "mvn-mcp-server": {
+                "type": "local",
+                "command": "uvx",
+                "args": [
+                  "--from",
+                  "git+https://github.com/danielscholl-osdu/mvn-mcp-server@main",
+                  "mvn-mcp-server"
+                ],
+                "env": {},
+                "tools": [
+                  "*"
+                ]
+              }
+            }
+          }
+          ```
+          
+          3. **Save Configuration**:
+             - The configuration will be validated when you save
+             - If validation passes, the MCP server will be available to GitHub Copilot Agent
+          
+          ## What This Enables
+          
+          The Maven MCP Server provides GitHub Copilot Agent with capabilities to:
+          - Analyze Maven project structures
+          - Understand dependencies and build configurations
+          - Provide context-aware assistance for Java/Maven projects
+          - Help with build issues and dependency management
+          
+          ## Verification
+          
+          After configuration, you can verify the setup by:
+          1. Assigning an issue to `@copilot` 
+          2. The agent should have enhanced Maven project understanding
+          
+          ## Manual Configuration Required
+          
+          ⚠️ **Important**: This configuration cannot be automated via API. Repository administrators must configure it manually in the GitHub UI.
+          
+          ---
+          
+          Close this issue after completing the MCP configuration.
+          EOF
+          
+          gh issue create \
+            --title "🤖 Configure MCP Server for GitHub Copilot Agent" \
+            --body-file mcp-setup.md \
+            --label "configuration,copilot"
+            
+          echo "Created MCP configuration issue"
 
       - name: Complete Initialization
         env:
