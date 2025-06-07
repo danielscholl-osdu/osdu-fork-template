@@ -130,10 +130,6 @@
       {
         "path": ".claude/",
         "reason": "Claude configuration specific to template development"
-      },
-      {
-        "path": ".github/fork-resources/",
-        "reason": "Fork initialization resources no longer needed after copying"
       }
     ],
     "files": [

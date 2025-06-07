@@ -482,6 +482,12 @@ jobs:
             git add ".github/copilot-instructions.md"
           fi
           
+          # Clean up fork-resources directory after copying
+          if [ -d ".github/fork-resources" ]; then
+            echo "Removing fork-resources directory after copying..."
+            rm -rf ".github/fork-resources"
+          fi
+          
           # Clean up template development workflows and template-workflows directory
           echo "Cleaning up template development workflows..."
           
