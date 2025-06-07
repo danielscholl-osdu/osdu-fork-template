@@ -279,14 +279,18 @@ jobs:
               ISSUE_BODY="${ISSUE_BODY}1. Close this issue\n"
               ISSUE_BODY="${ISSUE_BODY}2. Re-run the initialization by commenting the upstream repository URL on the original initialization issue"
               
-              # Create issue with improved content
-              printf "%b" "$ISSUE_BODY" | gh issue create \
+              # Create issue with improved content and capture the URL
+              ESCALATION_ISSUE_URL=$(printf "%b" "$ISSUE_BODY" | gh issue create \
                 --title "🔒 Push Protection Blocking Initialization - Action Required" \
                 --body-file - \
-                --label "initialization,escalation" || true
+                --label "initialization,escalation") || true
               
-              # Also comment on the original issue
-              COMMENT_MSG="❌ **Initialization blocked by push protection**\n\nThe upstream repository contains secrets that are being blocked by GitHub's push protection.\n\n**Next Steps:**\n1. 📋 I've created a detailed issue with allowlist URLs - check issues labeled 'escalation'\n2. 🔓 Visit each allowlist URL and click 'Allow secret'\n3. 🔄 Re-run initialization by commenting \`${{ needs.validate_and_setup.outputs.upstream_repo }}\` again\n\nThe second run will succeed once secrets are allowlisted!"
+              # Also comment on the original issue with link to escalation issue
+              if [ -n "$ESCALATION_ISSUE_URL" ]; then
+                COMMENT_MSG="❌ **Initialization blocked by push protection**\n\nThe upstream repository contains secrets that are being blocked by GitHub's push protection.\n\n**Next Steps:**\n1. 📋 I've created a detailed issue with allowlist URLs: $ESCALATION_ISSUE_URL\n2. 🔓 Visit each allowlist URL and click 'Allow secret'\n3. 🔄 Re-run initialization by commenting \`${{ needs.validate_and_setup.outputs.upstream_repo }}\` again\n\nThe second run will succeed once secrets are allowlisted!"
+              else
+                COMMENT_MSG="❌ **Initialization blocked by push protection**\n\nThe upstream repository contains secrets that are being blocked by GitHub's push protection.\n\n**Next Steps:**\n1. 📋 I've created a detailed issue with allowlist URLs - check issues labeled 'escalation'\n2. 🔓 Visit each allowlist URL and click 'Allow secret'\n3. 🔄 Re-run initialization by commenting \`${{ needs.validate_and_setup.outputs.upstream_repo }}\` again\n\nThe second run will succeed once secrets are allowlisted!"
+              fi
               printf "%b" "$COMMENT_MSG" | gh issue comment "${{ github.event.issue.number }}" --body-file -
               
               exit 1
