@@ -35,7 +35,7 @@ Navigate to your fork repository settings:
 {
   "mcpServers": {
     "mvn-mcp-server": {
-      "type": "stdio",
+      "type": "local",
       "command": "uvx",
       "args": [
         "--from",
@@ -70,7 +70,7 @@ If your Maven projects require specific environment variables:
 {
   "mcpServers": {
     "mvn-mcp-server": {
-      "type": "stdio",
+      "type": "local",
       "command": "uvx",
       "args": [
         "--from",
@@ -195,12 +195,12 @@ The MCP server integrates with existing fork workflows:
 
 ## Template Integration
 
-This MCP configuration is automatically applied to new fork repositories when using the initialization workflow. See [Initialization Workflow](init-workflow.md) for details on automated setup.
+**Manual Configuration Required**: MCP configuration cannot be automated via GitHub APIs and must be configured manually in each fork repository's settings. The initialization workflow creates an issue with detailed setup instructions.
 
 ### Related Workflows
-- **init.yml**: Applies MCP configuration during repository setup
-- **sync.yml**: Enhanced with dependency analysis capabilities
-- **build.yml**: Can leverage security scanning for build decisions
+- **init-complete.yml**: Creates an issue with MCP configuration instructions after repository setup
+- **sync.yml**: Enhanced with dependency analysis capabilities when MCP is configured
+- **build.yml**: Can leverage security scanning for build decisions when MCP is configured
 
 ## Future Enhancements
 

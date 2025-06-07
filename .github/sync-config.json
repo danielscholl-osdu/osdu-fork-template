@@ -150,10 +150,6 @@
         "reason": "Template-specific Claude instructions"
       },
       {
-        "path": ".github/copilot-instructions.md",
-        "reason": "Template-specific AI instructions"
-      },
-      {
         "path": ".github/ISSUE_TEMPLATE/branch-protection-reminder.md",
         "reason": "Template initialization issue template"
       },
