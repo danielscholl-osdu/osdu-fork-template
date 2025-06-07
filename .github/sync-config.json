@@ -134,6 +134,22 @@
     ],
     "files": [
       {
+        "path": "CONTRIBUTING.md",
+        "reason": "Template-specific contributing guide"
+      },
+      {
+        "path": "AI_EVOLUTION.md",
+        "reason": "Template development history and AI context"
+      },
+      {
+        "path": "AI_PRINCIPLES.md",
+        "reason": "Template-specific AI development principles"
+      },
+      {
+        "path": "LICENSE",
+        "reason": "Template license - fork instances use upstream license"
+      },
+      {
         "path": "CLAUDE.md",
         "reason": "Template-specific Claude instructions"
       },
