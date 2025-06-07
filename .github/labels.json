@@ -119,6 +119,11 @@
       "name": "copilot",
       "description": "Suitable for GitHub Copilot implementation",
       "color": "24292e"
+    },
+    {
+      "name": "claude",
+      "description": "Suitable for Claude AI implementation",
+      "color": "CC5500"
     }
   ]
 }
