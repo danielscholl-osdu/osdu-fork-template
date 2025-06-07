@@ -25,14 +25,14 @@ This template automates the complex task of maintaining long-lived forks of upst
 <div align="center">
 
 
-| Preserve Local Changes | Smart Conflict Resolution | Track Release Versions | AI-Ready Development |
+| Preserve Local Changes | Smart Conflict Resolution | Release Versions | AI Development |
 |:------------------------:|:---------------------------:|:------------------------:|:-----------------------:|
 | Keep custom modifications safe while syncing upstream | AI-powered detection and resolution of merge conflicts | Align fork versions with upstream releases | Patterns and docs for AI agent integration |
 
 
 </div>
 
-**Perfect for**: OSDU projects, enterprise forks, research variations, or any scenario requiring controlled upstream synchronization.
+**Perfect for**: scenarios requiring controlled upstream synchronization with forked changes.
 
 ## Core Architecture
 
