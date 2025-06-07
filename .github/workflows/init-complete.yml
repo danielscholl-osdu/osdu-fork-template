@@ -472,6 +472,16 @@ jobs:
             git commit -m "chore: complete repository initialization (conflicts resolved using upstream versions)"
           fi
           
+          # Copy fork-specific resources before cleanup
+          echo "Copying fork-specific resources..."
+          
+          # Copy fork-specific copilot instructions
+          if [ -f ".github/fork-resources/copilot-instructions.md" ]; then
+            echo "Installing fork-specific copilot instructions..."
+            cp ".github/fork-resources/copilot-instructions.md" ".github/copilot-instructions.md"
+            git add ".github/copilot-instructions.md"
+          fi
+          
           # Clean up template development workflows and template-workflows directory
           echo "Cleaning up template development workflows..."
           

@@ -42,10 +42,6 @@
       {
         "path": ".github/security-patterns.txt",
         "description": "Security scanning patterns"
-      },
-      {
-        "path": ".github/copilot-instructions.md",
-        "description": "GitHub Copilot instructions for fork development"
       }
     ],
     "workflows": {
@@ -121,7 +117,9 @@
       }
     ]
   },
-  "exclusions": [],
+  "exclusions": [
+    ".github/copilot-instructions.md"
+  ],
   "cleanup_rules": {
     "description": "Files and directories to remove during repository initialization",
     "directories": [
@@ -132,12 +130,20 @@
       {
         "path": ".claude/",
         "reason": "Claude configuration specific to template development"
+      },
+      {
+        "path": ".github/fork-resources/",
+        "reason": "Fork initialization resources no longer needed after copying"
       }
     ],
     "files": [
       {
         "path": "CLAUDE.md",
         "reason": "Template-specific Claude instructions"
+      },
+      {
+        "path": ".github/copilot-instructions.md",
+        "reason": "Template-specific AI instructions"
       },
       {
         "path": ".github/ISSUE_TEMPLATE/branch-protection-reminder.md",
