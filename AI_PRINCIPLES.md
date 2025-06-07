@@ -1,6 +1,6 @@
 # AI-First Development Principles
 
-This document outlines the core principles for building quality code with AI agents in the Fork Management Template project. These principles guide how humans and AI agents collaborate effectively to maintain high standards while leveraging AI capabilities.
+This document outlines the core principles for building quality code with AI agents. These principles guide how humans and AI agents collaborate effectively to maintain high standards while leveraging AI capabilities.
 
 ## 1. Workflow Engineering Over Prompting
 
@@ -8,7 +8,7 @@ This document outlines the core principles for building quality code with AI age
 
 **In Practice**:
 - Follow the deterministic lifecycle: `Issue → Branch → Context → Code → Test → Docs → PR → Knowledge Update`
-- Use standardized branch naming: `agent/<issue>-<description>`
+- Use a standardized branch naming: `agent/<issue>-<description>`
 - Follow conventional commits for automated release management
 - Document patterns and lessons learned in AI_EVOLUTION.md for future reference
 
@@ -28,7 +28,7 @@ This document outlines the core principles for building quality code with AI age
 
 ## 3. Planning Is the Critical Path
 
-**Principle**: Specifications and tests come before implementation.
+**Principle**: Specifications and/or tests come before implementation.
 
 **In Practice**:
 - Start every task with clear specifications or checklists
