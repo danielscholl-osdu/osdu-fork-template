@@ -101,19 +101,14 @@ EOF
 
 ## Issue Creation and Labels
 
-When creating GitHub issues, follow the label strategy defined in @docs/label-strategy.md:
+**Available labels**: `bug`, `enhancement`, `documentation`, `good first issue`, `help wanted`, `question`
 
-1. **Always include one Type label**: bug, enhancement, documentation, etc.
-2. **Add Priority when clear**: high-priority, medium-priority, low-priority
-3. **Add Component labels**: configuration, dependencies, etc. (when relevant)
-4. **Status labels are optional**: needs-triage, blocked, breaking-change
-5. **Add copilot label**: When the issue is suitable for GitHub Copilot implementation
-
-Example issue creation:
+Examples:
 ```bash
-gh issue create -t "Add retry logic to storage client" \
-  -l "enhancement,medium-priority,copilot" \
-  -b "The storage client should retry failed requests..."
+# Template improvements
+gh issue create -t "Fix workflow error handling" -l "bug"
+gh issue create -t "Add new sync feature" -l "enhancement"
+gh issue create -t "Update setup docs" -l "documentation"
 ```
 
 ## Github Copilot Agent
