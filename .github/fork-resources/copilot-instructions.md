@@ -107,6 +107,35 @@ When creating issues, use appropriate workflow labels:
 - **Process**: `auto-merge-enabled`, `manual-review-required`, `production-ready`
 - **AI**: Add `copilot` label for AI-suitable tasks
 
+## MCP Server Integration
+
+This repository is configured with the Maven MCP Server for enhanced dependency management:
+
+### Available MCP Tools
+- **check_version_tool**: Check Maven dependency versions against Maven Central
+- **scan_java_project_tool**: Scan project dependencies for security vulnerabilities  
+- **list_available_versions_tool**: List available versions for specific dependencies
+
+### Usage Examples
+```
+@copilot Check if spring-boot-starter-web has newer versions available
+@copilot Scan this project for dependency vulnerabilities
+@copilot What versions of jackson-databind are available?
+```
+
+### Integration with Workflows
+- **Upstream Sync**: Analyze dependency changes for security implications
+- **Conflict Resolution**: Use version analysis for dependency conflicts
+- **Release Planning**: Security scans inform release timing
+
+### Firewall Configuration
+This repository is configured to allow GitHub Copilot Agent access to OSDU-required domains:
+- `community.opengroup.org` - OSDU Open Group community resources
+- `repo1.maven.org`, `central.maven.org`, `repo.maven.apache.org` - Maven repositories
+- `plugins.gradle.org` - Gradle plugins
+
+If you see firewall warnings, check that `COPILOT_AGENT_FIREWALL_ALLOW_LIST_ADDITIONS` is configured in repository variables.
+
 ## Workflow Patterns
 
 ### Standard Workflow Structure
