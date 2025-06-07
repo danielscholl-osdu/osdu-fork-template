@@ -37,6 +37,8 @@ jobs:
     needs: check-initialization
     if: needs.check-initialization.outputs.initialized == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
     permissions:
       contents: write
       pull-requests: write
@@ -45,19 +47,10 @@ jobs:
     steps:
       - name: "Generate Release PR"
         uses: googleapis/release-please-action@v4
+        id: release
         with:
           token: ${{ secrets.GH_TOKEN }}
-          release-type: simple
-          package-name: repo-sync
-          changelog-types: |
-            [
-              {"type":"feat","section":"✨ Features","hidden":false},
-              {"type":"fix","section":"🐛 Bug Fixes","hidden":false},
-              {"type":"chore","section":"🔧 Miscellaneous","hidden":false},
-              {"type":"docs","section":"📚 Documentation","hidden":false},
-              {"type":"perf","section":"⚡ Performance Improvements","hidden":false},
-              {"type":"upstream","section":"⬆️ Upstream Changes","hidden":false}
-            ]
+          config-file: .release-please-config.json
           
   tag-with-upstream:
     name: "🏷️ Update Release Tags"
