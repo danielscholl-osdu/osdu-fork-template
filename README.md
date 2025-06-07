@@ -81,8 +81,6 @@ Before starting, ensure you have:
 2. Follow the setup instructions in the auto-created issue
 3. Configure your upstream repository and sync settings
 
-**Next Steps**: See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed workflow guidance
-
 ## How It Works
 
 1. **Daily Automation**: Checks upstream for changes and creates sync PRs
@@ -91,13 +89,3 @@ Before starting, ensure you have:
 4. **Release Tracking**: Maintains correlation between your versions and upstream
 
 **See detailed architecture diagrams and workflows**: [Product Architecture](doc/product-architecture.md)
-
-## Documentation
-
-- 📚 **[CONTRIBUTING.md](CONTRIBUTING.md)** - Step-by-step workflows for contributors and users
-- 🤖 **[AI_PRINCIPLES.md](AI_PRINCIPLES.md)** - AI-first development principles and practices
-- 🧠 **[AI_EVOLUTION.md](AI_EVOLUTION.md)** - Historical context and patterns for AI agents
-- ⚙️ **[CLAUDE.md](CLAUDE.md)** - AI agent instructions and development guidelines
-- 🔍 **[Overview](doc/overview.md)** - Conceptual understanding of fork management
-- 📋 **[Product Requirements](doc/prd.md)** - Detailed design and requirements
-- 📖 **[ADRs](doc/adr/)** - Architectural decisions and rationale
