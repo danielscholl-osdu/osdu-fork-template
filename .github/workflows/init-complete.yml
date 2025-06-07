@@ -448,6 +448,14 @@ jobs:
             git add ".github/copilot-firewall-config.json"
           fi
           
+          # Copy triage prompt file to prompts directory
+          if [ -f ".github/fork-resources/triage.prompt.md" ]; then
+            echo "Installing triage prompt for dependency analysis..."
+            mkdir -p "prompts"
+            cp ".github/fork-resources/triage.prompt.md" "prompts/triage.prompt.md"
+            git add "prompts/triage.prompt.md"
+          fi
+          
           # Clean up fork-resources directory after copying
           if [ -d ".github/fork-resources" ]; then
             echo "Removing fork-resources directory after copying..."
@@ -737,7 +745,7 @@ jobs:
           gh issue create \
             --title "🤖 Configure MCP Server for GitHub Copilot Agent" \
             --body-file mcp-setup.md \
-            --label "configuration,copilot"
+            --label "high-priority,copilot"
             
           echo "Created MCP configuration issue"
 
