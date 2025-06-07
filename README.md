@@ -25,7 +25,7 @@ This template automates the complex task of maintaining long-lived forks of upst
 <div align="center">
 
 
-| 🔒 Preserve Local Changes | 🤝 Smart Conflict Resolution | 🔗 Track Release Versions | 🤖 AI-Ready Development |
+| Preserve Local Changes | Smart Conflict Resolution | Track Release Versions | AI-Ready Development |
 |:------------------------:|:---------------------------:|:------------------------:|:-----------------------:|
 | Keep custom modifications safe while syncing upstream | AI-powered detection and resolution of merge conflicts | Align fork versions with upstream releases | Patterns and docs for AI agent integration |
 
@@ -38,9 +38,14 @@ This template automates the complex task of maintaining long-lived forks of upst
 
 The template implements a **three-branch strategy** that creates controlled integration checkpoints:
 
-```
-fork_upstream → fork_integration → main
-   (mirror)      (conflicts)     (stable)
+```mermaid
+graph LR
+   fork_upstream["fork_upstream<br/>(mirror)"] --> fork_integration["fork_integration<br/>(conflicts)"]
+   fork_integration --> main["main<br/>(stable)"]
+   
+   style fork_upstream fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+   style fork_integration fill:#fff3e0,stroke:#e65100,stroke-width:2px
+   style main fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
 ```
 
 This flow ensures upstream changes are validated before reaching your stable branch, with AI-enhanced conflict analysis at each stage.
