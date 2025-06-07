@@ -115,3 +115,7 @@ gh issue create -t "Add retry logic to storage client" \
   -l "enhancement,medium-priority,copilot" \
   -b "The storage client should retry failed requests..."
 ```
+
+## Github Copilot Agent
+Copilot Agent often submits Pull Requests. If commenting on PR and additional changes to be made
+then include `@copilot` in the comments to tag the agent to take action.

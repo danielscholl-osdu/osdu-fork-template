@@ -3,7 +3,7 @@
     {
       "name": "initialization",
       "description": "Issues related to repository initialization",
-      "color": "0366d6"
+      "color": "0075ca"
     },
     {
       "name": "sync-failed",
@@ -28,17 +28,17 @@
     {
       "name": "dependencies",
       "description": "Dependency updates and issues",
-      "color": "0366d6"
+      "color": "0075ca"
     },
     {
       "name": "upstream-sync",
       "description": "Related to upstream synchronization",
-      "color": "1f883d"
+      "color": "0e8a16"
     },
     {
       "name": "conflict",
       "description": "Has merge conflicts",
-      "color": "e11d48"
+      "color": "b60205"
     },
     {
       "name": "cascade-active",
@@ -114,6 +114,11 @@
       "name": "template-update",
       "description": "Updates from template repository",
       "color": "0075ca"
+    },
+    {
+      "name": "copilot",
+      "description": "Suitable for GitHub Copilot implementation",
+      "color": "24292e"
     }
   ]
 }

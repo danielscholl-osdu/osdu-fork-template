@@ -17,6 +17,8 @@ You are working with an OSDU fork repository that uses automated synchronization
 3. **validate.yml** - PR validation, commit message checks, and conflict detection
 4. **release.yml** - Automated semantic versioning with Release Please
 5. **sync-template.yml** - Template updates from fork management template
+6. **cascade.yml** - Propagates template changes to downstream fork repositories
+7. **cascade-monitor.yml** - Monitors cascade workflow status and provides notifications
 
 ## Development Guidelines
 
@@ -97,10 +99,12 @@ mvn versions:display-dependency-updates
 ```
 
 ### Working with Issues
-When creating issues, use appropriate labels:
-- **Type**: `bug`, `enhancement`, `documentation`
-- **Priority**: `high-priority`, `medium-priority`, `low-priority`
-- **Component**: `upstream-sync`, `dependencies`, `build`
+When creating issues, use appropriate workflow labels:
+- **Workflow State**: `cascade-active`, `cascade-blocked`, `cascade-ready`, `cascade-failed`, `cascade-escalated`
+- **Issue Types**: `sync-failed`, `sync-update`, `conflict`, `needs-resolution`, `build-failed`, `template-sync-failed`, `template-update`
+- **Priority**: `high-priority`, `escalation`, `emergency`
+- **Components**: `upstream-sync`, `dependencies`, `initialization`, `rollback`, `release-tracking`
+- **Process**: `auto-merge-enabled`, `manual-review-required`, `production-ready`
 - **AI**: Add `copilot` label for AI-suitable tasks
 
 ## Workflow Patterns
@@ -202,5 +206,5 @@ For questions or issues:
 1. Check CHANGELOG.md for recent changes
 2. Review workflow run logs for failures
 3. Create an issue with appropriate labels
-4. Tag with `copilot` if suitable for AI implementation
+4. Tag with `claude` if additional AI assistance is needed or if working on issues from `claude`
 5. Reference upstream repository documentation for OSDU-specific guidance
