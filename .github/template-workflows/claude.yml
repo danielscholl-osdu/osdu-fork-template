@@ -34,3 +34,18 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           timeout_minutes: "60"
+          mcp_config: |
+            {
+              "mcpServers": {
+                "mvn-mcp-server": {
+                  "type": "stdio",
+                  "command": "uvx",
+                  "args": [
+                    "--from",
+                    "git+https://github.com/danielscholl-osdu/mvn-mcp-server@main",
+                    "mvn-mcp-server"
+                  ],
+                  "env": {}
+                }
+              }
+            }
