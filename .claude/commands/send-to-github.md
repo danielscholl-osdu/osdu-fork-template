@@ -11,7 +11,7 @@ Begin by analyzing the change and deciding on a issue description for the change
 **TODO List**
 
 ☐ If a branch exists with format skip Branch and Issue Creation  
-   ☐ Create github issue for feature implementation  
+   ☐ Create github issue for feature implementation with `claude` label   
    ☐ Create feature branch from main  
 ☐ Commit changes with conventional commit messages  
 ☐ Push feature branch to github  
