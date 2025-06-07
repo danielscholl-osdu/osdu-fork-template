@@ -117,5 +117,5 @@ gh issue create -t "Add retry logic to storage client" \
 ```
 
 ## Github Copilot Agent
-Copilot Agent often submits Pull Requests. If commenting on PR and additional changes to be made
-then include `@copilot` in the comments to tag the agent to take action.
+
+When reviewing Pull Requests created by the Copilot Agent, mention `@copilot` in your comments to directly notify the agent and request follow-up actions.
