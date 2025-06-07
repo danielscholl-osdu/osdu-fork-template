@@ -113,10 +113,16 @@ jobs:
               SYNC_PATHS="$SYNC_PATHS $file"
             done
             
-            # Add essential workflows
-            WORKFLOWS=$(jq -r '.sync_rules.workflows.essential[] | .path' temp-sync-config.json 2>/dev/null || echo "")
-            for workflow in $WORKFLOWS; do
-              SYNC_PATHS="$SYNC_PATHS $workflow"
+            # Add workflows (checking both possible config formats)
+            # Check for template_workflows format (current)
+            TEMPLATE_WORKFLOWS=$(jq -r '.sync_rules.workflows.template_workflows[]? | .path' temp-sync-config.json 2>/dev/null || echo "")
+            for workflow in $TEMPLATE_WORKFLOWS; do
+              [ -n "$workflow" ] && SYNC_PATHS="$SYNC_PATHS $workflow"
+            done
+            # Check for essential format (legacy/alternative)
+            ESSENTIAL_WORKFLOWS=$(jq -r '.sync_rules.workflows.essential[]? | .path' temp-sync-config.json 2>/dev/null || echo "")
+            for workflow in $ESSENTIAL_WORKFLOWS; do
+              [ -n "$workflow" ] && SYNC_PATHS="$SYNC_PATHS $workflow"
             done
             
             # Add sync config itself
@@ -173,12 +179,29 @@ jobs:
           
           echo "Syncing template files using configuration..."
           
+          # Check if sync configuration itself has changed
+          CONFIG_CHANGED=false
+          if git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- ".github/sync-config.json" | grep -q .; then
+            echo "⚠️ Sync configuration has changed - will sync all configured items to catch new templates"
+            CONFIG_CHANGED=true
+          fi
+          
           # Sync directories
           DIRECTORIES=$(jq -r '.sync_rules.directories[] | .path' temp-sync-config.json 2>/dev/null || echo "")
           for dir in $DIRECTORIES; do
-            if git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- "$dir/" | grep -q .; then
-              echo "Syncing directory: $dir"
-              
+            SHOULD_SYNC=false
+            
+            # Always sync if config changed (to catch newly added templates)
+            if [ "$CONFIG_CHANGED" = "true" ]; then
+              echo "Syncing directory (config changed): $dir"
+              SHOULD_SYNC=true
+            # Otherwise only sync if directory contents changed
+            elif git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- "$dir/" | grep -q .; then
+              echo "Syncing directory (content changed): $dir"
+              SHOULD_SYNC=true
+            fi
+            
+            if [ "$SHOULD_SYNC" = "true" ]; then
               # Remove existing directory and copy fresh from template
               rm -rf "$dir"
               mkdir -p "$(dirname "$dir")"
@@ -195,9 +218,19 @@ jobs:
           # Sync individual files
           FILES=$(jq -r '.sync_rules.files[] | .path' temp-sync-config.json 2>/dev/null || echo "")
           for file in $FILES; do
-            if git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- "$file" | grep -q .; then
-              echo "Syncing file: $file"
-              
+            SHOULD_SYNC=false
+            
+            # Always sync if config changed (to catch newly added templates)
+            if [ "$CONFIG_CHANGED" = "true" ]; then
+              echo "Syncing file (config changed): $file"
+              SHOULD_SYNC=true
+            # Otherwise only sync if file changed
+            elif git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- "$file" | grep -q .; then
+              echo "Syncing file (content changed): $file"
+              SHOULD_SYNC=true
+            fi
+            
+            if [ "$SHOULD_SYNC" = "true" ]; then
               # Create directory if it doesn't exist
               mkdir -p "$(dirname "$file")"
               
@@ -210,12 +243,31 @@ jobs:
             fi
           done
           
-          # Sync essential workflows
-          WORKFLOWS=$(jq -r '.sync_rules.workflows.essential[] | .path' temp-sync-config.json 2>/dev/null || echo "")
+          # Sync essential workflows (checking both possible config formats)
+          WORKFLOWS=""
+          # Check for template_workflows format (current)
+          TEMPLATE_WORKFLOWS=$(jq -r '.sync_rules.workflows.template_workflows[]? | .path' temp-sync-config.json 2>/dev/null || echo "")
+          # Check for essential format (legacy/alternative)
+          ESSENTIAL_WORKFLOWS=$(jq -r '.sync_rules.workflows.essential[]? | .path' temp-sync-config.json 2>/dev/null || echo "")
+          WORKFLOWS="$TEMPLATE_WORKFLOWS $ESSENTIAL_WORKFLOWS"
+          
           for workflow in $WORKFLOWS; do
-            if git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- "$workflow" | grep -q .; then
-              echo "Syncing workflow: $workflow"
-              
+            # Skip empty entries
+            [ -z "$workflow" ] && continue
+            
+            SHOULD_SYNC=false
+            
+            # Always sync if config changed (to catch newly added templates)
+            if [ "$CONFIG_CHANGED" = "true" ]; then
+              echo "Syncing workflow (config changed): $workflow"
+              SHOULD_SYNC=true
+            # Otherwise only sync if workflow changed
+            elif git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- "$workflow" | grep -q .; then
+              echo "Syncing workflow (content changed): $workflow"
+              SHOULD_SYNC=true
+            fi
+            
+            if [ "$SHOULD_SYNC" = "true" ]; then
               # Create directory if it doesn't exist
               mkdir -p "$(dirname "$workflow")"
               
