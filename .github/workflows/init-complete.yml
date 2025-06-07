@@ -192,6 +192,19 @@ jobs:
               echo "Failed to set UPSTREAM_REPO_URL variable"
               VARIABLES_SUCCESS=false
             fi
+            
+            # Configure GitHub Copilot firewall allowlist if configuration exists
+            if [ -f ".github/fork-resources/copilot-firewall-config.json" ]; then
+              echo "Configuring GitHub Copilot firewall allowlist..."
+              FIREWALL_DOMAINS=$(jq -r '.firewall_additions | join(",")' .github/fork-resources/copilot-firewall-config.json)
+              if [ -n "$FIREWALL_DOMAINS" ] && [ "$FIREWALL_DOMAINS" != "null" ]; then
+                echo "Setting COPILOT_AGENT_FIREWALL_ALLOW_LIST_ADDITIONS to: $FIREWALL_DOMAINS"
+                if ! GH_TOKEN=$GH_TOKEN gh variable set COPILOT_AGENT_FIREWALL_ALLOW_LIST_ADDITIONS --body "$FIREWALL_DOMAINS"; then
+                  echo "Failed to set COPILOT_AGENT_FIREWALL_ALLOW_LIST_ADDITIONS variable"
+                  VARIABLES_SUCCESS=false
+                fi
+              fi
+            fi
           else
             echo "GH_TOKEN not available, skipping variable configuration"
             VARIABLES_SUCCESS=false
@@ -427,6 +440,20 @@ jobs:
             git add ".github/copilot-instructions.md"
           fi
           
+          # Copy MCP server configuration for GitHub Copilot Agent
+          if [ -f ".github/fork-resources/mcp-config.json" ]; then
+            echo "Installing MCP server configuration for GitHub Copilot Agent..."
+            cp ".github/fork-resources/mcp-config.json" ".github/mcp-config.json"
+            git add ".github/mcp-config.json"
+          fi
+          
+          # Copy GitHub Copilot firewall configuration
+          if [ -f ".github/fork-resources/copilot-firewall-config.json" ]; then
+            echo "Installing GitHub Copilot firewall configuration..."
+            cp ".github/fork-resources/copilot-firewall-config.json" ".github/copilot-firewall-config.json"
+            git add ".github/copilot-firewall-config.json"
+          fi
+          
           # Clean up fork-resources directory after copying
           if [ -d ".github/fork-resources" ]; then
             echo "Removing fork-resources directory after copying..."
@@ -572,9 +599,9 @@ jobs:
           fi
           
           if [ "$VARIABLES_SUCCESS" = "true" ]; then
-            VARIABLE_STATUS="✅ **Repository Variables:** UPSTREAM_REPO_URL configured"
+            VARIABLE_STATUS="✅ **Repository Variables:** UPSTREAM_REPO_URL and GitHub Copilot firewall allowlist configured"
           else
-            VARIABLE_STATUS="⚠️ **Repository Variables:** Requires manual setup"  
+            VARIABLE_STATUS="⚠️ **Repository Variables:** Requires manual setup (including Copilot firewall allowlist)"  
           fi
           
           if [ "$SECURITY_SUCCESS" = "true" ]; then
@@ -598,7 +625,7 @@ jobs:
             
             if [ "$VARIABLES_SUCCESS" != "true" ]; then
               MANUAL_STEPS="$MANUAL_STEPS
-          - **Repository Variables:** Set UPSTREAM_REPO_URL in Settings → Secrets and variables → Actions → Variables"
+          - **Repository Variables:** Set UPSTREAM_REPO_URL and COPILOT_AGENT_FIREWALL_ALLOW_LIST_ADDITIONS in Settings → Secrets and variables → Actions → Variables"
             fi
             
             if [ "$SECURITY_SUCCESS" != "true" ]; then
@@ -622,6 +649,8 @@ jobs:
           ✅ **Upstream Connection:** Connected to \`${{ needs.validate_and_setup.outputs.upstream_repo }}\`
 
           ✅ **Automated Workflows:** Sync, validation, and release workflows are active
+
+          ✅ **AI Enhancement:** GitHub Copilot Agent configured with Maven MCP Server and firewall allowlist for OSDU domains
 
           ✅ **Template Cleanup:** Removed template documentation (upstream README will be used)
 
