@@ -43,6 +43,25 @@ mvn clean test org.jacoco:jacoco-maven-plugin:0.8.11:report
 mvn test -Dtest=TestClassName#testMethodName
 ```
 
+## Maven MCP Server Integration
+
+This template includes the [Maven MCP Server](https://github.com/danielscholl-osdu/mvn-mcp-server) which provides AI-enhanced Maven project analysis capabilities.
+
+### Available AI Commands (when MCP tools are granted permission):
+- **Dependency Analysis**: "Scan this project for security vulnerabilities"
+- **Version Checking**: "Check if dependencies have newer versions available"  
+- **POM Analysis**: "Analyze the pom.xml file for potential issues"
+- **Batch Version Check**: "Check versions for all dependencies in this project"
+
+### MCP Tool Permission
+The MCP server tools require explicit permission when first used. Grant permission when prompted, or start Claude Code with:
+```bash
+claude-code --allowedTools mcp__mvn-mcp-server__*
+```
+
+### Configuration
+MCP server configuration is automatically set up during repository initialization. For manual setup details, see `doc/mcp-integration.md`.
+
 ### GitHub CLI Operations:
 ```bash
 # Create a pull request (use GitHub CLI as per .cursor/rules)
