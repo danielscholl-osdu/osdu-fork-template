@@ -22,10 +22,15 @@
 
 This template automates the complex task of maintaining long-lived forks of upstream repositories. It's designed for teams who need to:
 
-- **Preserve local enhancements** while staying current with upstream changes
-- **Automate conflict detection** and resolution workflows
-- **Maintain release correlation** between fork and upstream versions
-- **Enable AI-driven development** with structured patterns and documentation
+<div align="center">
+
+
+| 🔒 Preserve Local Changes | 🤝 Smart Conflict Resolution | 🔗 Track Release Versions | 🤖 AI-Ready Development |
+|:------------------------:|:---------------------------:|:------------------------:|:-----------------------:|
+| Keep custom modifications safe while syncing upstream | AI-powered detection and resolution of merge conflicts | Align fork versions with upstream releases | Patterns and docs for AI agent integration |
+
+
+</div>
 
 **Perfect for**: OSDU projects, enterprise forks, research variations, or any scenario requiring controlled upstream synchronization.
 
@@ -42,11 +47,13 @@ This flow ensures upstream changes are validated before reaching your stable bra
 
 ## Key Features
 
-- **Automated Daily Sync** - Pulls upstream changes with conflict detection  
-- **AI-Enhanced Analysis** - Intelligent PR descriptions and conflict categorization  
-- **Branch Protection** - Prevents accidental damage to stable branches  
-- **Release Correlation** - Tracks your versions against upstream releases  
-- **Multi-AI Ready** - Optimized for Claude Code and GitHub Copilot collaboration
+| Feature                | Description                                                                                   |
+|------------------------|-----------------------------------------------------------------------------------------------|
+| Automated Daily Sync   | Pulls upstream changes with conflict detection                                                |
+| AI-Enhanced Analysis   | Intelligent PR descriptions and conflict categorization                                       |
+| Branch Protection      | Prevents accidental damage to stable branches                                                 |
+| Release Correlation    | Tracks your versions against upstream releases                                                |
+| Multi-AI Ready         | Optimized for Claude Code and GitHub Copilot collaboration                                    |
 
 ## Prerequisites
 
