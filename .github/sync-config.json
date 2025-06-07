@@ -36,10 +36,6 @@
         "description": "Security feature enablement configuration"
       },
       {
-        "path": ".github/security-off.json", 
-        "description": "Security feature disablement configuration"
-      },
-      {
         "path": ".github/security-patterns.txt",
         "description": "Security scanning patterns"
       }
