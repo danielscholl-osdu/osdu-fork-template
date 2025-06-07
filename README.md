@@ -13,7 +13,7 @@
 
 
 - 🤖 **Built with AI** - Developed and maintained using [Claude Code](CLAUDE.md) and [GitHub Copilot](.github/copilot-instructions.md)
-- 📋 **AI Task Assignment** - Issues assigned to `copilot` or comments addressed to `claude` are designed for Agent activites
+- 📋 **AI Task Assignment** - Issues assigned to `copilot` or comments to `claude` invoke agents
 - 📚 **AI-Friendly Documentation** - Comprehensive [guides](CONTRIBUTING.md) for AI agents
 - 🔄 **Automated Workflows** - GitHub Actions with AI-enhanced PR descriptions and conflict resolution
 - 🎯 **AI-First Architecture** - Designed with clear [principals](AI_PRINCIPLES.md) for AI understanding and modification
@@ -42,11 +42,11 @@ This flow ensures upstream changes are validated before reaching your stable bra
 
 ## Key Features
 
-✅ **Automated Daily Sync** - Pulls upstream changes with conflict detection  
-✅ **AI-Enhanced Analysis** - Intelligent PR descriptions and conflict categorization  
-✅ **Branch Protection** - Prevents accidental damage to stable branches  
-✅ **Release Correlation** - Tracks your versions against upstream releases  
-✅ **Multi-AI Ready** - Optimized for Claude Code and GitHub Copilot collaboration
+- **Automated Daily Sync** - Pulls upstream changes with conflict detection  
+- **AI-Enhanced Analysis** - Intelligent PR descriptions and conflict categorization  
+- **Branch Protection** - Prevents accidental damage to stable branches  
+- **Release Correlation** - Tracks your versions against upstream releases  
+- **Multi-AI Ready** - Optimized for Claude Code and GitHub Copilot collaboration
 
 ## Prerequisites
 
