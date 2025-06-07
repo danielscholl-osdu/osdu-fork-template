@@ -448,12 +448,21 @@ jobs:
             git add ".github/copilot-firewall-config.json"
           fi
           
-          # Copy triage prompt file to prompts directory
+          # Copy triage prompt file to .github/prompts directory
           if [ -f ".github/fork-resources/triage.prompt.md" ]; then
             echo "Installing triage prompt for dependency analysis..."
-            mkdir -p "prompts"
-            cp ".github/fork-resources/triage.prompt.md" "prompts/triage.prompt.md"
-            git add "prompts/triage.prompt.md"
+            mkdir -p ".github/prompts"
+            cp ".github/fork-resources/triage.prompt.md" ".github/prompts/triage.prompt.md"
+            git add ".github/prompts/triage.prompt.md"
+          fi
+          
+          # Copy .vscode configuration directory
+          if [ -d ".github/fork-resources/.vscode" ]; then
+            echo "Installing .vscode MCP configuration..."
+            mkdir -p ".vscode"
+            cp -r ".github/fork-resources/.vscode/"* ".vscode/"
+            # Force add .vscode files even if gitignore might affect them
+            git add -f ".vscode/"
           fi
           
           # Clean up fork-resources directory after copying
