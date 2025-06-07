@@ -17,7 +17,7 @@ This project follows an AI-driven development workflow:
 - 🔄 **Automated Workflows** - GitHub Actions with AI-enhanced PR descriptions and conflict resolution
 - 🎯 **AI-First Architecture** - Designed with clear patterns for AI understanding and modification
 
-**→ See [AI Development Principles](AI_PRINCIPLES.md) for our approach to building quality code with AI agents**
+> **→** See [AI Development Principles](AI_PRINCIPLES.md) for our approach to building quality code with AI agents
 
 ## What is Fork Management Template?
 
