@@ -65,7 +65,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           timeout_minutes: "60"
-          allowed_tools: "Bash,Task,mcp__mvn-mcp-server__list_dependencies,mcp__mvn-mcp-server__check_updates,mcp__mvn-mcp-server__analyze_vulnerabilities,mcp__mvn-mcp-server__get_dependency_tree,mcp__mvn-mcp-server__run_maven_command"
+          allowed_tools: "Bash,Task,mcp__mvn-mcp-server__check_version_tool,mcp__mvn-mcp-server__check_version_batch_tool,mcp__mvn-mcp-server__list_available_versions_tool,mcp__mvn-mcp-server__scan_java_project_tool,mcp__mvn-mcp-server__analyze_pom_file_tool"
           mcp_config: |
             {
               "mcpServers": {
