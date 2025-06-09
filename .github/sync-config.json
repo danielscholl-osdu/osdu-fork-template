@@ -3,19 +3,14 @@
   "sync_rules": {
     "directories": [
       {
-        "path": ".github/ISSUE_TEMPLATE",
-        "sync_all": true,
-        "description": "Issue templates for consistent issue creation"
-      },
-      {
-        "path": ".github/PULL_REQUEST_TEMPLATE", 
-        "sync_all": true,
-        "description": "PR templates for consistent pull request format"
-      },
-      {
         "path": ".github/actions",
         "sync_all": true,
         "description": "Custom GitHub Actions used by workflows"
+      },
+      {
+        "path": ".github/fork-resources",
+        "sync_all": true,
+        "description": "Fork-specific templates and configuration that get copied during sync updates"
       }
     ],
     "files": [

@@ -465,6 +465,14 @@ jobs:
             git add -f ".vscode/"
           fi
           
+          # Copy issue templates
+          if [ -d ".github/fork-resources/ISSUE_TEMPLATE" ]; then
+            echo "Installing fork-specific issue templates..."
+            mkdir -p ".github/ISSUE_TEMPLATE"
+            cp -r ".github/fork-resources/ISSUE_TEMPLATE/"* ".github/ISSUE_TEMPLATE/"
+            git add ".github/ISSUE_TEMPLATE/"
+          fi
+          
           # Clean up fork-resources directory after copying
           if [ -d ".github/fork-resources" ]; then
             echo "Removing fork-resources directory after copying..."

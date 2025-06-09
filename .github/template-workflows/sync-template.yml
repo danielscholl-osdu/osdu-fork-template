@@ -280,6 +280,53 @@ jobs:
             fi
           done
           
+          # Handle fork-resources special case - copy templates to their final locations
+          if [ -d ".github/fork-resources" ]; then
+            echo "Processing fork-resources updates..."
+            
+            # Copy issue templates
+            if [ -d ".github/fork-resources/ISSUE_TEMPLATE" ]; then
+              echo "Updating issue templates from fork-resources..."
+              mkdir -p ".github/ISSUE_TEMPLATE"
+              cp -r ".github/fork-resources/ISSUE_TEMPLATE/"* ".github/ISSUE_TEMPLATE/"
+              git add ".github/ISSUE_TEMPLATE/"
+            fi
+            
+            # Copy copilot instructions
+            if [ -f ".github/fork-resources/copilot-instructions.md" ]; then
+              echo "Updating copilot instructions from fork-resources..."
+              cp ".github/fork-resources/copilot-instructions.md" ".github/copilot-instructions.md"
+              git add ".github/copilot-instructions.md"
+            fi
+            
+            # Copy copilot firewall config
+            if [ -f ".github/fork-resources/copilot-firewall-config.json" ]; then
+              echo "Updating copilot firewall config from fork-resources..."
+              cp ".github/fork-resources/copilot-firewall-config.json" ".github/copilot-firewall-config.json"
+              git add ".github/copilot-firewall-config.json"
+            fi
+            
+            # Copy triage prompt
+            if [ -f ".github/fork-resources/triage.prompt.md" ]; then
+              echo "Updating triage prompt from fork-resources..."
+              mkdir -p ".github/prompts"
+              cp ".github/fork-resources/triage.prompt.md" ".github/prompts/triage.prompt.md"
+              git add ".github/prompts/triage.prompt.md"
+            fi
+            
+            # Copy .vscode configuration
+            if [ -d ".github/fork-resources/.vscode" ]; then
+              echo "Updating .vscode MCP configuration from fork-resources..."
+              mkdir -p ".vscode"
+              cp -r ".github/fork-resources/.vscode/"* ".vscode/"
+              git add -f ".vscode/"
+            fi
+            
+            # Remove fork-resources after copying (it shouldn't exist in fork repos)
+            echo "Removing fork-resources directory after copying..."
+            rm -rf ".github/fork-resources"
+          fi
+          
           # Always sync the configuration file itself
           echo "Syncing sync configuration file"
           git show template/main:.github/sync-config.json > .github/sync-config.json
