@@ -3,7 +3,7 @@ name: 🔍 Triage Request
 about: Analyze service dependencies and security posture
 title: "[TRIAGE] "
 labels: triage, needs-review
-assignees: ''
+assignees: []
 ---
 
 ## Task
@@ -42,7 +42,7 @@ Analyze this service's dependencies and security posture using available tools, 
    - List the main POM files found and describe their relationships.
    - Identify the parent POM and any core or provider modules.
    - Check for profiles in the parent Java project.
-   - Focus on the parent POM and specified <project_profiles>.
+   - Focus on the parent POM and any configured Maven profiles.
    - Never include any test projects in your analysis.
 
 3. Use the Check Version Batch Tool to identify dependency updates:

@@ -1,5 +1,6 @@
 {
   "description": "Configuration for syncing .github files between template and forked repositories",
+  "note": "ISSUE_TEMPLATE removed from sync - now managed via fork-resources staging pattern (ADR-018)",
   "sync_rules": {
     "directories": [
       {
