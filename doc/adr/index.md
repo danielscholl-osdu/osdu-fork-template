@@ -23,6 +23,7 @@ Architecture Decision Records for Fork Management Template
 | 015 | Template-Workflows Separation Pattern | Accepted | 2025-06-04 | [ADR-015](015-template-workflows-separation-pattern.md) |
 | 016 | Initialization Security Handling | Accepted | 2025-01-06 | [ADR-016](016-initialization-security-handling.md) |
 | 017 | MCP Server Integration Pattern | Accepted | 2025-01-07 | [ADR-017](017-mcp-server-integration-pattern.md) |
+| 018 | Fork-Resources Staging Pattern | Accepted | 2025-01-09 | [ADR-018](018-fork-resources-staging-pattern.md) |
 
 ## Overview
 
@@ -99,3 +100,9 @@ These Architecture Decision Records document the key design choices made in the 
 - Maven MCP Server provides AI-enhanced dependency management
 - Configuration stored in fork-resources for template-wide deployment
 - Read-only MCP servers for security and Maven Central integration
+
+**Fork-Resources Staging Pattern (ADR-018)**
+- `.github/fork-resources/` as staging area for specialized template deployment
+- Templates requiring custom deployment logic (issue templates, AI configs, prompts)
+- Two-stage deployment: template staging → fork final locations
+- Integrates with sync configuration for automatic updates
