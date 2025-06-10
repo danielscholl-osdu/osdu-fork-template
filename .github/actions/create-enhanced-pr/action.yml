@@ -46,6 +46,9 @@ inputs:
   additional-description:
     description: 'Additional content to append to PR description'
     required: false
+  fallback-description-b64:
+    description: 'Base64 encoded fallback PR description (safer for complex content)'
+    required: false
 
 outputs:
   pr-url:
@@ -131,14 +134,27 @@ runs:
             echo "used-aipr=true" >> $GITHUB_OUTPUT
           else
             echo "aipr generation failed, using fallback description"
-            PR_DESCRIPTION="${{ inputs.fallback-description }}"
+            # Check if we have a base64 encoded description first
+            if [[ -n "${{ inputs.fallback-description-b64 }}" ]]; then
+              echo "Using base64 encoded fallback description"
+              PR_DESCRIPTION=$(echo "${{ inputs.fallback-description-b64 }}" | base64 -d)
+            else
+              PR_DESCRIPTION="${{ inputs.fallback-description }}"
+            fi
             echo "used-aipr=false" >> $GITHUB_OUTPUT
           fi
         else
           if [[ "$DIFF_LINES" -gt "$MAX_DIFF_LINES" ]]; then
             echo "Diff is larger than $MAX_DIFF_LINES lines; using fallback description"
           fi
-          PR_DESCRIPTION="${{ inputs.fallback-description }}"
+          
+          # Check if we have a base64 encoded description first
+          if [[ -n "${{ inputs.fallback-description-b64 }}" ]]; then
+            echo "Using base64 encoded fallback description"
+            PR_DESCRIPTION=$(echo "${{ inputs.fallback-description-b64 }}" | base64 -d)
+          else
+            PR_DESCRIPTION="${{ inputs.fallback-description }}"
+          fi
           echo "used-aipr=false" >> $GITHUB_OUTPUT
         fi
         
