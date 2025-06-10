@@ -140,7 +140,7 @@ jobs:
           # Check for changes in the configured paths
           GITHUB_CHANGES=""
           for path in $SYNC_PATHS; do
-            CHANGES=$(git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- "$path" 2>/dev/null || echo "")
+            CHANGES=$(git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT -- "$path" 2>/dev/null || echo "")
             if [ -n "$CHANGES" ]; then
               GITHUB_CHANGES="$GITHUB_CHANGES$CHANGES"$'\n'
             fi
