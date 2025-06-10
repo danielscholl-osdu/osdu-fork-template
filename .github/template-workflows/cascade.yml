@@ -5,6 +5,12 @@ on:
     branches:
       - fork_upstream      # Triggered when sync PR merges to fork_upstream
       - fork_integration   # Triggered when integration PR merges to fork_integration
+  pull_request:
+    types: [closed]
+    branches:
+      - fork_upstream      # Triggered when PR to fork_upstream is closed
+      - fork_integration   # Triggered when PR to fork_integration is closed
+  workflow_dispatch:       # Allow manual trigger
 
 permissions:
   contents: write
@@ -18,7 +24,13 @@ concurrency:
 jobs:
   cascade-to-integration:
     name: "🔄 Cascade to Integration"
-    if: github.ref == 'refs/heads/fork_upstream'
+    if: >
+      (github.ref == 'refs/heads/fork_upstream') ||
+      (github.event_name == 'pull_request' && 
+       github.event.pull_request.merged == true && 
+       github.event.pull_request.base.ref == 'fork_upstream' &&
+       contains(github.event.pull_request.labels.*.name, 'upstream-sync')) ||
+      (github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

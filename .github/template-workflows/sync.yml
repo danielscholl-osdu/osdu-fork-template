@@ -225,7 +225,8 @@ jobs:
             --base fork_upstream \
             --head "$SYNC_BRANCH" \
             --title "⬆️ Sync with upstream $UPSTREAM_VERSION" \
-            --body "$PR_DESCRIPTION")
+            --body "$PR_DESCRIPTION" \
+            --label "upstream-sync")
           
           echo "PR created: $PR_URL"
           
@@ -240,32 +241,13 @@ jobs:
           echo "$PR_DESCRIPTION" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      - name: Create linked issue and update PR
+      - name: Log sync completion
         if: steps.sync-changes.outputs.has_changes == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           PR_URL="${{ steps.create-pr.outputs.pr-url }}"
           PR_NUMBER="${{ steps.create-pr.outputs.pr-number }}"
-          echo "PR number: $PR_NUMBER"
-            
-          # Create a linked issue with basic content
-          echo "Creating linked issue for PR #$PR_NUMBER"
-          ISSUE_URL=$(gh issue create \
-            --title "🔄 Upstream Sync - $(date +%Y-%m-%d)" \
-            --body "This issue tracks the upstream sync PR #$PR_NUMBER and will close automatically when the PR is merged." \
-            --label "sync-update")
-          
-          # Extract issue number and update PR to close the issue
-          ISSUE_NUMBER=$(basename $ISSUE_URL)
-          echo "Issue number: $ISSUE_NUMBER"
-          
-          # Update the PR body to include issue closure
-          UPDATED_PR_BODY="$PR_DESCRIPTION
-
-          Closes #$ISSUE_NUMBER"
-          
-          gh pr edit $PR_NUMBER --body "$UPDATED_PR_BODY"
+          echo "✅ Sync PR created successfully: $PR_URL"
+          echo "The PR can be reviewed and merged to integrate upstream changes."
 
       - name: Handle Failure
         if: failure()
