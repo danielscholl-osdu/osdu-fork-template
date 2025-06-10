@@ -113,15 +113,9 @@ jobs:
               SYNC_PATHS="$SYNC_PATHS $file"
             done
             
-            # Add workflows (checking both possible config formats)
-            # Check for template_workflows format (current)
+            # Add workflows to check paths (template workflows will be processed differently)
             TEMPLATE_WORKFLOWS=$(jq -r '.sync_rules.workflows.template_workflows[]? | .path' temp-sync-config.json 2>/dev/null || echo "")
             for workflow in $TEMPLATE_WORKFLOWS; do
-              [ -n "$workflow" ] && SYNC_PATHS="$SYNC_PATHS $workflow"
-            done
-            # Check for essential format (legacy/alternative)
-            ESSENTIAL_WORKFLOWS=$(jq -r '.sync_rules.workflows.essential[]? | .path' temp-sync-config.json 2>/dev/null || echo "")
-            for workflow in $ESSENTIAL_WORKFLOWS; do
               [ -n "$workflow" ] && SYNC_PATHS="$SYNC_PATHS $workflow"
             done
             
@@ -181,13 +175,13 @@ jobs:
           
           # Check if sync configuration itself has changed
           CONFIG_CHANGED=false
-          if git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- ".github/sync-config.json" | grep -q .; then
+          if git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT -- ".github/sync-config.json" | grep -q .; then
             echo "⚠️ Sync configuration has changed - will sync all configured items to catch new templates"
             CONFIG_CHANGED=true
           fi
           
-          # Sync directories
-          DIRECTORIES=$(jq -r '.sync_rules.directories[] | .path' temp-sync-config.json 2>/dev/null || echo "")
+          # Sync directories (excluding staging areas)
+          DIRECTORIES=$(jq -r '.sync_rules.directories[] | select(.path != ".github/fork-resources") | .path' temp-sync-config.json 2>/dev/null || echo "")
           for dir in $DIRECTORIES; do
             SHOULD_SYNC=false
             
@@ -196,7 +190,7 @@ jobs:
               echo "Syncing directory (config changed): $dir"
               SHOULD_SYNC=true
             # Otherwise only sync if directory contents changed
-            elif git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- "$dir/" | grep -q .; then
+            elif git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT -- "$dir/" | grep -q .; then
               echo "Syncing directory (content changed): $dir"
               SHOULD_SYNC=true
             fi
@@ -225,7 +219,7 @@ jobs:
               echo "Syncing file (config changed): $file"
               SHOULD_SYNC=true
             # Otherwise only sync if file changed
-            elif git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- "$file" | grep -q .; then
+            elif git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT -- "$file" | grep -q .; then
               echo "Syncing file (content changed): $file"
               SHOULD_SYNC=true
             fi
@@ -243,89 +237,99 @@ jobs:
             fi
           done
           
-          # Sync essential workflows (checking both possible config formats)
-          WORKFLOWS=""
-          # Check for template_workflows format (current)
+          # Process template workflows - move from template-workflows/ to workflows/
+          echo "Processing template workflow updates..."
           TEMPLATE_WORKFLOWS=$(jq -r '.sync_rules.workflows.template_workflows[]? | .path' temp-sync-config.json 2>/dev/null || echo "")
-          # Check for essential format (legacy/alternative)
-          ESSENTIAL_WORKFLOWS=$(jq -r '.sync_rules.workflows.essential[]? | .path' temp-sync-config.json 2>/dev/null || echo "")
-          WORKFLOWS="$TEMPLATE_WORKFLOWS $ESSENTIAL_WORKFLOWS"
           
-          for workflow in $WORKFLOWS; do
+          for template_workflow in $TEMPLATE_WORKFLOWS; do
             # Skip empty entries
-            [ -z "$workflow" ] && continue
+            [ -z "$template_workflow" ] && continue
+            
+            # Extract filename from template path
+            WORKFLOW_FILE=$(basename "$template_workflow")
+            FINAL_WORKFLOW_PATH=".github/workflows/$WORKFLOW_FILE"
             
             SHOULD_SYNC=false
             
             # Always sync if config changed (to catch newly added templates)
             if [ "$CONFIG_CHANGED" = "true" ]; then
-              echo "Syncing workflow (config changed): $workflow"
+              echo "Syncing template workflow (config changed): $template_workflow -> $FINAL_WORKFLOW_PATH"
               SHOULD_SYNC=true
-            # Otherwise only sync if workflow changed
-            elif git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- "$workflow" | grep -q .; then
-              echo "Syncing workflow (content changed): $workflow"
+            # Otherwise only sync if template workflow changed
+            elif git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT -- "$template_workflow" | grep -q .; then
+              echo "Syncing template workflow (content changed): $template_workflow -> $FINAL_WORKFLOW_PATH"
               SHOULD_SYNC=true
             fi
             
             if [ "$SHOULD_SYNC" = "true" ]; then
-              # Create directory if it doesn't exist
-              mkdir -p "$(dirname "$workflow")"
+              # Create workflows directory if it doesn't exist
+              mkdir -p ".github/workflows"
               
-              # Copy workflow from template
-              if git show template/main:"$workflow" > "$workflow" 2>/dev/null; then
-                git add "$workflow"
+              # Copy template workflow to final location
+              if git show template/main:"$template_workflow" > "$FINAL_WORKFLOW_PATH" 2>/dev/null; then
+                git add "$FINAL_WORKFLOW_PATH"
+                echo "Updated workflow: $FINAL_WORKFLOW_PATH"
               else
-                echo "Workflow $workflow not found in template, skipping"
+                echo "Template workflow $template_workflow not found in template, skipping"
               fi
             fi
           done
           
-          # Handle fork-resources special case - copy templates to their final locations
-          if [ -d ".github/fork-resources" ]; then
-            echo "Processing fork-resources updates..."
-            
-            # Copy issue templates
-            if [ -d ".github/fork-resources/ISSUE_TEMPLATE" ]; then
+          # Process fork-resources staging area - check if fork-resources content has changed
+          echo "Processing fork-resources staging area..."
+          FORK_RESOURCES_CHANGED=false
+          
+          # Always process if config changed (to catch newly added templates)
+          if [ "$CONFIG_CHANGED" = "true" ]; then
+            echo "Processing fork-resources (config changed)"
+            FORK_RESOURCES_CHANGED=true
+          # Otherwise only process if fork-resources contents changed
+          elif git diff --name-only $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT -- ".github/fork-resources/" | grep -q .; then
+            echo "Processing fork-resources (content changed)"
+            FORK_RESOURCES_CHANGED=true
+          fi
+          
+          if [ "$FORK_RESOURCES_CHANGED" = "true" ]; then
+            # Process issue templates
+            if git show template/main:".github/fork-resources/ISSUE_TEMPLATE" >/dev/null 2>&1; then
               echo "Updating issue templates from fork-resources..."
               mkdir -p ".github/ISSUE_TEMPLATE"
-              cp -r ".github/fork-resources/ISSUE_TEMPLATE/"* ".github/ISSUE_TEMPLATE/"
-              git add ".github/ISSUE_TEMPLATE/"
+              git archive template/main ".github/fork-resources/ISSUE_TEMPLATE" | tar -x --strip-components=3 -C ".github/ISSUE_TEMPLATE" || echo "Failed to extract issue templates"
+              git add ".github/ISSUE_TEMPLATE/" || true
             fi
             
-            # Copy copilot instructions
-            if [ -f ".github/fork-resources/copilot-instructions.md" ]; then
+            # Process copilot instructions
+            if git show template/main:".github/fork-resources/copilot-instructions.md" >/dev/null 2>&1; then
               echo "Updating copilot instructions from fork-resources..."
-              cp ".github/fork-resources/copilot-instructions.md" ".github/copilot-instructions.md"
+              git show template/main:".github/fork-resources/copilot-instructions.md" > ".github/copilot-instructions.md"
               git add ".github/copilot-instructions.md"
             fi
             
-            # Copy copilot firewall config
-            if [ -f ".github/fork-resources/copilot-firewall-config.json" ]; then
+            # Process copilot firewall config
+            if git show template/main:".github/fork-resources/copilot-firewall-config.json" >/dev/null 2>&1; then
               echo "Updating copilot firewall config from fork-resources..."
-              cp ".github/fork-resources/copilot-firewall-config.json" ".github/copilot-firewall-config.json"
+              git show template/main:".github/fork-resources/copilot-firewall-config.json" > ".github/copilot-firewall-config.json"
               git add ".github/copilot-firewall-config.json"
             fi
             
-            # Copy triage prompt
-            if [ -f ".github/fork-resources/triage.prompt.md" ]; then
+            # Process triage prompt
+            if git show template/main:".github/fork-resources/triage.prompt.md" >/dev/null 2>&1; then
               echo "Updating triage prompt from fork-resources..."
               mkdir -p ".github/prompts"
-              cp ".github/fork-resources/triage.prompt.md" ".github/prompts/triage.prompt.md"
+              git show template/main:".github/fork-resources/triage.prompt.md" > ".github/prompts/triage.prompt.md"
               git add ".github/prompts/triage.prompt.md"
             fi
             
-            # Copy .vscode configuration
-            if [ -d ".github/fork-resources/.vscode" ]; then
+            # Process .vscode configuration
+            if git show template/main:".github/fork-resources/.vscode" >/dev/null 2>&1; then
               echo "Updating .vscode MCP configuration from fork-resources..."
               mkdir -p ".vscode"
-              cp -r ".github/fork-resources/.vscode/"* ".vscode/"
-              git add -f ".vscode/"
+              git archive template/main ".github/fork-resources/.vscode" | tar -x --strip-components=3 -C ".vscode" || echo "Failed to extract .vscode config"
+              git add -f ".vscode/" || true
             fi
-            
-            # Remove fork-resources after copying (it shouldn't exist in fork repos)
-            echo "Removing fork-resources directory after copying..."
-            rm -rf ".github/fork-resources"
           fi
+          
+          # Note: fork-resources directory should NOT be copied to the fork repository
           
           # Always sync the configuration file itself
           echo "Syncing sync configuration file"
@@ -362,16 +366,34 @@ jobs:
           TEMPLATE_COMMIT="${{ steps.check-updates.outputs.template_commit }}"
           LAST_SYNC_COMMIT="${{ steps.check-updates.outputs.last_sync_commit }}"
           
-          # Generate change summary
-          CHANGES=$(git log --oneline $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- .github/ | head -10)
-          CHANGED_FILES=$(git diff --name-only main...$SYNC_BRANCH)
+          # Generate change summary - use printf to safely format the output
+          printf "## Template Updates\n\n" > /tmp/fallback_description.md
+          printf "This PR syncs the latest changes from the template repository to keep our workflows and GitHub configuration up to date.\n\n" >> /tmp/fallback_description.md
+          printf "### Changed Files\n" >> /tmp/fallback_description.md
           
-          # Create fallback description
-          FALLBACK_DESCRIPTION="## Template Updates"$'\n\n'"This PR syncs the latest changes from the template repository to keep our workflows and GitHub configuration up to date."$'\n\n'"### Changed Files"$'\n'"$CHANGED_FILES"$'\n\n'"### Template Changes"$'\n'"$CHANGES"$'\n\n'"### Details"$'\n'"- Template commit: \`$TEMPLATE_COMMIT\`"$'\n'"- Previous sync: \`$LAST_SYNC_COMMIT\`"$'\n\n'"These changes help maintain consistency with the latest template improvements and bug fixes."
+          # Add changed files list (safely escaped)
+          git diff --name-only main...$SYNC_BRANCH | while read -r file; do
+            printf -- "- %s\n" "$file"
+          done >> /tmp/fallback_description.md || echo "- No changed files detected" >> /tmp/fallback_description.md
           
-          echo "FALLBACK_DESCRIPTION<<EOF" >> $GITHUB_ENV
-          echo "$FALLBACK_DESCRIPTION" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          printf "\n### Template Changes\n" >> /tmp/fallback_description.md
+          
+          # Add template changes (safely escaped)  
+          git log --oneline $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- .github/ | head -10 | while read -r line; do
+            printf -- "- %s\n" "$line"
+          done >> /tmp/fallback_description.md || echo "- No specific .github changes found" >> /tmp/fallback_description.md
+          
+          printf "\n### Details\n" >> /tmp/fallback_description.md
+          printf -- "- Template commit: \`%s\`\n" "$TEMPLATE_COMMIT" >> /tmp/fallback_description.md
+          printf -- "- Previous sync: \`%s\`\n" "$LAST_SYNC_COMMIT" >> /tmp/fallback_description.md
+          printf "\nThese changes help maintain consistency with the latest template improvements and bug fixes.\n" >> /tmp/fallback_description.md
+          
+          # Set the environment variable using base64 encoding to prevent any shell interpretation
+          ENCODED_DESCRIPTION=$(base64 -w 0 /tmp/fallback_description.md)
+          echo "FALLBACK_DESCRIPTION_B64=$ENCODED_DESCRIPTION" >> $GITHUB_ENV
+          
+          # Also create a simple version for backwards compatibility
+          echo "FALLBACK_DESCRIPTION=Template sync PR - see commit details for changes" >> $GITHUB_ENV
 
       - name: Create enhanced template sync PR
         if: steps.check-updates.outputs.has_updates == 'true' && env.has_changes == 'true'
@@ -383,6 +405,7 @@ jobs:
           head-branch: ${{ env.SYNC_BRANCH }}
           pr-title: "🔄 Sync template updates $(date +%Y-%m-%d)"
           fallback-description: ${{ env.FALLBACK_DESCRIPTION }}
+          fallback-description-b64: ${{ env.FALLBACK_DESCRIPTION_B64 }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           azure-api-key: ${{ secrets.AZURE_API_KEY }}
           azure-api-base: ${{ secrets.AZURE_API_BASE }}
