@@ -1,5 +1,30 @@
 # GitHub Copilot Instructions
 
+## CRITICAL: GitHub Copilot Agent Commit Requirements
+
+**BEFORE MAKING ANY COMMIT, READ THIS SECTION CAREFULLY**
+
+This repository has automated validation that WILL FAIL if commits don't follow exact conventional commit format. GitHub Copilot Agent MUST follow these rules:
+
+### Commit Message Validation Rules
+1. **FORMAT**: `<type>: <description>` or `<type>(<scope>): <description>`
+2. **NO PREFIXES**: Never use ✅, ❌, 🚀, [feat], or any symbols/emojis
+3. **LOWERCASE TYPE**: Always use `feat:`, `fix:`, `chore:` (never `Feat:`, `Fix:`)
+4. **REQUIRED COLON**: Must have colon and space after type: `feat: ` not `feat`
+5. **IMPERATIVE MOOD**: Use "add feature" not "added feature" or "adds feature"
+
+### Valid Examples for Copilot Agent
+```
+feat: add authentication middleware
+fix: resolve sync conflict in pom.xml
+chore: update dependencies to latest versions
+docs: update README with new configuration
+ci: add validation for commit messages
+```
+
+### Repository Validation
+This repository uses `webiny/action-conventional-commits@v1.1.0` to validate ALL commits. Commits that fail this validation will block PRs from merging.
+
 ## Project Overview
 
 You are working with an OSDU fork repository that uses automated synchronization to stay updated with upstream changes. This fork follows a structured development workflow with emphasis on conventional commits for automated release management using Release Please.
@@ -23,25 +48,57 @@ You are working with an OSDU fork repository that uses automated synchronization
 ## Development Guidelines
 
 ### Commit Messages (CRITICAL)
-**Always use conventional commits format** - This is essential for Release Please to work correctly:
+**STRICT REQUIREMENT: All commits MUST follow conventional commits format exactly** - This is essential for Release Please and CI validation to work correctly.
 
+**REQUIRED FORMAT:**
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**VALID EXAMPLES:**
 ```
 feat: add new feature
 fix: correct bug in upstream sync
 chore: update dependencies  
 docs: improve README documentation
 feat!: breaking change to API
+feat(auth): add OAuth2 support
+fix(sync): resolve merge conflict handling
 ```
 
-**Commit Message Types:**
+**INVALID FORMATS TO NEVER USE:**
+```
+❌ ✅ fix: add missing fork-resources handling     # NO emojis/symbols
+❌ Fix: correct bug                               # NO capital letters
+❌ added new feature                              # NO past tense
+❌ feature: add authentication                    # NO "feature", use "feat"
+❌ bug fix: resolve issue                        # NO spaces in type
+❌ Update dependencies                           # NO imperative without type
+❌ [feat] add new feature                        # NO brackets
+❌ feat add new feature                          # MISSING colon
+```
+
+**Commit Message Types (EXACT SPELLING REQUIRED):**
 - `feat:` - New features (triggers minor version bump)
-- `fix:` - Bug fixes (triggers patch version bump)
+- `fix:` - Bug fixes (triggers patch version bump) 
 - `feat!:` or `fix!:` - Breaking changes (triggers major version bump)
 - `chore:` - Maintenance tasks (no version bump)
 - `docs:` - Documentation updates (no version bump)
 - `ci:` - CI/CD changes (no version bump)
 - `refactor:` - Code refactoring (no version bump)
 - `test:` - Test additions/updates (no version bump)
+
+**CRITICAL RULES FOR GITHUB COPILOT AGENT:**
+1. **NO EMOJIS OR SYMBOLS** - Never prefix with ✅, ❌, 🚀, etc.
+2. **LOWERCASE TYPE** - Always use lowercase (feat, fix, not Feat, Fix)
+3. **COLON REQUIRED** - Must have colon after type: `feat:` not `feat`
+4. **NO PAST TENSE** - Use "add feature" not "added feature"
+5. **IMPERATIVE MOOD** - Use "fix bug" not "fixes bug"
+6. **NO EXTRA WHITESPACE** - One space after colon: `feat: description`
 
 ### Branch Naming
 Use descriptive branch names:
@@ -53,8 +110,10 @@ Use descriptive branch names:
 - Create PRs using GitHub CLI: `gh pr create`
 - Include clear descriptions of changes
 - Reference related issues using `Fixes #123` or `Closes #456`
-- Ensure all CI checks pass before merging
+- **CRITICAL**: ALL commits in PR MUST pass conventional commit validation
+- **CRITICAL**: PR will be blocked if any commit fails `webiny/action-conventional-commits` validation
 - Use conventional commit format in PR titles
+- Ensure all CI checks pass before merging
 
 ### Testing
 - Write behavior-driven tests, not implementation tests
@@ -227,6 +286,41 @@ feat!: change API authentication method
 
 BREAKING CHANGE: The authentication method has changed from API keys to OAuth2. 
 Update your configuration to use the new oauth settings.
+```
+
+## GitHub Copilot Agent Summary
+
+### Pre-Commit Checklist
+Before making ANY commit, GitHub Copilot Agent must verify:
+
+1. ✅ **Commit message starts with valid type**: `feat:`, `fix:`, `chore:`, `docs:`, `ci:`, `refactor:`, `test:`
+2. ✅ **No symbols or emojis**: No ✅, ❌, 🚀, [brackets], etc.
+3. ✅ **Lowercase type**: `feat:` not `Feat:` or `FEAT:`
+4. ✅ **Colon and space**: `feat: ` not `feat:` or `feat`
+5. ✅ **Imperative mood**: "add feature" not "added feature"
+6. ✅ **No past tense**: "fix bug" not "fixed bug"
+
+### Validation Enforcement
+- Repository uses `webiny/action-conventional-commits@v1.1.0`
+- ALL commits are validated automatically
+- Failed validation BLOCKS PR merging
+- No exceptions for any branch or contributor
+
+### Common Mistakes to Avoid
+```bash
+# WRONG - These will fail validation
+git commit -m "✅ fix: add missing handling"     # emoji prefix
+git commit -m "Fix: correct the bug"             # capital letter
+git commit -m "added new feature"                # past tense, no type
+git commit -m "feat add authentication"          # missing colon
+git commit -m "[feat] new feature"               # brackets
+
+# CORRECT - These will pass validation  
+git commit -m "fix: add missing handling"
+git commit -m "fix: correct the bug"
+git commit -m "feat: add new feature"
+git commit -m "feat: add authentication"
+git commit -m "feat: add new feature"
 ```
 
 ## Support
