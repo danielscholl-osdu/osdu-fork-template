@@ -27,7 +27,15 @@ on:
     branches:
       - fork_upstream      # When sync PR merges
       - fork_integration   # When integration PR merges
+  pull_request:
+    types: [closed]
+    branches:
+      - fork_upstream      # When PR to fork_upstream is closed
+      - fork_integration   # When PR to fork_integration is closed
+  workflow_dispatch:       # Allow manual trigger
 ```
+
+**Note**: The `pull_request` trigger addresses GitHub token limitations where manual PR merges via the UI use `GITHUB_TOKEN` which cannot trigger other workflows. The cascade jobs include conditional logic to only process PRs labeled with `upstream-sync` that were actually merged.
 
 ### Permissions
 ```yaml
