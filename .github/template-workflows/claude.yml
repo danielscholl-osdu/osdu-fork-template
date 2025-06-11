@@ -70,13 +70,15 @@ jobs:
             {
               "mcpServers": {
                 "mvn-mcp-server": {
+                  "type": "stdio",
                   "command": "uvx",
                   "args": [
                     "--from",
                     "git+https://github.com/danielscholl-osdu/mvn-mcp-server@main",
                     "mvn-mcp-server"
                   ],
-                  "env": {}
+                  "env": {},
+                  "tools": ["*"]
                 }
               }
             }
