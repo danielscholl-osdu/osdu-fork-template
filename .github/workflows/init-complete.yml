@@ -481,13 +481,6 @@ jobs:
             git add ".github/workflows/copilot-setup-steps.yml"
           fi
           
-          # Copy MCP configuration
-          if [ -f ".github/fork-resources/mcp-config.json" ]; then
-            echo "Installing MCP configuration for GitHub Copilot Agent..."
-            cp ".github/fork-resources/mcp-config.json" ".github/mcp-config.json"
-            git add ".github/mcp-config.json"
-          fi
-          
           # Clean up fork-resources directory after copying
           if [ -d ".github/fork-resources" ]; then
             echo "Removing fork-resources directory after copying..."
