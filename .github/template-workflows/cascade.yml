@@ -25,12 +25,12 @@ jobs:
   cascade-to-integration:
     name: "🔄 Cascade to Integration"
     if: >
-      (github.ref == 'refs/heads/fork_upstream') ||                              # Triggered by push to fork_upstream
-      (github.event_name == 'pull_request' &&                                   # Triggered by pull request event
-       github.event.pull_request.merged == true &&                              # PR must be merged
-       github.event.pull_request.base.ref == 'fork_upstream' &&                 # Base branch is fork_upstream
-       contains(github.event.pull_request.labels.*.name, 'upstream-sync')) ||   # Label indicates upstream sync
-      (github.event_name == 'workflow_dispatch')                                # Triggered manually
+      (github.ref == 'refs/heads/fork_upstream') ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.merged == true &&
+       github.event.pull_request.base.ref == 'fork_upstream' &&
+       contains(github.event.pull_request.labels.*.name, 'upstream-sync')) ||
+      (github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
