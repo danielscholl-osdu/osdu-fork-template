@@ -33,17 +33,35 @@ jobs:
           
       - name: Validate Workflow YAML
         run: |
+          validation_failed=false
+          
           echo "Validating active workflows..."
           for file in .github/workflows/*.yml; do
             echo "Validating $file"
-            yq e '.' "$file" >/dev/null && echo "✅ $file is valid" || echo "❌ $file has errors"
+            if yq e '.' "$file" >/dev/null 2>&1; then
+              echo "✅ $file is valid"
+            else
+              echo "❌ $file has YAML syntax errors"
+              validation_failed=true
+            fi
           done
           
           echo "Validating template workflows..."
           for file in .github/template-workflows/*.yml; do
             echo "Validating $file"
-            yq e '.' "$file" >/dev/null && echo "✅ $file is valid" || echo "❌ $file has errors"
+            if yq e '.' "$file" >/dev/null 2>&1; then
+              echo "✅ $file is valid"
+            else
+              echo "❌ $file has YAML syntax errors"
+              validation_failed=true
+            fi
           done
+          
+          if [ "$validation_failed" = "true" ]; then
+            echo "❌ YAML validation failed - fix syntax errors above"
+            exit 1
+          fi
+          echo "✅ All YAML files are valid"
           
       - name: Validate JSON Configuration
         run: |
