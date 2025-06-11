@@ -1,13 +1,23 @@
+This is a forked repository of the OSDU project, optimized for GitHub Copilot use. 
+The following guidelines are designed to enhance clarity and efficiency in development practices, ensuring a smooth workflow for contributors.
 
-# GitHub Copilot Instructions
+## Repository Structure
 
-## CRITICAL: Commit Message Requirements
+* **Important Branches**:
 
-All commits must follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format to pass automated validation. Otherwise, PRs will be blocked.
+  * `main`: Protected production (semantic releases)
+  * `fork_upstream`: Auto-sync from upstream
+  * `fork_integration`: Conflict resolution staging
 
-### Format
+---
 
-```
+## Commit Standards
+
+### Conventional Commit Format
+
+Commits **must** follow the [Conventional Commits](https://www.conventionalcommits.org) standard:
+
+```text
 <type>(<scope>): <description>
 
 [optional body]
@@ -15,95 +25,74 @@ All commits must follow the [Conventional Commits](https://www.conventionalcommi
 [optional footer(s)]
 ```
 
-### Valid Examples
+**Valid Types**:
 
+* `feat`: New feature
+* `fix`: Bug fix
+* `feat!`: Breaking feature change
+* `fix!`: Breaking bug fix
+* `chore`: Maintenance (no version bump)
+* `docs`: Documentation
+* `ci`: CI/CD configuration
+* `refactor`: Code refactoring
+* `test`: Tests
+
+### Rules
+
+* Use imperative mood ("fix bug", not "fixed")
+* No emojis or special characters
+* Lowercase type, colon, and space required (`fix: correct bug`)
+* No brackets or prefixes (e.g., `[feat]`)
+
+**Example**:
+
+```bash
+feat: add login middleware
 ```
-feat: add authentication middleware
-fix(sync): resolve merge conflict
-chore: update dependencies
-docs: update README
-ci: add commit validation
-```
 
-### Invalid Examples
+---
 
-```
-fix: handle error         # do not prefix with symbols or emojis
-Fix: correct bug          # do not use capital letters
-added new feature         # do not use past tense
-feature: use OAuth2       # do not use "feature", use "feat"
-[feat] add login support  # do not use brackets
-feat add login            # missing colon
-```
+## Branch Naming
 
-### Allowed Types
+Descriptive naming aligned to issue tracking:
 
-- feat: — New feature
-- fix: — Bug fix
-- feat!: / fix!: — Breaking change
-- chore: — Maintenance (no version bump)
-- docs: — Documentation
-- ci: — CI/CD config
-- refactor: — Refactoring
-- test: — Tests
-
-### Key Rules
-
-- No emojis or symbols
-- Type must be lowercase
-- Use imperative mood: "add feature", not "added" or "adds"
-- Colon and space required: `fix: correct bug`
-- One space after the colon
-- No brackets or prefixing (e.g., [feat])
-
-
-## Project Structure
-
-This is a fork of the OSDU repository with automated workflows and semantic versioning using Release Please.
-
-### Branch Strategy
-
-- main: Protected production branch (semantic releases)
-- fork_upstream: Auto-sync with upstream repo
-- fork_integration: Staging area for conflict resolution
-
-## Automation Workflows
-
-| Workflow              | Purpose                                             |
-| --------------------- | --------------------------------------------------- |
-| sync.yml              | Sync with upstream, auto-generate PRs               |
-| build.yml             | Build & test Java/Maven projects                    |
-| validate.yml          | Enforce commit message validation, detect conflicts |
-| release.yml           | Automate releases with version bumps                |
-| sync-template.yml     | Update from fork template                           |
-| cascade.yml           | Propagate template updates to forks                 |
-| cascade-monitor.yml   | Monitor propagation status                          |
-
-
-## Development Guidelines
-
-### Branch Naming
-
-Use descriptive names:
-
-```
+```bash
 feat/issue-123-add-auth
-fix/issue-456-fix-leak
+fix/issue-456-memory-leak
 chore/update-dependencies
 ```
 
-### Pull Requests
+---
 
-- Create with `gh pr create`
-- Use conventional commit format in PR titles
-- Reference issues: `Fixes #123`
-- Ensure all commits and CI checks pass
+## Pull Request Workflow
 
-### Testing
+* Create PRs using `gh pr create`
+* PR title in conventional commit format
+* Reference issues clearly (e.g., `Fixes #123`)
+* Ensure all CI checks pass
 
-- Use behavior-driven tests
-- Target 80%+ test coverage
-- Run locally:
+---
+
+## Automation Workflows
+
+| Workflow              | Purpose                                      |
+| --------------------- | -------------------------------------------- |
+| `sync.yml`            | Sync from upstream; auto-create PRs          |
+| `build.yml`           | Build/test Java Maven projects               |
+| `validate.yml`        | Commit message validation and conflict check |
+| `release.yml`         | Automate semantic version releases           |
+| `sync-template.yml`   | Update from fork templates                   |
+| `cascade.yml`         | Propagate updates to downstream forks        |
+| `cascade-monitor.yml` | Monitor update propagation                   |
+
+---
+
+## Testing Standards
+
+* Behavior-driven development (BDD)
+* Maintain 80%+ test coverage
+
+**Local Test Commands:**
 
 ```bash
 mvn clean install
@@ -111,58 +100,13 @@ mvn test
 mvn versions:display-dependency-updates
 ```
 
+---
 
-## MCP Integration
+## MCP Integration Tools
 
-Includes tools for Maven dependency management:
+* **`check_version_tool`**: Check Maven dependency versions
+* **`check_version_batch_tool`**: Batch process Maven dependency checks
+* **`list_available_versions_tool`**: List Maven versions by minor track
+* **`scan_java_project_tool`**: Vulnerability scans with Trivy
+* **`analyze_pom_file_tool`**: Analyze Maven POM files for dependencies and vulnerabilities
 
-- check_version_tool: Check a Maven version and get all version update information
-- check_version_batch_tool: Process multiple Maven dependency version checks in a single batch
-- list_available_versions_tool: List all available versions grouped by minor version tracks
-- scan_java_project_tool: Scan Java Maven projects for vulnerabilities using Trivy
-- analyze_pom_file_tool: Analyze a single Maven POM file for dependencies and vulnerabilities
-
-
-## Working with Upstream
-
-1. fork_upstream: auto-receives updates
-2. fork_integration: staging and validation
-3. main: protected release branch
-4. Use feature branches to resolve conflicts and open PRs
-
-## Copilot Commit Checklist
-
-Before committing, ensure:
-
-- Starts with valid lowercase type (feat:, fix:, etc.)
-- No emojis or symbols
-- Colon and space present
-- Uses imperative mood
-- No past tense or brackets
-- One space after colon
-
-## Quick Reference
-
-### Key Files
-
-- CHANGELOG.md – Auto-generated release notes
-- .github/workflows/ – GitHub Actions configs
-- pom.xml – Maven config
-
-### Useful Commands
-
-```bash
-gh workflow view
-gh pr status
-gh release list
-gh issue list --label copilot
-```
-
-## Support
-
-For questions or issues:
-1. Check CHANGELOG.md for recent changes
-2. Review workflow run logs for failures
-3. Create an issue with appropriate labels
-4. Tag with `claude` if additional AI assistance is needed or if working on issues from `claude`
-5. Reference upstream repository documentation for OSDU-specific guidance
