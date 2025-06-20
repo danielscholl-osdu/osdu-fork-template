@@ -226,8 +226,7 @@ jobs:
             --head "$SYNC_BRANCH" \
             --title "⬆️ Sync with upstream $UPSTREAM_VERSION" \
             --body "$PR_DESCRIPTION" \
-            --label "upstream-sync,human-required" \
-            --assignee "${{ github.repository_owner }}")
+            --label "upstream-sync,human-required")
           
           echo "PR created: $PR_URL"
           
@@ -271,15 +270,12 @@ jobs:
           
           **Timeline:**
           - Sync detected: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-          - Action required: Human review and approval
-          
-          @${{ github.repository_owner }}"
+          - Action required: Human review and approval"
           
           gh issue create \
             --title "📥 Upstream Sync Ready for Review - $(date +%Y-%m-%d)" \
             --body "$NOTIFICATION_BODY" \
-            --label "upstream-sync,human-required" \
-            --assignee "${{ github.repository_owner }}"
+            --label "upstream-sync,human-required"
 
       - name: Log sync completion
         if: steps.sync-changes.outputs.has_changes == 'true'
@@ -304,11 +300,9 @@ jobs:
           ### Manual Steps Required
           1. Review the error logs
           2. Resolve any conflicts
-          3. Re-run the sync workflow
-
-          @${{ github.repository_owner }}"
+          3. Re-run the sync workflow"
 
           gh issue create \
             --title "🔄 Upstream Sync Failed $(date +%Y-%m-%d)" \
             --body "$ISSUE_BODY" \
-            --label "sync-failed"
+            --label "sync-failed,human-required"
