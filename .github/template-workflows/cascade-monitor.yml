@@ -3,14 +3,79 @@ name: Cascade Monitor
 on:
   schedule:
     - cron: '0 */6 * * *'  # Run every 6 hours
+  pull_request:
+    types: [closed]
+    branches:
+      - fork_upstream      # Monitor PRs merged into fork_upstream
   workflow_dispatch:       # Allow manual trigger
 
 permissions:
   contents: read
   pull-requests: write
   issues: write
+  actions: write
 
 jobs:
+  trigger-cascade-on-upstream-merge:
+    name: "🔄 Trigger Cascade on Upstream Merge"
+    if: >
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'fork_upstream' &&
+      (contains(github.event.pull_request.labels.*.name, 'upstream-sync') ||
+       contains(github.event.pull_request.labels.*.name, 'sync'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Trigger cascade workflow
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "🔄 PR #${{ github.event.pull_request.number }} merged into fork_upstream"
+          echo "📋 PR title: ${{ github.event.pull_request.title }}"
+          echo "🏷️ PR labels: ${{ join(github.event.pull_request.labels.*.name, ', ') }}"
+          
+          # Trigger the cascade integration workflow
+          echo "Triggering cascade integration workflow..."
+          if gh workflow run "Cascade Integration" --repo ${{ github.repository }}; then
+            echo "✅ Cascade workflow triggered successfully"
+          else
+            echo "❌ Failed to trigger cascade workflow"
+            
+            # Create failure notification issue
+            gh issue create \
+              --title "🚨 Failed to trigger cascade workflow - $(date +%Y-%m-%d)" \
+              --body "Failed to automatically trigger the cascade integration workflow after PR #${{ github.event.pull_request.number }} was merged into fork_upstream.
+              
+              **Manual Action Required:**
+              1. Go to Actions → Cascade Integration
+              2. Click 'Run workflow' manually
+              3. Monitor for completion
+              
+              **PR Details:**
+              - PR: #${{ github.event.pull_request.number }}
+              - Title: ${{ github.event.pull_request.title }}
+              - Merged at: $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              --label "cascade-trigger-failed,human-required,high-priority"
+            
+            exit 1
+          fi
+          
+          # Create a tracking comment on the merged PR
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "🔄 **Cascade Triggered**
+            
+            This PR merge into \`fork_upstream\` has automatically triggered the cascade integration workflow.
+            
+            **Next Steps:**
+            1. Monitor the cascade workflow for completion
+            2. Review any integration conflicts if they arise  
+            3. Validate the final integration before production merge
+            
+            🔗 [View Workflow Runs](https://github.com/${{ github.repository }}/actions/workflows/cascade.yml)"
+
   check-stale-conflicts:
     name: "⏰ Check Stale Cascade Conflicts"
     runs-on: ubuntu-latest
@@ -48,9 +113,8 @@ jobs:
               # Create escalation issue
               issue_url=$(gh issue create \
                 --title "🚨 ESCALATION: Cascade conflict unresolved for 48+ hours (PR #$pr_number)" \
-                --body "URGENT: PR #$pr_number has unresolved conflicts blocking the cascade pipeline. PR: $pr_url. Title: $pr_title. Created: $pr_created. SLA Status: EXCEEDED (48+ hours). The cascade pipeline is blocked. Assign a developer to resolve conflicts immediately. cc: @${{ github.repository_owner }}" \
-                --label "escalation,high-priority,cascade-escalated" \
-                --assignee "${{ github.repository_owner }}")
+                --body "URGENT: PR #$pr_number has unresolved conflicts blocking the cascade pipeline. PR: $pr_url. Title: $pr_title. Created: $pr_created. SLA Status: EXCEEDED (48+ hours). The cascade pipeline is blocked. Assign a developer to resolve conflicts immediately." \
+                --label "escalation,high-priority,cascade-escalated,human-required")
               
               echo "Created escalation issue: $issue_url"
               

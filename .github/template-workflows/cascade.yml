@@ -1,15 +1,6 @@
 name: Cascade Integration
 
 on:
-  push:
-    branches:
-      - fork_upstream      # Triggered when sync PR merges to fork_upstream
-      - fork_integration   # Triggered when integration PR merges to fork_integration
-  pull_request:
-    types: [closed]
-    branches:
-      - fork_upstream      # Triggered when PR to fork_upstream is closed
-      - fork_integration   # Triggered when PR to fork_integration is closed
   workflow_dispatch:       # Allow manual trigger
 
 permissions:
@@ -24,13 +15,7 @@ concurrency:
 jobs:
   cascade-to-integration:
     name: "🔄 Cascade to Integration"
-    if: >
-      (github.ref == 'refs/heads/fork_upstream') ||
-      (github.event_name == 'pull_request' &&
-       github.event.pull_request.merged == true &&
-       github.event.pull_request.base.ref == 'fork_upstream' &&
-       contains(github.event.pull_request.labels.*.name, 'upstream-sync')) ||
-      (github.event_name == 'workflow_dispatch')
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
       integration_success: ${{ steps.validate.outputs.success }}
@@ -107,8 +92,7 @@ jobs:
               - Monitor for cascade completion
               
               This issue will be updated as additional upstream changes accumulate." \
-                --label "upstream-held,integration-blocked,human-required" \
-                --assignee "${{ github.repository_owner }}"
+                --label "upstream-held,integration-blocked,human-required"
             fi
             
             echo "integration_in_process=true" >> $GITHUB_OUTPUT
@@ -186,8 +170,7 @@ jobs:
               gh issue create \
                 --title "🚨 Cascade Conflicts: Manual Resolution Required - $(date +%Y-%m-%d)" \
                 --body "$CONFLICT_BODY" \
-                --label "conflict,cascade-blocked,high-priority" \
-                --assignee "${{ github.repository_owner }}"
+                --label "conflict,cascade-blocked,high-priority,human-required"
               
               echo "conflicts=true" >> $GITHUB_OUTPUT
               exit 1
@@ -349,8 +332,7 @@ jobs:
             --head $MAIN_BRANCH \
             --title "🚀 Production Release: Upstream Integration - $(date +%Y-%m-%d)" \
             --body "$PR_BODY" \
-            --label "upstream-sync,production-ready,cascade-active,validated,human-required" \
-            --assignee "${{ github.repository_owner }}")
+            --label "upstream-sync,production-ready,cascade-active,validated,human-required")
           
           echo "Main PR created: $PR_URL"
           PR_NUMBER=$(basename $PR_URL)
@@ -405,7 +387,7 @@ jobs:
 
   check-stale-conflicts:
     name: "⏰ Check Stale Conflicts"
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -430,11 +412,8 @@ jobs:
                 
                 **Action Required:** Resolve integration branch conflicts immediately
                 **SLA Status:** EXCEEDED (48+ hours)
-                **Impact:** Upstream changes cannot be integrated until resolved
-                
-                @${{ github.repository_owner }}" \
-                --label "escalation,high-priority,cascade-escalated" \
-                --assignee "${{ github.repository_owner }}"
+                **Impact:** Upstream changes cannot be integrated until resolved" \
+                --label "escalation,high-priority,cascade-escalated,human-required"
               
               # Update issue with escalation notice
               gh issue comment $issue_number --body "⚠️ **SLA EXCEEDED:** This conflict has exceeded the 48-hour resolution SLA and has been escalated. Immediate action required."
@@ -485,12 +464,9 @@ jobs:
           **Next Steps:**
           1. Review the failed workflow logs
           2. Identify and fix the root cause
-          3. Re-run the cascade workflow or manually complete the integration
-          
-          @${{ github.repository_owner }}"
+          3. Re-run the cascade workflow or manually complete the integration"
 
           gh issue create \
             --title "🚨 Cascade Pipeline Failure: $FAILURE_TYPE - $(date +%Y-%m-%d)" \
             --body "$ISSUE_BODY" \
-            --label "cascade-failed,high-priority" \
-            --assignee "${{ github.repository_owner }}"
+            --label "cascade-failed,high-priority,human-required"

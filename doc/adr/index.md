@@ -24,6 +24,8 @@ Architecture Decision Records for Fork Management Template
 | 016 | Initialization Security Handling | Accepted | 2025-01-06 | [ADR-016](016-initialization-security-handling.md) |
 | 017 | MCP Server Integration Pattern | Accepted | 2025-01-07 | [ADR-017](017-mcp-server-integration-pattern.md) |
 | 018 | Fork-Resources Staging Pattern | Accepted | 2025-01-09 | [ADR-018](018-fork-resources-staging-pattern.md) |
+| 019 | Cascade Monitor Pattern | Accepted | 2025-06-20 | [ADR-019](019-cascade-monitor-pattern.md) |
+| 020 | Human-Required Label Strategy | Accepted | 2025-06-20 | [ADR-020](020-human-required-label-strategy.md) |
 
 ## Overview
 

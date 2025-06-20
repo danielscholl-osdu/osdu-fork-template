@@ -87,47 +87,82 @@ Implement an automated conflict management strategy that:
 
 ## Implementation Details
 
-### Conflict Detection Workflow
+### Current Architecture (2025)
+
+The conflict management strategy is now integrated with the **Cascade Monitor Pattern** (ADR-019) and uses the **Human-Required Label Strategy** (ADR-020):
+
+1. **Sync Workflow**: Creates clean PRs to `fork_upstream` when possible
+2. **Cascade Monitor**: Detects merged sync PRs and triggers cascade
+3. **Cascade Workflow**: Handles conflict detection and resolution during integration
+
+### Conflict Detection in Cascade Workflow
 ```yaml
-# In sync.yml workflow
-- name: Attempt Merge
+# In cascade.yml - Phase 1: Upstream to Integration
+- name: Merge upstream into fork_integration
+  id: merge_upstream
   run: |
-    git checkout fork_integration
-    git merge fork_upstream
-  continue-on-error: true
-
-- name: Check for Conflicts
-  id: conflict_check
-  run: |
-    if git diff --check; then
-      echo "conflicts=false" >> $GITHUB_OUTPUT
+    # Merge fork_upstream into fork_integration
+    echo "Merging upstream changes into fork_integration..."
+    CONFLICTS_FOUND=false
+    
+    if git merge origin/fork_upstream --no-edit; then
+      echo "✅ Clean merge of upstream changes achieved"
     else
-      echo "conflicts=true" >> $GITHUB_OUTPUT
+      # Check if there are unresolved conflicts
+      if git status --porcelain | grep -q "^UU\|^AA\|^DD"; then
+        echo "::warning::Merge conflicts detected"
+        CONFLICTS_FOUND=true
+        
+        # List conflicted files
+        echo "Conflicted files:"
+        git diff --name-only --diff-filter=U | tee conflicted_files.txt
+        
+        # Create conflict resolution issue
+        CONFLICT_BODY="Upstream merge conflicts detected in fork_integration branch.
+        
+        **Conflicted Files:**
+        \`\`\`
+        $(cat conflicted_files.txt)
+        \`\`\`
+        
+        **Next Steps:**
+        1. Checkout the fork_integration branch locally
+        2. Resolve conflicts in the listed files
+        3. Commit and push the resolution
+        4. The cascade will automatically continue once conflicts are resolved
+        
+        **SLA:** 48 hours for resolution"
+        
+        gh issue create \
+          --title "🚨 Cascade Conflicts: Manual Resolution Required - $(date +%Y-%m-%d)" \
+          --body "$CONFLICT_BODY" \
+          --label "conflict,cascade-blocked,high-priority,human-required"
+        
+        echo "conflicts=true" >> $GITHUB_OUTPUT
+        exit 1
+      else
+        echo "✅ Merge completed with automatic resolution"
+      fi
     fi
-
-- name: Create Conflict Issue
-  if: steps.conflict_check.outputs.conflicts == 'true'
-  uses: actions/github-script@v6
-  with:
-    script: |
-      github.rest.issues.create({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        title: 'Merge Conflicts Detected in Upstream Sync',
-        body: 'Conflicts found during upstream synchronization. Manual resolution required.',
-        labels: ['conflict', 'upstream-sync']
-      })
+    
+    echo "conflicts=false" >> $GITHUB_OUTPUT
 ```
 
-### Conflict Resolution Process
-1. **Detection**: Sync workflow detects conflicts during merge attempt
-2. **Issue Creation**: Automated issue created with conflict details
-3. **Branch Preparation**: `fork_integration` branch prepared with conflict markers
-4. **Manual Resolution**: Developer resolves conflicts in `fork_integration` branch
-5. **PR Creation**: Pull request created from `fork_integration` to `main`
-6. **Review Process**: Code review required for conflict resolution
-7. **Integration**: Approved changes merged to main
-8. **Cleanup**: Issue closed, integration branch reset
+### Current Conflict Resolution Process (2025)
+1. **Trigger**: Cascade monitor detects sync PR merge to `fork_upstream`
+2. **Attempt Integration**: Cascade workflow attempts merge to `fork_integration`
+3. **Conflict Detection**: Automated detection of merge conflicts during cascade
+4. **Issue Creation**: Issue created with `conflict,cascade-blocked,human-required` labels
+5. **Manual Resolution**: Developer resolves conflicts directly in `fork_integration` branch
+6. **Automatic Continuation**: Once resolved, cascade automatically continues to main
+7. **SLA Management**: Conflicts older than 48 hours are automatically escalated
+8. **Cleanup**: Issues closed when conflicts resolved and cascade completes
+
+### Label-Based Management (ADR-020)
+- **Primary Label**: `human-required` - Indicates manual intervention needed
+- **Type Label**: `conflict` - Identifies the type of issue  
+- **Status Label**: `cascade-blocked` - Shows pipeline is blocked
+- **Priority Label**: `high-priority` - Indicates urgency level
 
 ### Conflict Categorization
 - **Code Conflicts**: Overlapping changes in source files
