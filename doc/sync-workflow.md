@@ -174,40 +174,62 @@ if [[ "$USE_LLM" == "true" && "$DIFF_LINES" -le "$MAX_DIFF_LINES" ]]; then
 fi
 ```
 
-**PR Creation**:
+**PR Creation** (with Human-Required Label Strategy - ADR-020):
 ```yaml
+# Simple, reliable PR creation without assignee issues
 gh pr create \
   --title "⬆️ Sync with upstream $UPSTREAM_VERSION" \
   --body "$PR_DESCRIPTION" \
   --base fork_upstream \
   --head "$BRANCH_NAME" \
-  --label "upstream-sync"
+  --label "upstream-sync,human-required"
 ```
 
 #### Conflict Resolution Path
 
 **Conflict PR Creation**:
 ```yaml
-# Create PR with conflict markers
+# Create PR with conflict markers using human-required label strategy
 gh pr create \
   --title "🚨 CONFLICTS: upstream sync $(date +%Y-%m-%d)" \
   --body-file conflict_pr_template.md \
   --base fork_integration \
   --head "$BRANCH_NAME" \
-  --label "conflict" \
-  --label "upstream-sync"
+  --label "conflict,upstream-sync,human-required"
 ```
 
 **Issue Creation for Manual Resolution**:
 ```yaml
+# Use human-required label instead of assignment for reliability
 gh issue create \
   --title "🔧 Manual Conflict Resolution Required" \
   --body-file conflict_issue_template.md \
-  --label "conflict" \
-  --label "manual-action-required"
+  --label "conflict,human-required,high-priority"
 ```
 
-### Phase 5: AI-Enhanced Descriptions
+### Phase 5: Human-Required Label Strategy
+
+**Implementation**: Following [ADR-020: Human-Required Label Strategy](adr/020-human-required-label-strategy.md), the sync workflow uses labels instead of assignees for task management:
+
+**Benefits**:
+- **Reliability**: No workflow failures due to username resolution issues
+- **Flexibility**: Any team member can work on labeled items
+- **Template-Friendly**: Works identically across all repository instances
+- **Simple Maintenance**: No hardcoded usernames to maintain
+
+**Team Workflow**:
+```bash
+# Find all sync items requiring attention
+https://github.com/org/repo/issues?q=is:open+label:human-required+label:upstream-sync
+
+# High priority conflicts
+https://github.com/org/repo/issues?q=is:open+label:human-required+label:conflict+label:high-priority
+
+# All human-required items across workflows
+https://github.com/org/repo/issues?q=is:open+label:human-required
+```
+
+### Phase 6: AI-Enhanced Descriptions
 
 **Supported Providers**:
 - **Claude (Anthropic)**: Primary choice (`claude-4` model)
@@ -399,6 +421,8 @@ env:
 
 - [ADR-001: Three-Branch Fork Management Strategy](adr/001-three-branch-strategy.md)
 - [ADR-005: Automated Conflict Management Strategy](adr/005-conflict-management.md)
+- [ADR-019: Cascade Monitor Pattern](adr/019-cascade-monitor-pattern.md)
+- [ADR-020: Human-Required Label Strategy](adr/020-human-required-label-strategy.md)
 - [Product Architecture: Synchronization](product-architecture.md#43-synchronization-architecture-syncyml)
 - [Initialization Workflow Specification](init-workflow.md)
 - [Validation Workflow Specification](validate-workflow.md)

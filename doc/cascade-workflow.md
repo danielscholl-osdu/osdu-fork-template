@@ -23,19 +23,17 @@ The cascade workflow automates the progressive integration of upstream changes t
 ### Triggers
 ```yaml
 on:
-  push:
-    branches:
-      - fork_upstream      # When sync PR merges
-      - fork_integration   # When integration PR merges
-  pull_request:
-    types: [closed]
-    branches:
-      - fork_upstream      # When PR to fork_upstream is closed
-      - fork_integration   # When PR to fork_integration is closed
-  workflow_dispatch:       # Allow manual trigger
+  workflow_dispatch:       # Manual trigger or programmatic via cascade-monitor
 ```
 
-**Note**: The `pull_request` trigger addresses GitHub token limitations where manual PR merges via the UI use `GITHUB_TOKEN` which cannot trigger other workflows. The cascade jobs include conditional logic to only process PRs labeled with `upstream-sync` that were actually merged.
+**Architecture**: The cascade workflow uses the **Cascade Monitor Pattern** (ADR-019) for reliable triggering:
+
+1. **cascade-monitor.yml** detects when sync PRs merge into `fork_upstream`
+2. **Monitor triggers cascade** via `gh workflow run "Cascade Integration"`
+3. **Error handling** creates notification issues if triggers fail
+4. **Manual fallback** always available via `workflow_dispatch`
+
+This design separates trigger detection from cascade execution, providing better reliability and error handling than direct event triggers.
 
 ### Permissions
 ```yaml
@@ -63,37 +61,73 @@ concurrency:
 ### High-Level Flow
 ```mermaid
 flowchart TD
-    A[Push to fork_upstream] --> B{Check Active Cascades}
-    B -->|Active| B1[Exit - Cascade in Progress]
-    B -->|None| C[Cascade Job 1]
-    C --> D[Update fork_integration with main]
-    D --> E[Create PR: fork_upstream → fork_integration]
-    E --> F{Conflicts?}
-    F -->|Yes| G[Create Conflict PR]
-    F -->|No| H[Create Clean PR]
+    A[Sync PR Merged to fork_upstream] --> B[cascade-monitor.yml detects merge]
+    B --> C{PR has upstream-sync label?}
+    C -->|No| C1[Exit - Not a sync merge]
+    C -->|Yes| D[Monitor triggers cascade workflow]
+    D --> E{Trigger successful?}
+    E -->|No| E1[Create trigger failure issue]
+    E -->|Yes| F[cascade.yml starts execution]
     
-    G --> I[Start SLA Timer]
-    I --> J[Manual Resolution]
-    H --> K[Auto Build & Test]
+    F --> G{Check Active Cascades}
+    G -->|Active| G1[Exit - Cascade in Progress]
+    G -->|None| H[Update fork_integration with main]
+    H --> I[Merge fork_upstream → fork_integration]
+    I --> J{Conflicts?}
+    J -->|Yes| K[Create Conflict PR]
+    J -->|No| L[Create Clean PR]
     
-    J --> L{SLA Exceeded?}
-    L -->|Yes| M[Escalate to Team]
-    L -->|No| N[PR Merged to fork_integration]
-    K --> N
+    K --> M[Start SLA Timer]
+    M --> N[Manual Resolution]
+    L --> O[Auto Build & Test]
     
-    N --> O[Push to fork_integration]
-    O --> P[Cascade Job 2]
-    P --> Q[Create PR: fork_integration → main]
-    Q --> R{Auto-merge Eligible?}
-    R -->|Yes| S[Auto-merge to main]
-    R -->|No| T[Manual Review]
-    S --> U[Production Ready]
-    T --> U
+    N --> P{SLA Exceeded?}
+    P -->|Yes| Q[Escalate to Team]
+    P -->|No| R[PR Merged to fork_integration]
+    O --> R
+    
+    R --> S[Cascade to Main Job]
+    S --> T[Create PR: fork_integration → main]
+    T --> U{Auto-merge Eligible?}
+    U -->|Yes| V[Auto-merge to main]
+    U -->|No| W[Manual Review]
+    V --> X[Production Ready]
+    W --> X
+```
+
+### Phase 0: Cascade Trigger Detection
+
+**Handled by cascade-monitor.yml** (See [ADR-019: Cascade Monitor Pattern](adr/019-cascade-monitor-pattern.md)):
+
+```yaml
+# Monitor detects sync PR merges
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - fork_upstream
+
+jobs:
+  trigger-cascade-on-upstream-merge:
+    if: >
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'upstream-sync')
+    steps:
+      - name: Trigger cascade workflow
+        run: |
+          if gh workflow run "Cascade Integration" --repo ${{ github.repository }}; then
+            echo "✅ Cascade triggered successfully"
+          else
+            # Create failure notification issue
+            gh issue create \
+              --title "🚨 Failed to trigger cascade workflow" \
+              --label "cascade-trigger-failed,human-required,high-priority"
+          fi
 ```
 
 ### Phase 1: Upstream to Integration Cascade
 
-This phase triggers when changes are merged to `fork_upstream` via the sync workflow.
+This phase executes when triggered by the monitor or manually via `workflow_dispatch`.
 
 #### Step 0: Check Cascade State
 ```bash
@@ -524,6 +558,8 @@ All cascade PRs are tagged with specific labels and branch patterns:
 - [ADR-001: Three-Branch Fork Management Strategy](adr/001-three-branch-strategy.md)
 - [ADR-005: Automated Conflict Management Strategy](adr/005-conflict-management.md)
 - [ADR-008: Centralized Label Management Strategy](adr/008-centralized-label-management.md)
+- [ADR-019: Cascade Monitor Pattern](adr/019-cascade-monitor-pattern.md)
+- [ADR-020: Human-Required Label Strategy](adr/020-human-required-label-strategy.md)
 - [Label Management Strategy](label-strategy.md)
 - [Sync Workflow Specification](sync-workflow.md)
 - [Build Workflow Specification](build-workflow.md)
