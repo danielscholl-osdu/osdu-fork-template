@@ -283,8 +283,7 @@ The cascade system implements a two-phase integration pipeline that moves change
 # Cascade workflow pattern
 name: Cascade Integration
 on:
-  push:
-    branches: [fork_upstream, fork_integration]
+  workflow_dispatch:  # Triggered by cascade-monitor workflow
 
 jobs:
   cascade-to-integration:

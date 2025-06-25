@@ -26,6 +26,7 @@ Architecture Decision Records for Fork Management Template
 | 018 | Fork-Resources Staging Pattern | Accepted | 2025-01-09 | [ADR-018](018-fork-resources-staging-pattern.md) |
 | 019 | Cascade Monitor Pattern | Accepted | 2025-06-20 | [ADR-019](019-cascade-monitor-pattern.md) |
 | 020 | Human-Required Label Strategy | Accepted | 2025-06-20 | [ADR-020](020-human-required-label-strategy.md) |
+| 021 | Pull Request Target Trigger Pattern | Accepted | 2025-06-24 | [ADR-021](021-pull-request-target-trigger-pattern.md) |
 
 ## Overview
 
@@ -108,3 +109,21 @@ These Architecture Decision Records document the key design choices made in the 
 - Templates requiring custom deployment logic (issue templates, AI configs, prompts)
 - Two-stage deployment: template staging → fork final locations
 - Integrates with sync configuration for automatic updates
+
+**Cascade Monitor Pattern (ADR-019)**
+- Separates trigger detection from cascade execution
+- Event-driven architecture for upstream sync detection
+- Health monitoring and conflict escalation
+- Robust error handling with fallback mechanisms
+
+**Human-Required Label Strategy (ADR-020)**
+- Replaces assignee-based task management with labels
+- Eliminates username resolution failures
+- Flexible team workflow management
+- Works across all repository instances
+
+**Pull Request Target Trigger Pattern (ADR-021)**
+- Solves "missing YAML" problem for cascade triggering
+- Uses `pull_request_target` to read workflow from main branch
+- Single-line change for dramatic reliability improvement
+- Maintains same security model as PAT approach
