@@ -70,6 +70,13 @@ This document captures the Fork Management Template's development journey, archi
 
 **Testing Scope**: Template changes require validation against multiple fork scenarios, not just the template repository itself.
 
+### Phase 6: Pull Request Target Pattern (ADR-021)
+- **Goal**: Solve the "missing YAML" problem for cascade triggering
+- **Challenge**: pull_request events require workflow files on target branch
+- **Solution**: Changed to pull_request_target which reads from main branch
+- **Pattern**: Single-line change that dramatically improves reliability
+- **Lesson**: Sometimes the simplest solution (using the right GitHub event) is best
+
 ## Current State & Next Steps
 
 The template now provides:
@@ -77,6 +84,7 @@ The template now provides:
 - AI-enhanced conflict detection and PR descriptions
 - Controlled template update propagation
 - Comprehensive workflow validation and testing
+- Reliable cascade triggering via pull_request_target
 
 Future enhancements should consider:
 - Advanced conflict resolution strategies

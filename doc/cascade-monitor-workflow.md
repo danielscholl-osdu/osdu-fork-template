@@ -8,13 +8,17 @@ The cascade monitor workflow implements the **Cascade Monitor Pattern** (ADR-019
 
 ## Architecture Decision
 
-**Reference**: [ADR-019: Cascade Monitor Pattern](adr/019-cascade-monitor-pattern.md)
+**References**: 
+- [ADR-019: Cascade Monitor Pattern](adr/019-cascade-monitor-pattern.md)
+- [ADR-021: Pull Request Target Trigger Pattern](adr/021-pull-request-target-trigger-pattern.md)
 
 **Key Benefits**:
-- **Reliable Triggering**: Explicit detection of sync PR merges with proper filtering
+- **Reliable Triggering**: Uses `pull_request_target` to read workflow from main branch, solving missing YAML issues
 - **Error Handling**: Failed triggers create trackable issues for manual intervention
 - **Separation of Concerns**: Monitor focuses on detection, cascade focuses on execution
 - **Health Monitoring**: Periodic checks ensure pipeline health and escalate stale issues
+
+**Important Note**: This workflow uses `pull_request_target` instead of `pull_request` to ensure the workflow file is read from the main branch, not from the PR's head branch. This is critical because fork_upstream typically doesn't contain workflow files.
 
 ## Workflow Configuration
 
@@ -23,7 +27,7 @@ The cascade monitor workflow implements the **Cascade Monitor Pattern** (ADR-019
 on:
   schedule:
     - cron: '0 */6 * * *'  # Health monitoring every 6 hours
-  pull_request:
+  pull_request_target:
     types: [closed]
     branches:
       - fork_upstream      # Monitor PRs merged into fork_upstream
@@ -69,7 +73,7 @@ flowchart TD
 **Trigger Conditions**:
 ```yaml
 if: >
-  github.event_name == 'pull_request' &&
+  github.event_name == 'pull_request_target' &&
   github.event.pull_request.merged == true &&
   github.event.pull_request.base.ref == 'fork_upstream' &&
   (contains(github.event.pull_request.labels.*.name, 'upstream-sync') ||
