@@ -59,7 +59,7 @@ jobs:
               
               # Trigger cascade
               echo "Triggering cascade integration workflow..."
-              if gh workflow run "Cascade Integration" --repo ${{ github.repository }}; then
+              if gh workflow run "Cascade Integration" --repo ${{ github.repository }} -f issue_number="$ISSUE_NUMBER"; then
                 echo "✅ Safety net cascade triggered successfully"
               else
                 echo "❌ Failed to trigger cascade workflow"
