@@ -129,15 +129,29 @@ jobs:
           UPSTREAM_COMMITS=$(git rev-list --count origin/fork_integration..origin/fork_upstream)
           
           if [ "$UPSTREAM_COMMITS" -gt 0 ]; then
-            # Find tracking issue and auto-trigger cascade
-            ISSUE_NUMBER=$(gh issue list --label "upstream-sync,human-required" --limit 1)
-            # Comment on issue and trigger cascade as safety net
+            # Find tracking issue using improved label search
+            ISSUE_NUMBER=$(gh issue list \
+              --label "upstream-sync" \
+              --state open \
+              --limit 1 \
+              --json number \
+              --jq '.[0].number // empty')
+            
+            if [ -n "$ISSUE_NUMBER" ]; then
+              # Comment on issue and auto-trigger cascade as safety net
+              gh workflow run "Cascade Integration" \
+                --repo ${{ github.repository }} \
+                -f issue_number="$ISSUE_NUMBER"
+            fi
           fi
 ```
 
 ### Issue Lifecycle Tracking
 ```bash
-# Cascade workflow updates tracking issue throughout process
+# Cascade workflow uses provided issue number for tracking
+
+# Issue number passed as workflow input
+ISSUE_NUMBER="${{ github.event.inputs.issue_number }}"
 
 # When cascade starts
 gh issue edit "$ISSUE_NUMBER" \

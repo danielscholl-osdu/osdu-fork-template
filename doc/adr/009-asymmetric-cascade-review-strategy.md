@@ -70,17 +70,26 @@ gh issue edit "$ISSUE_NUMBER" \
 
 ### Phase 2 (Conditionally Automatic)
 ```yaml
-# Create production PR with issue tracking update
+# Create production PR from fork_integration to main
+MAIN_BRANCH="fork_integration"
+PR_URL=$(gh pr create \
+  --base main \
+  --head $MAIN_BRANCH \
+  --title "🚀 Production Release: Upstream Integration - $(date +%Y-%m-%d)" \
+  --body "$PR_BODY" \
+  --label "upstream-sync,production-ready,cascade-active,validated,human-required")
+
+# Update tracking issue
 gh issue edit "$TRACKING_ISSUE" \
   --remove-label "cascade-active" \
   --add-label "production-ready"
 
 # Auto-merge eligibility based on size and breaking changes
 if [[ "$DIFF_LINES" -lt 1000 ]] && [[ "$BREAKING_CHANGES" == "false" ]]; then
-  gh pr merge --auto --squash --delete-branch
-  gh pr edit --add-label "auto-merge-enabled"
+  gh pr merge $PR_NUMBER --auto --squash --delete-branch
+  gh pr edit $PR_NUMBER --add-label "auto-merge-enabled"
 else
-  gh pr edit --add-label "manual-review-required"
+  gh pr edit $PR_NUMBER --add-label "manual-review-required"
 fi
 ```
 

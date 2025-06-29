@@ -97,6 +97,19 @@ stateDiagram-v2
 
 ## Implementation Details
 
+### Cascade Workflow Integration
+The cascade workflow accepts an `issue_number` input parameter that directly links to the tracking issue:
+
+```yaml
+# In cascade.yml workflow dispatch inputs
+issue_number:
+  description: 'GitHub issue number for the upstream sync (e.g., 123)'
+  required: true
+  type: 'string'
+```
+
+This eliminates the need for complex issue searching logic and ensures precise tracking throughout the cascade process.
+
 ### Issue Creation Pattern
 ```yaml
 # In sync.yml after PR creation
@@ -128,13 +141,8 @@ gh issue create \
 
 ### Issue Update Pattern
 ```yaml
-# In cascade.yml - Find and update tracking issue
-ISSUE_NUMBER=$(gh issue list \
-  --label "upstream-sync,human-required" \
-  --state open \
-  --limit 1 \
-  --json number \
-  --jq '.[0].number // empty')
+# In cascade.yml - Use provided issue number directly
+ISSUE_NUMBER="${{ github.event.inputs.issue_number }}"
 
 if [ -n "$ISSUE_NUMBER" ]; then
   # Update labels
@@ -154,8 +162,8 @@ fi
 
 ### Conflict Handling Pattern
 ```yaml
-# When conflicts detected in cascade.yml
-TRACKING_ISSUE=$(gh issue list --label "upstream-sync,cascade-active" --state open --limit 1 --json number --jq '.[0].number // empty')
+# When conflicts detected in cascade.yml - use provided issue number
+TRACKING_ISSUE="${{ github.event.inputs.issue_number }}"
 if [ -n "$TRACKING_ISSUE" ]; then
   gh issue edit "$TRACKING_ISSUE" \
     --remove-label "cascade-active" \
@@ -172,8 +180,8 @@ fi
 
 ### Production Ready Pattern
 ```yaml
-# When production PR created in cascade.yml
-TRACKING_ISSUE=$(gh issue list --label "upstream-sync,cascade-active" --state open --limit 1 --json number --jq '.[0].number // empty')
+# When production PR created in cascade.yml - use provided issue number
+TRACKING_ISSUE="${{ github.event.inputs.issue_number }}"
 if [ -n "$TRACKING_ISSUE" ]; then
   gh issue edit "$TRACKING_ISSUE" \
     --remove-label "cascade-active" \

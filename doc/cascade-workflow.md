@@ -23,17 +23,22 @@ The cascade workflow automates the progressive integration of upstream changes t
 ### Triggers
 ```yaml
 on:
-  workflow_dispatch:       # Manual trigger or programmatic via cascade-monitor
+  workflow_dispatch:       # Manual trigger with issue number input
+    inputs:
+      issue_number:
+        description: 'GitHub issue number for the upstream sync (e.g., 123)'
+        required: true
+        type: 'string'
 ```
 
 **Architecture**: The cascade workflow uses the **Human-Centric Cascade Pattern** (ADR-019) with monitor safety net:
 
-1. **Primary Path**: Humans manually trigger cascade after reviewing and merging sync PRs
-2. **Safety Net**: **cascade-monitor.yml** detects missed triggers every 6 hours and auto-initiates
-3. **Issue Lifecycle**: Comprehensive tracking through GitHub issues with label state management
-4. **Error handling** creates notification issues and updates tracking issue status
+1. **Primary Path**: Humans manually trigger cascade after reviewing and merging sync PRs, providing the tracking issue number
+2. **Safety Net**: **cascade-monitor.yml** detects missed triggers every 6 hours and auto-initiates with the issue number
+3. **Issue Lifecycle**: Comprehensive tracking through GitHub issues using the provided issue number for precise tracking
+4. **Error handling** creates notification issues and updates tracking issue status using the provided issue number
 
-This design provides explicit human control with automatic safety net fallback, ensuring no upstream changes are forgotten while maintaining team control over integration timing.
+This design provides explicit human control with automatic safety net fallback, ensuring no upstream changes are forgotten while maintaining team control over integration timing and complete traceability.
 
 ### Permissions
 ```yaml
@@ -215,17 +220,16 @@ fi
 
 #### Step 2: Create Production PR
 ```yaml
-# Create release branch
-MAIN_BRANCH="release/upstream-$(date +%Y%m%d-%H%M%S)"
-git checkout -b $MAIN_BRANCH origin/fork_integration
+# Use fork_integration branch directly for PR to main
+MAIN_BRANCH="fork_integration"
 
-# Create PR to main
+# Create PR to main using fork_integration directly
 gh pr create \
   --base main \
   --head $MAIN_BRANCH \
-  --title "🚀 Cascade upstream changes to main - $(date +%Y-%m-%d)" \
+  --title "🚀 Production Release: Upstream Integration - $(date +%Y-%m-%d)" \
   --body "$PR_BODY" \
-  --label "upstream-sync,production-ready"
+  --label "upstream-sync,production-ready,cascade-active,validated,human-required"
 ```
 
 ## Integration Testing
