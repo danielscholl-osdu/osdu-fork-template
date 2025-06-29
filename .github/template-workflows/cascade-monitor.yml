@@ -37,9 +37,9 @@ jobs:
           echo "Found $UPSTREAM_COMMITS commits in fork_upstream ahead of fork_integration"
           
           if [ "$UPSTREAM_COMMITS" -gt 0 ]; then
-            # Find the tracking issue
+            # Find the tracking issue (try different label combinations)
             ISSUE_NUMBER=$(gh issue list \
-              --label "upstream-sync,human-required" \
+              --label "upstream-sync" \
               --state open \
               --limit 1 \
               --json number \

@@ -328,14 +328,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          # Create timestamped branch for the main PR
-          DATE_SUFFIX=$(date +%Y%m%d-%H%M%S)
-          MAIN_BRANCH="release/upstream-${DATE_SUFFIX}"
+          # Use fork_integration branch directly for the PR
+          MAIN_BRANCH="fork_integration"
           
-          # Create branch from current fork_integration
-          git checkout -b $MAIN_BRANCH
+          # Ensure we're on fork_integration and it's up to date
+          git checkout fork_integration
           
-          # Push the branch
+          # Push any updates to fork_integration
           git push origin $MAIN_BRANCH
           
           # Get commit summary
