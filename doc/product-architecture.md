@@ -271,19 +271,20 @@ jobs:
 
 ### 4.4. Cascade Architecture (cascade.yml & cascade-monitor.yml)
 
-**Design Principle**: Automated propagation of upstream changes through branch hierarchy with safety gates
+**Design Principle**: Human-controlled propagation of upstream changes through branch hierarchy with safety gates and comprehensive issue tracking
 
 **Specification**: [Cascade Integration Workflow Specification](cascade-workflow.md)
 
-**Architecture Decision**: [ADR-009: Asymmetric Cascade Review Strategy](adr/009-asymmetric-cascade-review-strategy.md)
+**Architecture Decision**: [ADR-019: Cascade Monitor Pattern](adr/019-cascade-monitor-pattern.md) - Human-centric cascade approach
 
-The cascade system implements a two-phase integration pipeline that moves changes from `fork_upstream` through `fork_integration` to `main`:
+The cascade system implements a human-centric two-phase integration pipeline with issue lifecycle tracking:
 
 ```yaml
 # Cascade workflow pattern
 name: Cascade Integration
 on:
-  workflow_dispatch:  # Triggered by cascade-monitor workflow
+  workflow_dispatch:  # Primary: Manual trigger by humans after reviewing sync
+                      # Fallback: Monitor safety net triggers if missed
 
 jobs:
   cascade-to-integration:

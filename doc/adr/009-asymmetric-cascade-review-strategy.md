@@ -1,27 +1,30 @@
 # ADR-009: Asymmetric Cascade Review Strategy
 
 ## Status
-Accepted
+Accepted  
+**Revised** - 2025-06-29
 
 ## Context
 The cascade workflow moves upstream changes through a three-branch hierarchy:
 1. `fork_upstream` → `fork_integration` 
 2. `fork_integration` → `main`
 
-We needed to balance automation efficiency with safety, ensuring that upstream changes are properly vetted before reaching production while minimizing manual intervention where safe.
+With the implementation of human-centric cascade triggering (ADR-019) and issue lifecycle tracking (ADR-022), we needed to balance automation efficiency with safety, ensuring that upstream changes are properly vetted before reaching production while minimizing manual intervention where safe.
 
 Key considerations:
 - Upstream changes are external and potentially breaking
 - Integration branch serves as a testing ground
 - Main branch is production and must remain stable
-- Manual reviews add latency to the cascade pipeline
+- Manual cascade triggering provides explicit human control
 - Conflict resolution always requires human intervention
+- Issue tracking provides visibility into review status
 
 ## Decision
 We will implement an asymmetric review strategy for cascade PRs:
 
-1. **Fork_upstream → Fork_integration**: Always requires manual review
-   - This is the first introduction of external changes
+1. **Fork_upstream → Fork_integration**: Human-initiated with tracking
+   - Triggered manually by humans after reviewing upstream sync PR
+   - Issue lifecycle tracking provides visibility into integration status
    - Conflicts are most likely to occur here
    - Human judgment needed to assess upstream impact
 
@@ -53,17 +56,26 @@ We will implement an asymmetric review strategy for cascade PRs:
 
 ## Implementation Details
 
-### Phase 1 (Always Manual)
+### Phase 1 (Human-Initiated Integration)
 ```yaml
-# Create PR without auto-merge
-gh pr create \
-  --title "Integrate upstream changes" \
-  --label "upstream-sync,cascade-active"
-# No auto-merge command
+# Humans manually trigger cascade after reviewing sync PR
+# Cascade workflow updates issue tracking
+gh issue edit "$ISSUE_NUMBER" \
+  --remove-label "human-required" \
+  --add-label "cascade-active"
+
+# Integration proceeds with conflict detection
+# If conflicts detected, issue updated to cascade-blocked
 ```
 
 ### Phase 2 (Conditionally Automatic)
 ```yaml
+# Create production PR with issue tracking update
+gh issue edit "$TRACKING_ISSUE" \
+  --remove-label "cascade-active" \
+  --add-label "production-ready"
+
+# Auto-merge eligibility based on size and breaking changes
 if [[ "$DIFF_LINES" -lt 1000 ]] && [[ "$BREAKING_CHANGES" == "false" ]]; then
   gh pr merge --auto --squash --delete-branch
   gh pr edit --add-label "auto-merge-enabled"
@@ -86,4 +98,6 @@ fi
 ## Related
 - [ADR-001: Three-Branch Fork Management Strategy](001-three-branch-strategy.md)
 - [ADR-005: Automated Conflict Management Strategy](005-conflict-management.md)
+- [ADR-019: Cascade Monitor Pattern](019-cascade-monitor-pattern.md) - Human-centric cascade triggering
+- [ADR-022: Issue Lifecycle Tracking Pattern](022-issue-lifecycle-tracking-pattern.md) - Integration with issue tracking
 - [Cascade Workflow Specification](../cascade-workflow.md)

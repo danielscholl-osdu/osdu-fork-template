@@ -1,53 +1,61 @@
 # ADR-019: Cascade Monitor Pattern
 
 ## Status
-**Accepted** - 2025-06-20
+**Accepted** - 2025-06-20  
+**Revised** - 2025-06-29
 
 ## Context
 
-The cascade workflow needs to be triggered when upstream changes are merged into the `fork_upstream` branch. However, GitHub Actions has several limitations that complicate direct triggering:
+The cascade workflow needs to be triggered when upstream changes are merged into the `fork_upstream` branch. However, experience has shown that automatic triggering creates reliability and usability issues:
 
-1. **Token Limitations**: Manual PR merges via GitHub UI use `GITHUB_TOKEN` which cannot trigger other workflows
-2. **Event Filtering**: Direct `push` triggers on `fork_upstream` would fire on every push, not just sync merges
-3. **Race Conditions**: Simultaneous triggers could cause cascade operations to conflict
-4. **Error Handling**: Failed triggers need robust error handling and fallback mechanisms
+1. **Event Trigger Limitations**: `pull_request_target` events require workflows to exist on the target branch (`fork_upstream`), but this branch is a pure mirror without workflow files
+2. **Human Control**: Teams want explicit control over when integration happens, not automatic triggering
+3. **Timing Control**: Humans may want to batch multiple changes or time integrations appropriately
+4. **Visibility Requirements**: Clear audit trails and progress tracking are needed throughout the cascade lifecycle
+5. **Error Recovery**: Failed or missed triggers need reliable detection and recovery mechanisms
 
-The original approach used both `push` and `pull_request` triggers directly in `cascade.yml`, but this created:
-- Unwanted triggers on non-sync pushes
-- Complexity in the main cascade workflow with trigger-detection logic
-- No error handling for trigger failures
-- Difficult debugging when triggers didn't fire as expected
+The original approach assumed automatic triggering was preferred, but this created:
+- Unreliable triggering due to workflow file availability issues
+- Lack of human control over integration timing
+- Poor visibility into cascade progress and state
+- Complex error handling for edge cases
+- No comprehensive tracking of issue lifecycle
 
 ## Decision
 
-Implement a **Cascade Monitor Pattern** that separates trigger detection from cascade execution:
+Implement a **Human-Centric Cascade Pattern** with monitor-based safety net:
 
-1. **cascade-monitor.yml**: Dedicated workflow that detects when sync PRs are merged and triggers cascade
-2. **cascade.yml**: Simplified to only run on `workflow_dispatch` (manual or programmatic triggers)
-3. **Event-driven Architecture**: Monitor listens for specific events and triggers the appropriate workflow
-4. **Error Handling**: Monitor includes fallback mechanisms and failure notifications
+1. **Primary Path - Manual Triggering**: Humans manually trigger cascade integration after reviewing and merging sync PRs
+2. **Safety Net - Monitor Detection**: `cascade-monitor.yml` detects missed triggers and automatically initiates cascades as fallback
+3. **Issue Lifecycle Tracking**: Comprehensive tracking of cascade state through GitHub issues with label management
+4. **cascade.yml**: Enhanced with issue tracking and progress updates throughout the cascade process
+5. **Human-in-the-Loop**: Explicit human control points with clear instructions and visibility
 
 ## Rationale
 
-### Separation of Concerns
-- **Monitor Responsibility**: Detect sync events and trigger cascades
-- **Cascade Responsibility**: Execute the integration process
-- **Clean Interfaces**: Simple trigger mechanism via `gh workflow run`
+### Human Control and Visibility
+- **Explicit Human Decisions**: Humans control when integration happens after reviewing changes
+- **Clear Instructions**: sync.yml provides explicit steps for manual cascade triggering
+- **Issue Lifecycle Tracking**: Complete audit trail from sync detection to production deployment
+- **Progress Visibility**: Real-time updates on cascade state through issue comments
 
-### Improved Reliability
-- **Explicit Trigger Logic**: Monitor only fires on PR merges with `upstream-sync` labels
-- **Error Handling**: Failed triggers create notification issues for manual intervention
-- **Fallback Safety**: Manual `workflow_dispatch` always available as backup
+### Reliable Safety Net
+- **Monitor as Backup**: Detects when humans forget to trigger cascades
+- **Automatic Recovery**: Safety net triggers missed cascades with clear documentation
+- **Git-based Detection**: Uses reliable branch comparison to detect pending changes
+- **No Event Dependencies**: Not dependent on GitHub event triggering limitations
 
-### Better Observability
-- **Clear Audit Trail**: Monitor logs show when and why cascades are triggered
-- **Failure Visibility**: Failed triggers create trackable issues
-- **Health Monitoring**: Monitor can check cascade pipeline health
+### Comprehensive State Management
+- **Label-based Tracking**: Issue labels track cascade state (human-required → cascade-active → production-ready)
+- **Comment-based Updates**: Detailed progress updates in tracking issues
+- **Error State Handling**: Clear conflict detection and resolution workflows
+- **Completion Tracking**: Issues closed when changes reach production
 
-### Reduced Complexity
-- **Simplified Cascade**: No complex trigger detection logic in main workflow
-- **Single Responsibility**: Each workflow has one clear purpose
-- **Easier Testing**: Can test trigger detection separately from cascade execution
+### Improved Team Experience
+- **Predictable Process**: Teams know exactly when and how to trigger cascades
+- **Better Timing Control**: Can batch changes or time integrations appropriately
+- **Clear Error Recovery**: Obvious next steps when things go wrong
+- **Reduced Surprises**: No unexpected automatic triggers
 
 ## Alternatives Considered
 
@@ -93,45 +101,64 @@ on:
 
 ## Implementation Details
 
-### Monitor Workflow Structure
+### Sync Workflow Instructions
+```yaml
+# In sync.yml notification
+**Next Steps:**
+1. 🔍 **Review the sync PR** for any breaking changes or conflicts
+2. ✅ **Merge the PR** when satisfied with the changes  
+3. 🚀 **Manually trigger 'Cascade Integration' workflow** to integrate changes
+4. 📊 **Monitor cascade progress** in Actions tab
+```
+
+### Monitor Safety Net Structure
 ```yaml
 name: Cascade Monitor
 
 on:
-  pull_request:
-    types: [closed]
-    branches:
-      - fork_upstream
   schedule:
-    - cron: '0 */6 * * *'  # Backup health monitoring
-  workflow_dispatch:
+    - cron: '0 */6 * * *'  # Safety net detection every 6 hours
+  workflow_dispatch:        # Manual health checking
 
 jobs:
-  trigger-cascade-on-upstream-merge:
-    if: >
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.merged == true &&
-      github.event.pull_request.base.ref == 'fork_upstream' &&
-      (contains(github.event.pull_request.labels.*.name, 'upstream-sync') ||
-       contains(github.event.pull_request.labels.*.name, 'sync'))
+  detect-missed-cascade:
+    steps:
+      - name: Check for missed cascade triggers
+        run: |
+          # Check if fork_upstream has commits that fork_integration doesn't
+          UPSTREAM_COMMITS=$(git rev-list --count origin/fork_integration..origin/fork_upstream)
+          
+          if [ "$UPSTREAM_COMMITS" -gt 0 ]; then
+            # Find tracking issue and auto-trigger cascade
+            ISSUE_NUMBER=$(gh issue list --label "upstream-sync,human-required" --limit 1)
+            # Comment on issue and trigger cascade as safety net
+          fi
 ```
 
-### Trigger Mechanism
+### Issue Lifecycle Tracking
 ```bash
-# Trigger cascade workflow with error handling
-if gh workflow run "Cascade Integration" --repo ${{ github.repository }}; then
-  echo "✅ Cascade workflow triggered successfully"
-else
-  echo "❌ Failed to trigger cascade workflow"
-  
-  # Create failure notification issue
-  gh issue create \
-    --title "🚨 Failed to trigger cascade workflow - $(date +%Y-%m-%d)" \
-    --body "Failed to automatically trigger cascade after PR merge..." \
-    --label "cascade-trigger-failed,human-required,high-priority"
-  
-  exit 1
-fi
+# Cascade workflow updates tracking issue throughout process
+
+# When cascade starts
+gh issue edit "$ISSUE_NUMBER" \
+  --remove-label "human-required" \
+  --add-label "cascade-active"
+
+gh issue comment "$ISSUE_NUMBER" --body "🚀 **Cascade Integration Started** - $(date -u +%Y-%m-%dT%H:%M:%SZ)
+Integration workflow has been triggered and is now processing upstream changes."
+
+# When conflicts detected
+gh issue edit "$ISSUE_NUMBER" \
+  --remove-label "cascade-active" \
+  --add-label "cascade-blocked"
+
+# When production PR created
+gh issue edit "$ISSUE_NUMBER" \
+  --remove-label "cascade-active" \
+  --add-label "production-ready"
+
+gh issue comment "$ISSUE_NUMBER" --body "🎯 **Production PR Created** - $(date -u +%Y-%m-%dT%H:%M:%SZ)
+Integration completed successfully! Production PR has been created and is ready for final review."
 ```
 
 ### Health Monitoring Integration
@@ -143,18 +170,20 @@ The monitor also includes periodic health checks:
 ## Consequences
 
 ### Positive
-- **Reliability**: Explicit trigger conditions reduce false triggers
-- **Debuggability**: Clear separation makes troubleshooting easier
-- **Error Handling**: Failed triggers are visible and actionable
-- **Maintainability**: Each workflow has a single, clear responsibility
-- **Extensibility**: Monitor can be enhanced with additional trigger logic
-- **Observability**: Better logging and issue tracking for trigger events
+- **Human Control**: Teams have explicit control over integration timing
+- **Reliability**: No dependency on GitHub event triggering edge cases
+- **Visibility**: Complete audit trail through issue lifecycle tracking
+- **Error Recovery**: Clear path to resolution when things go wrong
+- **Predictability**: Consistent, documented process for all team members
+- **Safety Net**: Automatic detection and recovery of missed triggers
+- **Flexibility**: Can batch changes or time integrations appropriately
 
 ### Negative
-- **Additional Complexity**: Two workflows instead of one
-- **Potential Lag**: Small delay between PR merge and cascade trigger
-- **Dependency**: Cascade workflow depends on monitor working correctly
-- **Learning Curve**: Team needs to understand the two-workflow pattern
+- **Manual Step Required**: Humans must remember to trigger cascades
+- **Potential Delays**: Up to 6 hours delay if manual trigger is forgotten
+- **Additional Complexity**: Issue lifecycle tracking adds workflow complexity
+- **Learning Curve**: Team needs to understand manual trigger process
+- **Monitor Dependency**: Safety net relies on monitor workflow functioning
 
 ### Neutral
 - **File Count**: Adds one additional workflow file
@@ -165,13 +194,14 @@ The monitor also includes periodic health checks:
 
 ### With Sync Workflow
 - Sync workflow creates PRs with `upstream-sync` label
-- Monitor detects when these PRs are merged
-- Monitor triggers cascade to process the changes
+- Sync workflow creates tracking issues with explicit manual trigger instructions
+- Humans review, merge PR, and manually trigger cascade
 
 ### With Cascade Workflow
-- Cascade simplified to only handle `workflow_dispatch` events
-- Monitor passes context via PR comments and tracking issues
-- Error states handled by both workflows appropriately
+- Cascade runs on `workflow_dispatch` (manual or monitor-triggered)
+- Cascade updates tracking issue labels and comments throughout process
+- Cascade handles conflicts, integration, and production PR creation
+- Error states tracked through issue labels and comments
 
 ### With Label Management (ADR-008)
 - Uses predefined labels: `upstream-sync`, `cascade-trigger-failed`, `human-required`
@@ -181,14 +211,17 @@ The monitor also includes periodic health checks:
 ## Monitoring and Alerting
 
 ### Success Metrics
-- **Trigger Success Rate**: % of sync merges that successfully trigger cascades
-- **Trigger Latency**: Time between PR merge and cascade start
-- **Error Recovery**: Time to resolve trigger failures
+- **Manual Trigger Adoption**: % of sync merges followed by manual cascade triggers
+- **Safety Net Effectiveness**: % of missed triggers caught by monitor
+- **Issue Lifecycle Completeness**: % of cascades with complete issue tracking
+- **Human Response Time**: Time between sync completion and manual trigger
+- **Error Recovery**: Time to resolve cascade conflicts and issues
 
 ### Failure Modes
-1. **Monitor Workflow Failure**: Creates issue for investigation
-2. **Cascade Trigger Failure**: Creates notification issue with manual steps
-3. **Network/API Failures**: Retries with exponential backoff
+1. **Forgotten Manual Trigger**: Monitor safety net detects and auto-triggers
+2. **Monitor Workflow Failure**: Manual cascade trigger still available
+3. **Issue Tracking Failure**: Cascade proceeds but with reduced visibility
+4. **Cascade Integration Conflicts**: Clear conflict resolution workflow with SLA
 
 ### Health Checks
 - **Daily Pipeline Status**: Monitor generates health reports
@@ -218,9 +251,10 @@ The monitor also includes periodic health checks:
 
 ## Success Criteria
 
-- 100% of valid sync PR merges trigger cascade workflows
-- Failed triggers are detected and resolved within 1 hour
-- Monitor workflow success rate > 99.5%
-- Zero false positive triggers (non-sync changes triggering cascades)
-- Clear audit trail for all trigger decisions
-- Escalation process handles 100% of stuck cascades within SLA
+- 90%+ of sync merges followed by manual cascade triggers within 2 hours
+- 100% of missed manual triggers detected by safety net within 6 hours
+- Complete issue lifecycle tracking for 95%+ of cascades
+- Conflict resolution SLA: 48 hours with automatic escalation
+- Zero unexpected cascade triggers (only manual or safety net)
+- Clear audit trail for all cascade decisions through issue tracking
+- Team adoption: 100% of team members comfortable with manual trigger process
