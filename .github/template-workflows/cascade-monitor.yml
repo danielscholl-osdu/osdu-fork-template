@@ -31,7 +31,7 @@ jobs:
       
       - name: Trigger cascade workflow
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🔄 PR #${{ github.event.pull_request.number }} merged into fork_upstream"
           echo "📋 PR title: ${{ github.event.pull_request.title }}"
@@ -82,7 +82,7 @@ jobs:
     steps:
       - name: Check for stale conflict PRs
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Checking for cascade PRs with unresolved conflicts..."
           
@@ -135,7 +135,7 @@ jobs:
     steps:
       - name: Generate cascade health report
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "## Cascade Pipeline Health Report - $(date)"
           echo
