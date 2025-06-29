@@ -220,17 +220,22 @@ fi
 
 #### Step 2: Create Production PR
 ```yaml
-# Use fork_integration branch directly for PR to main
-MAIN_BRANCH="fork_integration"
+# Create temporary release branch to preserve fork_integration
+RELEASE_BRANCH="release/upstream-$(date +%Y%m%d-%H%M%S)"
+git checkout fork_integration
+git checkout -b $RELEASE_BRANCH
+git push origin $RELEASE_BRANCH
 
-# Create PR to main using fork_integration directly
+# Create PR to main using temporary release branch
 gh pr create \
   --base main \
-  --head $MAIN_BRANCH \
+  --head $RELEASE_BRANCH \
   --title "🚀 Production Release: Upstream Integration - $(date +%Y-%m-%d)" \
   --body "$PR_BODY" \
   --label "upstream-sync,production-ready,cascade-active,validated,human-required"
 ```
+
+**Branch Preservation**: The `fork_integration` branch is never used directly for PRs to `main` to prevent accidental deletion. Instead, temporary release branches are created and can be safely deleted after merge, preserving the core three-branch structure.
 
 ## Integration Testing
 
@@ -323,36 +328,18 @@ When PRs target `fork_integration`, additional integration tests should run:
 **Always Manual Review** - This is the critical safety gate where upstream changes are first introduced.
 
 #### Phase 2: Integration → Main
-PRs can auto-merge if ALL conditions are met:
-- No conflicts detected
-- All status checks pass (build, test, security)
-- No breaking changes identified
-- Diff size < 1000 lines
-- No changes to critical paths (defined in config)
+**Always Manual Review Required** - All production PRs require human approval before merge.
 
 ```yaml
-# Auto-merge logic for Integration → Main only
-if [[ "$TARGET_BRANCH" == "main" ]] && 
-   [[ "$CONFLICTS_FOUND" == "false" ]] && 
-   [[ "$ALL_CHECKS_PASSED" == "true" ]] && 
-   [[ "$DIFF_LINES" -lt 1000 ]] && 
-   [[ "$BREAKING_CHANGES" == "false" ]]; then
-  
-  echo "✅ PR eligible for auto-merge"
-  gh pr merge --auto --squash --delete-branch
-  
-  # Add auto-merge label for visibility
-  gh pr edit --add-label "auto-merge-enabled"
-else
-  echo "❌ Manual review required"
-  gh pr edit --add-label "manual-review-required"
-fi
+# All production PRs require manual review
+echo "Production PR requires manual review before merge"
+gh pr edit $PR_NUMBER --add-label "manual-review-required"
 ```
 
 ### Manual Intervention Points
 1. **Conflict Resolution**: Always requires manual intervention
-2. **Breaking Changes**: Detected via commit messages or file patterns
-3. **Large Diffs**: Changes exceeding size thresholds
+2. **Production PRs**: All PRs to main require human review and approval
+3. **Breaking Changes**: Detected via commit messages or file patterns
 4. **Security Alerts**: Triggered by security scanning
 
 ## Performance Optimization
@@ -388,8 +375,7 @@ See [Label Management Strategy](label-strategy.md) for the complete label refere
 - `upstream-sync` - Marks PRs containing upstream changes
 - `conflict` - Indicates merge conflicts exist
 - `needs-resolution` - Requires manual intervention
-- `auto-merge-enabled` - PR will auto-merge when ready
-- `manual-review-required` - Needs human review
+- `manual-review-required` - All production PRs require human review
 - `escalation` - Escalated issues
 - `high-priority` - High priority items
 - `emergency` - Emergency issues
@@ -430,7 +416,7 @@ Create a GitHub Project board with automated rules:
 - **Conflict Resolution Time**: Average time to resolve conflicts
 - **Build Success Rate**: Per cascade stage
 - **SLA Compliance**: % of conflicts resolved within 48 hours
-- **Auto-merge Rate**: % of eligible PRs that auto-merged
+- **Manual Review Time**: Average time from PR creation to human approval
 
 ### Alerting
 ```yaml
@@ -467,7 +453,7 @@ Create a GitHub Project board with automated rules:
 ### Environment Variables
 ```yaml
 # Cascade behavior customization
-CASCADE_AUTO_MERGE: true          # Enable auto-merge for clean cascades
+CASCADE_MANUAL_REVIEW: true       # All production PRs require human review
 CASCADE_CONFLICT_TIMEOUT: 48h     # Time before escalating conflicts
 CASCADE_INTEGRATION_TESTS: true   # Run integration tests
 CASCADE_BATCH_WINDOW: 1h         # Wait time for batching changes
