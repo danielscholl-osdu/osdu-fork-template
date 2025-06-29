@@ -127,3 +127,9 @@ These Architecture Decision Records document the key design choices made in the 
 - Uses `pull_request_target` to read workflow from main branch
 - Single-line change for dramatic reliability improvement
 - Maintains same security model as PAT approach
+
+**Issue Lifecycle Tracking Pattern (ADR-022)**
+- Comprehensive tracking of cascade state through GitHub issues
+- Label-based state management for machine and human readability
+- Complete audit trail from upstream sync to production deployment
+- Integration with human-centric cascade pattern

@@ -1,7 +1,8 @@
 # ADR-020: Human-Required Label Strategy
 
 ## Status
-**Accepted** - 2025-06-20
+**Accepted** - 2025-06-20  
+**Revised** - 2025-06-29
 
 ## Context
 
@@ -71,6 +72,13 @@ From `.github/labels.json` (managed by ADR-008):
 - `cascade-trigger-failed`: Failed cascade workflow triggers
 - `manual-review-required`: Items that need code review
 
+### Issue Lifecycle Labels (ADR-022)
+- `upstream-sync`: Issues related to upstream synchronization
+- `cascade-active`: Cascade integration currently in progress
+- `cascade-blocked`: Cascade blocked by conflicts or issues
+- `production-ready`: Integration complete, ready for production
+- `template-sync`: Issues related to template updates
+
 ### Workflow Implementation Pattern
 
 **Before (Problematic)**:
@@ -90,13 +98,18 @@ gh issue create \
   $ASSIGNEE_FLAG
 ```
 
-**After (Robust)**:
+**After (Robust with Lifecycle Tracking)**:
 ```yaml
-# Simple, reliable issue creation
+# Simple, reliable issue creation with lifecycle tracking
 gh issue create \
-  --title "Issue requiring attention" \
-  --body "Issue details..." \
-  --label "some-label,human-required"
+  --title "📥 Upstream Sync Ready for Review - $(date +%Y-%m-%d)" \
+  --body "$NOTIFICATION_BODY" \
+  --label "upstream-sync,human-required"
+
+# Dynamic label updates during cascade lifecycle
+gh issue edit "$ISSUE_NUMBER" \
+  --remove-label "human-required" \
+  --add-label "cascade-active"
 ```
 
 ### Team Workflow Integration
@@ -114,6 +127,12 @@ label:human-required label:conflict
 
 # Failed automation items
 label:human-required label:sync-failed
+
+# Cascade lifecycle tracking
+label:upstream-sync label:human-required     # Needs manual cascade trigger
+label:upstream-sync label:cascade-active     # Integration in progress
+label:upstream-sync label:cascade-blocked    # Blocked by conflicts
+label:upstream-sync label:production-ready   # Ready for production merge
 ```
 
 **GitHub Project Automation**:
@@ -246,9 +265,10 @@ https://github.com/org/repo/issues?q=is:open+label:conflict+label:human-required
 - Consistent across all repository instances
 
 ### Workflow Patterns
-- Sync workflow: Uses `human-required` for failed syncs
-- Cascade workflow: Uses `human-required` for conflicts
+- Sync workflow: Uses `upstream-sync,human-required` for manual cascade triggering
+- Cascade workflow: Uses lifecycle labels (`cascade-active`, `cascade-blocked`, `production-ready`)
 - Monitor workflow: Uses `human-required` for trigger failures
+- Template sync: Uses `template-sync,human-required` for template updates
 
 ### External Integrations
 - **Project Boards**: Automatic card movement based on labels
@@ -291,6 +311,7 @@ https://github.com/org/repo/issues?q=is:open+label:conflict+label:human-required
 
 - [ADR-008: Centralized Label Management Strategy](008-centralized-label-management.md) - Defines how labels are managed
 - [ADR-019: Cascade Monitor Pattern](019-cascade-monitor-pattern.md) - Uses human-required labels for trigger failures
+- [ADR-022: Issue Lifecycle Tracking Pattern](022-issue-lifecycle-tracking-pattern.md) - Defines lifecycle label usage
 - Sync Workflow Updates - Implements label-based task management
 - Cascade Workflow Updates - Uses labels for conflict management
 

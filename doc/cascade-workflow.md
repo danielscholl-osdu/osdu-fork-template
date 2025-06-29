@@ -26,14 +26,14 @@ on:
   workflow_dispatch:       # Manual trigger or programmatic via cascade-monitor
 ```
 
-**Architecture**: The cascade workflow uses the **Cascade Monitor Pattern** (ADR-019) for reliable triggering:
+**Architecture**: The cascade workflow uses the **Human-Centric Cascade Pattern** (ADR-019) with monitor safety net:
 
-1. **cascade-monitor.yml** detects when sync PRs merge into `fork_upstream`
-2. **Monitor triggers cascade** via `gh workflow run "Cascade Integration"`
-3. **Error handling** creates notification issues if triggers fail
-4. **Manual fallback** always available via `workflow_dispatch`
+1. **Primary Path**: Humans manually trigger cascade after reviewing and merging sync PRs
+2. **Safety Net**: **cascade-monitor.yml** detects missed triggers every 6 hours and auto-initiates
+3. **Issue Lifecycle**: Comprehensive tracking through GitHub issues with label state management
+4. **Error handling** creates notification issues and updates tracking issue status
 
-This design separates trigger detection from cascade execution, providing better reliability and error handling than direct event triggers.
+This design provides explicit human control with automatic safety net fallback, ensuring no upstream changes are forgotten while maintaining team control over integration timing.
 
 ### Permissions
 ```yaml

@@ -1,7 +1,8 @@
 # ADR-012: Template Update Propagation Strategy
 
 ## Status
-**Accepted** - 2025-06-04
+**Accepted** - 2025-06-04  
+**Revised** - 2025-06-29
 
 ## Context
 
@@ -35,6 +36,7 @@ Implement **Template Update Propagation** through a dedicated `template-sync.yml
 - **Template Repository**: Source of truth for infrastructure improvements
 - **Fork Repositories**: Receive template updates via template-sync workflow
 - **Separation**: Template management stays in template, project automation goes to forks
+- **Human-Centric Flow**: Template updates include instructions for manual cascade triggering
 
 ### 3. **Change Detection and Propagation**
 ```yaml
@@ -53,6 +55,7 @@ PR: "🔄 Sync template updates YYYY-MM-DD"
 - **Selective Updates**: Only syncs files defined in sync rules
 - **Change-Based**: Only creates PRs when relevant template changes exist
 - **Self-Updating**: The sync configuration itself can be updated via template sync
+- **Manual Integration Instructions**: Sync creates issues with explicit cascade trigger guidance
 
 ## Rationale
 
@@ -142,26 +145,35 @@ on:
     done
 ```
 
-#### PR Creation with Enhanced Descriptions
+#### Issue Creation with Manual Instructions
 ```yaml
-- name: Create enhanced template sync PR
-  uses: ./.github/actions/create-enhanced-pr
-  with:
-    base-branch: main
-    head-branch: ${{ env.SYNC_BRANCH }}
-    pr-title: "🔄 Sync template updates $(date +%Y-%m-%d)"
-    fallback-description: |
-      ## Template Updates
-      
-      This PR syncs the latest changes from the template repository.
-      
-      ### Changed Files
-      $(git diff --name-only main...$SYNC_BRANCH)
-      
-      ### Template Changes
-      $(git log --oneline $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- .github/)
-    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-    use-vulns-flag: 'false'
+# Template updates now create tracking issues similar to upstream sync
+- name: Create template update notification
+  run: |
+    NOTIFICATION_BODY="## 📋 Template Updates Ready for Review
+    
+    New template infrastructure updates are available for integration.
+    
+    **Update Details:**
+    - **PR:** $PR_URL
+    - **Template Version:** $TEMPLATE_COMMIT
+    - **Changed Files:** $(git diff --name-only main...$SYNC_BRANCH | wc -l) files
+    - **Changes:** Template infrastructure improvements
+    
+    **Next Steps:**
+    1. 🔍 **Review the template update PR** for infrastructure changes
+    2. ✅ **Merge the PR** when satisfied with the updates
+    3. 🚀 **Manually trigger 'Cascade Integration' workflow** if changes affect workflows
+    4. 📊 **Monitor integration progress** in Actions tab
+    
+    **Timeline:**
+    - Template sync detected: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+    - Action required: Human review, merge, and potential cascade trigger"
+    
+    gh issue create \
+      --title "📋 Template Updates Ready for Review - $(date +%Y-%m-%d)" \
+      --body "$NOTIFICATION_BODY" \
+      --label "template-sync,human-required"
 ```
 
 ### Bootstrap Strategy
@@ -253,25 +265,29 @@ git add .github/.template-sync-commit
 
 ### Positive
 - **Automatic Template Benefits**: Teams automatically get template improvements
-- **Reduced Maintenance**: No manual work required to stay current with template
+- **Reduced Maintenance**: Minimal manual work required to stay current with template
 - **Consistent Infrastructure**: All repositories maintain current best practices
 - **Security Currency**: Security improvements automatically propagate
 - **Feature Adoption**: New capabilities automatically available to teams
-- **Change Visibility**: Clear PRs showing exactly what's being updated
+- **Change Visibility**: Clear PRs and issues showing exactly what's being updated
 - **Review Process**: Teams can review and test template changes before merging
+- **Human Control**: Explicit guidance on when workflow changes need cascade integration
 
 ### Negative
-- **Additional PRs**: Weekly template update PRs require team attention
+- **Additional PRs and Issues**: Weekly template update PRs and tracking issues require team attention
+- **Manual Integration Steps**: Workflow changes may require manual cascade triggering
 - **Potential Conflicts**: Template changes might conflict with local modifications
 - **Update Lag**: Template improvements take up to a week to reach all forks
 - **Dependency on Template**: Forks depend on template repository being available
+- **Learning Curve**: Teams need to understand when template changes require cascade integration
 
 ### Mitigation Strategies
 - **AI-Enhanced Descriptions**: Clear PR descriptions explain what's changing and why
+- **Explicit Instructions**: Issues provide clear guidance on when cascade integration is needed
 - **Selective Syncing**: Only essential infrastructure updated, not project code
 - **Manual Override**: Can run template sync immediately when critical updates needed
 - **Conflict Detection**: PR process reveals conflicts before they're merged
-- **Documentation**: Clear guidance on handling template update PRs
+- **Documentation**: Clear guidance on handling template update PRs and cascade integration
 
 ## Success Criteria
 

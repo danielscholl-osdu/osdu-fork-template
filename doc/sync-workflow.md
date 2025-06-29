@@ -261,25 +261,28 @@ Please provide:
 - **Token Management**: Automatic truncation if needed
 - **Fallback**: Standard template if AI unavailable
 
-### Phase 6: Automatic Integration
+### Phase 6: Manual Cascade Integration Instructions
 
-**Auto-merge Conditions**:
+**Human Action Required**:
 ```yaml
-# Auto-merge criteria for clean syncs
-if [[ "$CONFLICTS_FOUND" == "false" ]] && 
-   [[ "$DIFF_LINES" -lt "1000" ]] && 
-   [[ "$BREAKING_CHANGES" == "false" ]]; then
-  
-  # Enable auto-merge with required checks
-  gh pr merge --auto --squash
-fi
+# Sync creates issue with explicit instructions
+NOTIFICATION_BODY="**Next Steps:**
+1. 🔍 **Review the sync PR** for any breaking changes or conflicts
+2. ✅ **Merge the PR** when satisfied with the changes  
+3. 🚀 **Manually trigger 'Cascade Integration' workflow** to integrate changes
+4. 📊 **Monitor cascade progress** in Actions tab"
+
+gh issue create \
+  --title "📥 Upstream Sync Ready for Review - $(date +%Y-%m-%d)" \
+  --body "$NOTIFICATION_BODY" \
+  --label "upstream-sync,human-required"
 ```
 
-**Review Requirements**:
-- No merge conflicts detected
-- All status checks passing
-- Diff size under auto-merge threshold
-- No breaking changes identified
+**Integration Process**:
+- Human reviews and merges sync PR into `fork_upstream`
+- Human manually triggers "Cascade Integration" workflow
+- Monitor serves as safety net (detects missed triggers every 6 hours)
+- Issue tracking provides complete audit trail
 
 ## Error Handling and Recovery
 
