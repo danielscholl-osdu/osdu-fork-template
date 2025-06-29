@@ -328,14 +328,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          # Use fork_integration branch directly for the PR
-          MAIN_BRANCH="fork_integration"
+          # Create a temporary release branch from fork_integration to preserve the integration branch
+          RELEASE_BRANCH="release/upstream-$(date +%Y%m%d-%H%M%S)"
           
           # Ensure we're on fork_integration and it's up to date
           git checkout fork_integration
           
-          # Push any updates to fork_integration
-          git push origin $MAIN_BRANCH
+          # Create release branch from fork_integration
+          git checkout -b $RELEASE_BRANCH
+          
+          # Push the release branch
+          git push origin $RELEASE_BRANCH
           
           # Get commit summary
           COMMIT_SUMMARY=$(git log --pretty=format:"- %s" origin/main..HEAD | head -20)
@@ -359,7 +362,12 @@ jobs:
           # Create detailed PR body with commit summary
           PR_BODY="## 🚀 Upstream Integration Ready for Production
           
-          This PR cascades validated upstream changes from the integration branch to main.
+          This PR cascades validated upstream changes to main via release branch \`$RELEASE_BRANCH\`.
+          
+          **Branch Strategy:** 
+          - Source: \`fork_integration\` (preserved)
+          - Release: \`$RELEASE_BRANCH\` (temporary, safe to delete after merge)
+          - Target: \`main\`
           
           **Integration Summary:**
           - Total commits: $(git rev-list --count origin/main..HEAD)
@@ -371,11 +379,13 @@ jobs:
           
           **Validation Status:** ✅ Passed
           **Conflicts:** ✅ Resolved
-          **Ready for Production:** ✅ Yes"
+          **Ready for Production:** ✅ Yes
+          
+          > **Note:** The \`fork_integration\` branch is preserved for future use. This release branch can be safely deleted after merge."
           
           PR_URL=$(gh pr create \
             --base main \
-            --head $MAIN_BRANCH \
+            --head $RELEASE_BRANCH \
             --title "🚀 Production Release: Upstream Integration - $(date +%Y-%m-%d)" \
             --body "$PR_BODY" \
             --label "upstream-sync,production-ready,cascade-active,validated,human-required")
@@ -383,17 +393,9 @@ jobs:
           echo "Main PR created: $PR_URL"
           PR_NUMBER=$(basename $PR_URL)
           
-          # Determine auto-merge eligibility
-          if [[ "$DIFF_LINES" -lt 1000 ]] && [[ "$BREAKING_CHANGES" == "false" ]]; then
-            echo "✅ PR eligible for auto-merge (diff: $DIFF_LINES lines, no breaking changes)"
-            gh pr edit $PR_NUMBER --add-label "auto-merge-enabled"
-            
-            # Enable auto-merge after checks pass
-            gh pr merge $PR_NUMBER --auto --squash --delete-branch || echo "Auto-merge enabled, waiting for checks"
-          else
-            echo "❌ Manual review required (diff: $DIFF_LINES lines, breaking changes: $BREAKING_CHANGES)"
-            gh pr edit $PR_NUMBER --add-label "manual-review-required"
-          fi
+          # All production PRs require human review - no auto-merge
+          echo "Production PR requires manual review before merge"
+          gh pr edit $PR_NUMBER --add-label "manual-review-required"
           
           # Update original tracking issue
           TRACKING_ISSUE="${{ github.event.inputs.issue_number }}"
@@ -407,37 +409,22 @@ jobs:
             Integration completed successfully! Production PR has been created and is ready for final review.
             
             **Production PR:** $PR_URL
+            **Release Branch:** \`$RELEASE_BRANCH\` (temporary, safe to delete after merge)
+            **Integration Branch:** \`fork_integration\` (preserved for future use)
             **Diff Size:** ${DIFF_LINES} lines  
             **Breaking Changes:** ${BREAKING_CHANGES}
-            **Auto-merge:** $([ "$DIFF_LINES" -lt 1000 ] && [ "$BREAKING_CHANGES" == "false" ] && echo "✅ Enabled" || echo "❌ Manual review required")
+            **Review Required:** ✅ Manual review required for all production changes
+            **Commits:** $(git rev-list --count origin/main..HEAD)
             
             **Final Steps:**
-            1. Review and merge the production PR
-            2. This issue will be closed when changes reach main"
+            1. Review and merge the production PR: $PR_URL
+            2. The release branch can be safely deleted after merge
+            3. This issue will be closed when changes reach main
+            
+            **Timeline:**
+            - Integration completed: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+            - Ready for production: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           fi
-
-          # Create tracking issue with detailed integration summary
-          ISSUE_BODY="## 📦 Upstream Integration Cascade Complete
-          
-          **Production PR:** $PR_URL
-          **Integration Status:** ✅ Validated and ready
-          **Diff Size:** ${DIFF_LINES} lines
-          **Breaking Changes:** ${BREAKING_CHANGES}
-          **Commits:** $(git rev-list --count origin/main..HEAD)
-          
-          **Next Steps:**
-          1. Review the production PR for final approval
-          2. Merge to deploy upstream changes to production
-          3. Monitor for any post-deployment issues
-          
-          **Timeline:**
-          - Integration completed: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-          - Ready for production: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          
-          gh issue create \
-            --title "📦 Production Ready: Upstream Integration $(date +%Y-%m-%d)" \
-            --body "$ISSUE_BODY" \
-            --label "release-tracking,production-ready"
           
           # Close any upstream-held issues since cascade is now complete
           HELD_ISSUE=$(gh issue list --label "upstream-held" --json number 2>/dev/null | jq -r '.[0].number // empty')

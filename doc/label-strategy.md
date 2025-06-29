@@ -29,7 +29,6 @@ All system labels are defined in a centralized configuration file (`.github/labe
 
 ### Process Labels
 - `upstream-sync` - Related to upstream synchronization
-- `auto-merge-enabled` - PR will auto-merge when checks pass
 - `manual-review-required` - Requires human review
 - `production-ready` - Ready for production
 - `release-tracking` - Tracks release activities

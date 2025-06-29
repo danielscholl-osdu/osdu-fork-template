@@ -28,31 +28,29 @@ We will implement an asymmetric review strategy for cascade PRs:
    - Conflicts are most likely to occur here
    - Human judgment needed to assess upstream impact
 
-2. **Fork_integration → Main**: Eligible for auto-merge when ALL conditions are met:
-   - No conflicts detected
-   - All CI checks pass
-   - Diff size < 1000 lines
-   - No breaking changes (detected via commit messages)
+2. **Fork_integration → Main**: Always requires human review
+   - All production PRs require manual approval before merge
+   - Ensures final human oversight before changes reach production
    - Changes already validated in integration branch
 
 ## Consequences
 
 ### Positive
 - **Safety First**: External changes get human review at entry point
-- **Efficiency**: Clean, tested changes flow automatically to production
+- **Production Safety**: All production changes require final human approval
 - **Clear Boundaries**: Integration branch serves its purpose as a validation gate
-- **Reduced Latency**: Second phase can complete without waiting for reviewers
-- **Risk Mitigation**: Large or breaking changes always get manual review
+- **Risk Mitigation**: Human oversight at both critical decision points
+- **Audit Trail**: Complete human review history for all production deployments
 
 ### Negative
-- **Asymmetry Complexity**: Different rules for different stages may confuse
-- **First-Stage Bottleneck**: All upstream changes need manual review
-- **Auto-merge Risk**: Even with safeguards, automated merges carry inherent risk
+- **Manual Overhead**: All production PRs require human review and approval
+- **Potential Delays**: Manual review may slow deployment of routine updates
+- **Review Fatigue**: Teams need to review both integration and production PRs
 
 ### Neutral
-- **Monitoring Required**: Need to track auto-merge success rates
-- **Tunable Parameters**: Diff size threshold can be adjusted based on experience
-- **Override Capability**: Can disable auto-merge via environment variables
+- **Monitoring Required**: Need to track manual review timing and bottlenecks
+- **Process Efficiency**: Teams can develop patterns for faster routine reviews
+- **Flexibility**: Emergency procedures can be established for critical fixes
 
 ## Implementation Details
 
@@ -84,22 +82,17 @@ gh issue edit "$TRACKING_ISSUE" \
   --remove-label "cascade-active" \
   --add-label "production-ready"
 
-# Auto-merge eligibility based on size and breaking changes
-if [[ "$DIFF_LINES" -lt 1000 ]] && [[ "$BREAKING_CHANGES" == "false" ]]; then
-  gh pr merge $PR_NUMBER --auto --squash --delete-branch
-  gh pr edit $PR_NUMBER --add-label "auto-merge-enabled"
-else
-  gh pr edit $PR_NUMBER --add-label "manual-review-required"
-fi
+# All production PRs require manual review
+gh pr edit $PR_NUMBER --add-label "manual-review-required"
 ```
 
 ## Alternatives Considered
 
-1. **Fully Manual**: Require review at both stages
-   - Rejected: Too slow, defeats automation purpose
+1. **Fully Automated**: Auto-merge at both stages when clean
+   - Rejected: Too risky for external changes reaching production
 
-2. **Fully Automated**: Auto-merge at both stages when clean
-   - Rejected: Too risky for external changes
+2. **Conditional Auto-merge**: Auto-merge second stage based on size/changes
+   - Rejected: Even clean changes benefit from human oversight before production
 
 3. **Reversed Asymmetry**: Auto-merge first stage, manual second
    - Rejected: Backwards from a safety perspective

@@ -72,6 +72,15 @@ Implement a three-branch strategy for fork management:
 - `fork_upstream`: Allow direct pushes from automation only
 - `fork_integration`: Allow direct pushes for conflict resolution
 
+### Branch Preservation Strategy
+**Critical Requirement**: All three branches must be permanently preserved and never deleted.
+
+- **`main`**: Production branch - never delete
+- **`fork_upstream`**: Upstream tracking branch - never delete (needed for future syncs)
+- **`fork_integration`**: Conflict resolution branch - never delete (needed for future integrations)
+
+**Implementation**: When creating production PRs, use temporary release branches (e.g., `release/upstream-YYYYMMDD-HHMMSS`) from `fork_integration` to `main`. This allows safe deletion of release branches while preserving the core three-branch structure.
+
 ### Workflow Integration
 1. **Upstream Sync**: `fork_upstream` tracks upstream automatically
 2. **Change Detection**: Compare `fork_upstream` with `main` to identify new upstream changes

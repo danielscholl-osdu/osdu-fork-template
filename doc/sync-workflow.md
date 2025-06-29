@@ -265,34 +265,68 @@ Please provide:
 
 **Human Action Required**:
 ```yaml
-# Sync creates issue with explicit cascade trigger instructions
-NOTIFICATION_BODY="**Next Steps:**
-1. 🔍 **Review the sync PR** for any breaking changes or conflicts
-2. ✅ **Merge the PR** when satisfied with the changes  
-3. 🚀 **Manually trigger 'Cascade Integration' workflow** to integrate changes
-4. 📊 **Monitor cascade progress** in Actions tab"
+# Sync creates comprehensive issue with all instructions and lifecycle information
+NOTIFICATION_BODY="📥 **Upstream Sync Ready for Review**
+
+This issue tracks the integration of upstream changes into your fork.
+
+**What You Need to Do Now**
+
+1. Review & merge the sync PR: [$PR_URL]($PR_URL)
+2. After merging, [run the Cascade Integration workflow](../../actions/workflows/cascade.yml):
+   - In the \`issue_number\` field, enter: \`$ISSUE_NUMBER\`
+   - Click **Run workflow**
+
+> **Note**: If not triggered manually, the automated monitor will start the cascade process within 6 hours.
+
+**Sync Summary**
+- **Upstream Version**: \`$UPSTREAM_VERSION\`
+- **Changes**: $COMMIT_COUNT new commits from upstream
+- **Branch**: \`$SYNC_BRANCH\` → \`fork_upstream\`
+
+**Complete Integration Process**
+
+### Phase 1: Review & Merge (**Current**)
+1. Review the sync PR for breaking changes or merge conflicts
+2. Merge the PR when approved
+
+### Phase 2: Cascade Integration
+3. Trigger the Cascade Integration workflow
+4. Monitor progress – updates will appear as comments below
+
+### Phase 3: Final Integration to Main
+5. Review cascade results posted by the workflow
+6. Approve final integration if tests pass and no conflicts exist
+7. Done – changes merged to \`main\`
+
+**Progress Tracking**
+
+**Status Updates**
+This issue will be updated with:
+- ✅ Successful completions
+- ⚠️ Conflicts requiring manual resolution
+- 📝 Cascade results and next steps
+
+**Label Tracking**
+Monitor PR/issue labels for current status:
+\`upstream-sync\` → \`cascade-active\` → \`cascade-ready\` → \`production-ready\`
+
+**Timeline**
+- **Sync detected**: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`
+- **Current status**: Awaiting PR review and merge"
 
 ISSUE_URL=$(gh issue create \
   --title "📥 Upstream Sync Ready for Review - $(date +%Y-%m-%d)" \
   --body "$NOTIFICATION_BODY" \
   --label "upstream-sync,human-required")
-
-# Extract issue number and add specific cascade instructions
-ISSUE_NUMBER=$(basename "$ISSUE_URL")
-gh issue comment "$ISSUE_NUMBER" --body "🚀 **Cascade Integration Instructions**
-
-When ready to integrate changes:
-1. Go to Actions → Cascade Integration → Run workflow
-2. In the issue_number field, enter: $ISSUE_NUMBER
-3. Click Run workflow
-
-This will automatically track progress in this issue."
 ```
 
 **Integration Process**:
+- Single comprehensive issue provides complete lifecycle guidance and tracking
 - Human reviews and merges sync PR into `fork_upstream`
 - Human manually triggers "Cascade Integration" workflow with the issue number from the tracking issue
 - Monitor serves as safety net (detects missed triggers every 6 hours and auto-triggers with issue number)
+- All cascade progress tracked in original sync issue (no separate issues created)
 - Issue tracking provides complete audit trail with precise traceability throughout the cascade process
 
 ## Error Handling and Recovery
