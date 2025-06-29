@@ -265,24 +265,35 @@ Please provide:
 
 **Human Action Required**:
 ```yaml
-# Sync creates issue with explicit instructions
+# Sync creates issue with explicit cascade trigger instructions
 NOTIFICATION_BODY="**Next Steps:**
 1. 🔍 **Review the sync PR** for any breaking changes or conflicts
 2. ✅ **Merge the PR** when satisfied with the changes  
 3. 🚀 **Manually trigger 'Cascade Integration' workflow** to integrate changes
 4. 📊 **Monitor cascade progress** in Actions tab"
 
-gh issue create \
+ISSUE_URL=$(gh issue create \
   --title "📥 Upstream Sync Ready for Review - $(date +%Y-%m-%d)" \
   --body "$NOTIFICATION_BODY" \
-  --label "upstream-sync,human-required"
+  --label "upstream-sync,human-required")
+
+# Extract issue number and add specific cascade instructions
+ISSUE_NUMBER=$(basename "$ISSUE_URL")
+gh issue comment "$ISSUE_NUMBER" --body "🚀 **Cascade Integration Instructions**
+
+When ready to integrate changes:
+1. Go to Actions → Cascade Integration → Run workflow
+2. In the issue_number field, enter: $ISSUE_NUMBER
+3. Click Run workflow
+
+This will automatically track progress in this issue."
 ```
 
 **Integration Process**:
 - Human reviews and merges sync PR into `fork_upstream`
-- Human manually triggers "Cascade Integration" workflow
-- Monitor serves as safety net (detects missed triggers every 6 hours)
-- Issue tracking provides complete audit trail
+- Human manually triggers "Cascade Integration" workflow with the issue number from the tracking issue
+- Monitor serves as safety net (detects missed triggers every 6 hours and auto-triggers with issue number)
+- Issue tracking provides complete audit trail with precise traceability throughout the cascade process
 
 ## Error Handling and Recovery
 
