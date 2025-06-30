@@ -17,6 +17,7 @@ The release workflow implements automated version management as defined in [ADR-
 - **Comprehensive Documentation**: Auto-generated changelogs with categorization
 - **Upstream Correlation**: Version tags maintain upstream references
 - **Zero Manual Intervention**: Fully automated release process
+- **Meta Commit Integration**: Works seamlessly with meta commits from upstream sync ([ADR-023](adr/023-meta-commit-strategy-for-release-please.md))
 
 ## Workflow Configuration
 
@@ -510,6 +511,7 @@ cat .release-please-manifest.json
 ## References
 
 - [ADR-004: Release Please for Version Management](adr/004-release-please-versioning.md)
+- [ADR-023: Meta Commit Strategy for Release Please](adr/023-meta-commit-strategy-for-release-please.md)
 - [Product Architecture: Release Management](product-architecture.md#45-release-architecture-releaseyml)
 - [Google Release Please Documentation](https://github.com/googleapis/release-please)
 - [Conventional Commits Specification](https://www.conventionalcommits.org/)

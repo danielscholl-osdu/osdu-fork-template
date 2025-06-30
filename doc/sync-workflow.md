@@ -84,8 +84,8 @@ cat > .mcp.json << 'EOF'
 }
 EOF
 
-# Install pr-generator-agent for AI-enhanced PR descriptions
-pip install pr-generator-agent
+# Install pr-generator-agent 1.4.0+ for AI-enhanced PR descriptions and commit analysis
+pip install pr-generator-agent>=1.4.0
 ```
 
 **Repository Configuration**:
@@ -130,21 +130,40 @@ fi
 - Line addition/deletion counts
 - Conflict probability assessment
 
-### Phase 3: Staging Branch Creation
+### Phase 3: Staging Branch Creation and Meta Commit Strategy
 
 **Branch Naming**: `sync/upstream-YYYYMMDD-HHMMSS`
 
-**Creation Process**:
+**Creation Process with Meta Commit Strategy** ([ADR-023](adr/023-meta-commit-strategy-for-release-please.md)):
 ```bash
-# Create dated staging branch from current main
-git checkout main
-git pull origin main
+# Create dated staging branch from fork_upstream
+git checkout -b fork_upstream origin/fork_upstream
 BRANCH_NAME="sync/upstream-$(date +%Y%m%d-%H%M%S)"
 git checkout -b "$BRANCH_NAME"
 
-# Attempt to merge upstream changes
-git merge fork_upstream --no-edit
+# Capture state before sync for meta commit analysis
+BEFORE_SHA=$(git rev-parse fork_upstream)
+
+# Merge upstream changes preserving complete commit history
+git merge upstream/$DEFAULT_BRANCH -X theirs --no-edit
+
+# Generate conventional meta commit using AIPR 1.4.0
+META_COMMIT_MSG=$(timeout 60s aipr commit --from $BEFORE_SHA --context "upstream sync" 2>/dev/null || echo "")
+
+# Validate AI output and add meta commit for Release Please
+if [[ -n "$META_COMMIT_MSG" ]] && [[ "$META_COMMIT_MSG" =~ ^(feat|fix|chore|docs|style|refactor|perf|test|build|ci):[\ ].+ ]]; then
+  git commit --allow-empty -m "$META_COMMIT_MSG"
+else
+  # Fallback to conservative feat: message
+  git commit --allow-empty -m "feat: sync upstream changes from $UPSTREAM_VERSION"
+fi
 ```
+
+**Key Benefits**:
+- **Complete History Preservation**: All upstream commits maintained for debugging and compliance
+- **Release Please Integration**: Meta commits provide conventional format for automated versioning
+- **AI-Enhanced Categorization**: Intelligent analysis determines appropriate commit type (feat/fix/chore)
+- **Robust Fallback**: Conservative `feat:` default ensures automation continues during AI outages
 
 ### Phase 4: Conflict Detection and Handling
 
@@ -471,6 +490,7 @@ env:
 - [ADR-005: Automated Conflict Management Strategy](adr/005-conflict-management.md)
 - [ADR-019: Cascade Monitor Pattern](adr/019-cascade-monitor-pattern.md)
 - [ADR-020: Human-Required Label Strategy](adr/020-human-required-label-strategy.md)
+- [ADR-023: Meta Commit Strategy for Release Please](adr/023-meta-commit-strategy-for-release-please.md)
 - [Product Architecture: Synchronization](product-architecture.md#43-synchronization-architecture-syncyml)
 - [Initialization Workflow Specification](init-workflow.md)
 - [Validation Workflow Specification](validate-workflow.md)
