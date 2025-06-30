@@ -27,6 +27,8 @@ Architecture Decision Records for Fork Management Template
 | 019 | Cascade Monitor Pattern | Accepted | 2025-06-20 | [ADR-019](019-cascade-monitor-pattern.md) |
 | 020 | Human-Required Label Strategy | Accepted | 2025-06-20 | [ADR-020](020-human-required-label-strategy.md) |
 | 021 | Pull Request Target Trigger Pattern | Accepted | 2025-06-24 | [ADR-021](021-pull-request-target-trigger-pattern.md) |
+| 022 | Issue Lifecycle Tracking Pattern | Accepted | 2025-06-25 | [ADR-022](022-issue-lifecycle-tracking-pattern.md) |
+| 023 | Meta Commit Strategy for Release Please | Accepted | 2025-06-30 | [ADR-023](023-meta-commit-strategy-for-release-please.md) |
 
 ## Overview
 
@@ -133,3 +135,9 @@ These Architecture Decision Records document the key design choices made in the 
 - Label-based state management for machine and human readability
 - Complete audit trail from upstream sync to production deployment
 - Integration with human-centric cascade pattern
+
+**Meta Commit Strategy for Release Please (ADR-023)**
+- Preserves complete upstream commit history for debugging and compliance
+- AI-generated conventional meta commits drive Release Please versioning
+- Robust fallback to conservative `feat:` commits during AI service outages
+- Solves upstream non-conventional commit format conflicts
