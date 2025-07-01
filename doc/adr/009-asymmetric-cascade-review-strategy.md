@@ -22,25 +22,31 @@ Key considerations:
 ## Decision
 We will implement an asymmetric review strategy for cascade PRs:
 
-1. **Fork_upstream → Fork_integration**: Human-initiated with tracking
+1. **Fork_upstream → Fork_integration**: Human-initiated with comprehensive validation
    - Triggered manually by humans after reviewing upstream sync PR
    - Issue lifecycle tracking provides visibility into integration status
    - Conflicts are most likely to occur here
    - Human judgment needed to assess upstream impact
+   - **Comprehensive validation**: Build, test, and lint checks run on integration branch
+   - **Validation failures**: Block cascade and create detailed failure issues
 
-2. **Fork_integration → Main**: Always requires human review
+2. **Fork_integration → Main**: Always requires human review  
    - All production PRs require manual approval before merge
    - Ensures final human oversight before changes reach production
-   - Changes already validated in integration branch
+   - Changes already validated and proven stable in integration branch
+   - **Quality gate**: Only validated changes that pass all checks reach production
 
 ## Consequences
 
 ### Positive
 - **Safety First**: External changes get human review at entry point
 - **Production Safety**: All production changes require final human approval
-- **Clear Boundaries**: Integration branch serves its purpose as a validation gate
-- **Risk Mitigation**: Human oversight at both critical decision points
-- **Audit Trail**: Complete human review history for all production deployments
+- **Quality Assurance**: Comprehensive build, test, and validation on integration branch
+- **Early Detection**: Integration validation catches issues before production PRs
+- **Clear Boundaries**: Integration branch serves its purpose as a true validation gate
+- **Risk Mitigation**: Human oversight and automated validation at both critical decision points
+- **Audit Trail**: Complete human review history and validation logs for all production deployments
+- **Issue Tracking**: Detailed failure tracking with error logs and resolution guidance
 
 ### Negative
 - **Manual Overhead**: All production PRs require human review and approval
@@ -54,7 +60,7 @@ We will implement an asymmetric review strategy for cascade PRs:
 
 ## Implementation Details
 
-### Phase 1 (Human-Initiated Integration)
+### Phase 1 (Human-Initiated Integration with Validation)
 ```yaml
 # Humans manually trigger cascade after reviewing sync PR
 # Cascade workflow updates issue tracking
@@ -62,17 +68,27 @@ gh issue edit "$ISSUE_NUMBER" \
   --remove-label "human-required" \
   --add-label "cascade-active"
 
-# Integration proceeds with conflict detection
-# If conflicts detected, issue updated to cascade-blocked
+# Integration proceeds with merge and comprehensive validation
+# 1. Merge fork_upstream to fork_integration (conflict detection)
+# 2. Run comprehensive validation (build, test, lint)
+# 3. Report validation results to tracking issue
+
+# If conflicts detected OR validation fails:
+#   - Issue updated to cascade-blocked
+#   - Detailed failure issue created with logs and resolution steps
+#   - Cascade to main blocked until resolution
 ```
 
-### Phase 2 (Conditionally Automatic)
+### Phase 2 (Production PR Creation - Only After Validation Passes)
 ```yaml
-# Create production PR from fork_integration to main
-MAIN_BRANCH="fork_integration"
+# Production PR only created if integration validation successful
+# Condition: integration_success == 'true' && conflicts_found == 'false'
+
+# Create production PR from validated fork_integration to main
+RELEASE_BRANCH="release/upstream-$(date +%Y%m%d-%H%M%S)"
 PR_URL=$(gh pr create \
   --base main \
-  --head $MAIN_BRANCH \
+  --head $RELEASE_BRANCH \
   --title "🚀 Production Release: Upstream Integration - $(date +%Y-%m-%d)" \
   --body "$PR_BODY" \
   --label "upstream-sync,production-ready,cascade-active,validated,human-required")

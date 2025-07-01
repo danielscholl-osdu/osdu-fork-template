@@ -18,21 +18,23 @@ Implement a three-branch strategy for fork management:
 
 1. **`main`** - Stable production branch containing successfully integrated changes
 2. **`fork_upstream`** - Tracks the upstream repository's main branch exactly
-3. **`fork_integration`** - Workspace for resolving conflicts between upstream and local changes
+3. **`fork_integration`** - Validation workspace for conflict resolution and comprehensive testing of upstream changes
 
 ## Rationale
 
 ### Branch Purposes
 - **`main`**: Protected branch that only receives changes through PRs, ensuring stability
 - **`fork_upstream`**: Clean tracking of upstream without local modifications, enabling clear diff analysis
-- **`fork_integration`**: Dedicated space for conflict resolution without affecting stable branches
+- **`fork_integration`**: Dedicated space for conflict resolution and comprehensive validation (build, test, lint) without affecting stable branches
 
 ### Workflow Benefits
 1. **Clear Change Attribution**: Easy to identify what comes from upstream vs local modifications
 2. **Conflict Isolation**: Merge conflicts are resolved in a dedicated branch before affecting main
-3. **Upstream Tracking**: Pure upstream branch enables accurate diff analysis and change detection
-4. **Safe Integration**: Multiple review points before changes reach the stable main branch
-5. **Rollback Capability**: Easy to revert problematic integrations without losing upstream sync
+3. **Quality Validation**: Comprehensive build, test, and lint validation in integration branch
+4. **Upstream Tracking**: Pure upstream branch enables accurate diff analysis and change detection
+5. **Safe Integration**: Multiple review and validation points before changes reach the stable main branch
+6. **Early Issue Detection**: Integration validation catches problems before they reach production PRs
+7. **Rollback Capability**: Easy to revert problematic integrations without losing upstream sync
 
 ## Alternatives Considered
 
@@ -84,19 +86,27 @@ Implement a three-branch strategy for fork management:
 ### Workflow Integration
 1. **Upstream Sync**: `fork_upstream` tracks upstream automatically
 2. **Change Detection**: Compare `fork_upstream` with `main` to identify new upstream changes
-3. **Conflict Resolution**: Create PR from `fork_upstream` to `fork_integration` when conflicts exist
-4. **Integration**: Create PR from `fork_integration` to `main` after conflict resolution
-5. **Direct Integration**: Create PR from `fork_upstream` to `main` when no conflicts exist
+3. **Integration Cascade**: Merge `fork_upstream` to `fork_integration` with comprehensive validation
+4. **Validation Gate**: Run build, test, and lint checks on `fork_integration` branch
+5. **Quality Assurance**: Block progression if validation fails, create detailed failure issues
+6. **Production Release**: Create PR from validated `fork_integration` to `main` only after successful validation
+7. **Manual Review**: All production PRs require human approval before final merge
 
 ### Automation Requirements
 - Scheduled upstream synchronization to `fork_upstream`
 - Automated conflict detection and PR creation
+- Comprehensive integration validation (build, test, lint)
+- Validation failure detection and issue creation
 - Branch protection enforcement
 - Status checks and validation workflows
+- Issue lifecycle tracking and status reporting
 
 ## Success Criteria
 - Teams can safely integrate upstream changes without breaking main branch
 - Conflicts are resolved in isolated environment before affecting production
-- Clear audit trail of all changes and their sources
+- Integration validation catches build/test issues before production PRs
+- Validation failures are tracked and resolved systematically
+- Clear audit trail of all changes, validation results, and their sources
 - Reduced time to resolve upstream integration issues
 - Maintained stability of main branch throughout integration process
+- Quality gate ensures only validated, tested changes reach production
