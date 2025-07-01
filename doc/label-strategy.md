@@ -25,9 +25,10 @@ upstream-sync + human-required
 ### Workflow State Labels
 - `cascade-active` - Currently processing through cascade pipeline
 - `cascade-blocked` - Waiting on conflict resolution
-- `cascade-failed` - Failed checks or build
+- `cascade-failed` - Integration failed, automatic recovery system engaged
 - `cascade-escalated` - SLA exceeded, needs attention
 - `validated` - Integration validation completed successfully
+- `validation-failed` - Integration validation (build/test) failed
 
 ### Issue Type Labels
 - `sync-failed` - Sync workflow failures
@@ -50,6 +51,39 @@ upstream-sync + human-required
 ### Other Labels
 - `initialization` - Repository initialization issues
 - `dependencies` - Dependency updates and issues
+
+## Failure Recovery Pattern
+
+The label system enables an automated failure recovery workflow:
+
+### Normal Flow
+```
+upstream-sync → cascade-active → validated
+```
+
+### Failure Flow with Recovery
+```
+upstream-sync → cascade-active → cascade-failed + human-required
+                     ↑                      ↓
+                cascade-active ← human resolves (removes human-required)
+                     ↓
+                validated (success) OR cascade-failed (retry cycle)
+```
+
+### Recovery Process
+
+1. **Failure Detection**: Cascade fails → tracking issue gets `cascade-failed + human-required`
+2. **Technical Issue Created**: Separate issue with `high-priority + human-required` for technical details
+3. **Human Investigation**: Developer reviews failure issue and implements fixes
+4. **Signal Resolution**: Human removes `human-required` label from tracking issue
+5. **Automatic Retry**: Monitor detects label removal and automatically retries cascade
+6. **Success or New Failure**: Either succeeds (`validated`) or fails again (new cycle)
+
+### Key Benefits
+- **Self-Healing**: System automatically retries after human intervention
+- **Clear Handoffs**: Labels signal automation ↔ human transitions
+- **Audit Trail**: Complete failure/recovery history in tracking issues
+- **Predictable Process**: Developers know exactly how to signal resolution
 
 ## Label Colors
 

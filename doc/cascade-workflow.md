@@ -468,10 +468,10 @@ See [Label Management Strategy](label-strategy.md) for the complete label refere
 #### Cascade-Specific Labels:
 - `cascade-active` - Currently processing through pipeline
 - `cascade-blocked` - Waiting on conflict or validation resolution  
-- `cascade-ready` - Passed all checks, ready for merge
-- `cascade-failed` - Failed checks or build (legacy)
+- `cascade-failed` - Integration failed, automatic recovery system engaged
 - `cascade-escalated` - SLA exceeded, needs attention
 - `validation-failed` - Integration validation (build/test) failed
+- `validated` - Integration completed successfully
 
 #### Additional Labels Used:
 - `upstream-sync` - Marks PRs containing upstream changes
@@ -509,6 +509,94 @@ Create a GitHub Project board with automated rules:
     # Create GitHub notification
     # Update status dashboard
 ```
+
+## Automated Failure Recovery System
+
+The cascade workflow includes a sophisticated failure recovery system that enables self-healing operations through label-based state management.
+
+### Failure Detection and Response
+
+When a cascade integration fails, the system automatically:
+
+1. **Creates Failure Issue**: Technical details in a separate high-priority issue
+2. **Updates Tracking Issue**: Adds `cascade-failed + human-required` labels
+3. **Provides Recovery Instructions**: Clear steps for human intervention
+
+```yaml
+# Failure handling in cascade.yml
+if cascade_fails:
+  # Create technical failure issue
+  FAILURE_ISSUE_URL=$(gh issue create \
+    --title "🚨 Cascade Pipeline Failure: $FAILURE_TYPE" \
+    --label "high-priority,human-required")
+  
+  # Update original tracking issue
+  gh issue edit "$TRACKING_ISSUE" \
+    --remove-label "cascade-active" \
+    --add-label "cascade-failed,human-required"
+  
+  # Link issues and provide recovery instructions
+  gh issue comment "$TRACKING_ISSUE" --body "Recovery Instructions..."
+```
+
+### Automatic Recovery Detection
+
+The cascade monitor (`cascade-monitor.yml`) runs every 6 hours and detects when failures have been resolved:
+
+```yaml
+# Recovery detection logic
+detect-recovery-ready:
+  steps:
+    - name: Check for recovery-ready issues
+      run: |
+        # Find issues with cascade-failed but NOT human-required
+        RECOVERY_ISSUES=$(gh issue list \
+          --label "cascade-failed" \
+          --state open \
+          --jq '.[] | select(.labels | contains(["cascade-failed"]) and (contains(["human-required"]) | not))')
+        
+        # Automatically retry cascade for each recovery-ready issue
+        echo "$RECOVERY_ISSUES" | jq -r '.number' | while read ISSUE_NUMBER; do
+          # Update labels: cascade-failed → cascade-active  
+          gh issue edit "$ISSUE_NUMBER" \
+            --remove-label "cascade-failed" \
+            --add-label "cascade-active"
+          
+          # Trigger automatic retry
+          gh workflow run "Cascade Integration" -f issue_number="$ISSUE_NUMBER"
+        done
+```
+
+### Human Recovery Workflow
+
+1. **Failure Notification**: Developer receives notification about cascade failure
+2. **Investigation**: Review failure issue for technical details and root cause
+3. **Fix Implementation**: Make necessary changes (may require updates to `fork_integration` branch)
+4. **Signal Resolution**: Remove `human-required` label from tracking issue
+5. **Automatic Retry**: Monitor detects label removal and retries cascade within 6 hours
+6. **Success/New Failure**: Either completes successfully or creates new failure issue
+
+### Recovery State Transitions
+
+```mermaid
+stateDiagram-v2
+    [*] --> cascade_active: Normal cascade start
+    cascade_active --> cascade_failed: Integration fails
+    cascade_failed --> human_investigation: Failure issue created
+    human_investigation --> ready_for_retry: Human removes human-required label
+    ready_for_retry --> cascade_active: Monitor detects and retries
+    cascade_active --> validated: Success
+    cascade_active --> cascade_failed: Failure (new cycle)
+    validated --> [*]: Production PR created
+```
+
+### Benefits
+
+- **Self-Healing**: No manual workflow re-triggering required
+- **Clear Communication**: Separate issues for tracking vs. technical problems  
+- **Audit Trail**: Complete failure/recovery history in tracking issues
+- **Predictable Process**: Developers know exactly how to signal resolution
+- **Robust Error Handling**: Multiple failure attempts tracked separately
 
 ## Monitoring and Metrics
 

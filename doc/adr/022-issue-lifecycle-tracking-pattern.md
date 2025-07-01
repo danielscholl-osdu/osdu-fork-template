@@ -81,9 +81,11 @@ stateDiagram-v2
     human_required --> cascade_active: Human triggers cascade
     human_required --> cascade_active: Monitor auto-triggers (safety net)
     cascade_active --> cascade_blocked: Conflicts detected
-    cascade_active --> production_ready: Integration successful
+    cascade_active --> cascade_failed: Integration failed
+    cascade_active --> validated: Integration successful
     cascade_blocked --> cascade_active: Conflicts resolved
-    production_ready --> [*]: Production PR merged, issue closed
+    cascade_failed --> cascade_active: Human resolves + monitor retries
+    validated --> [*]: Production PR merged, issue closed
 ```
 
 ## Label Strategy
@@ -91,9 +93,10 @@ stateDiagram-v2
 | Label | Meaning | Human Action | Next State |
 |-------|---------|--------------|------------|
 | `upstream-sync, human-required` | Upstream sync complete, awaiting manual cascade trigger | Review sync PR, merge, trigger cascade | `cascade-active` |
-| `upstream-sync, cascade-active` | Cascade integration in progress | Monitor progress, wait for completion | `production-ready` or `cascade-blocked` |
+| `upstream-sync, cascade-active` | Cascade integration in progress | Monitor progress, wait for completion | `validated`, `cascade-blocked`, or `cascade-failed` |
 | `upstream-sync, cascade-blocked` | Conflicts detected, manual resolution needed | Resolve conflicts, commit fixes | `cascade-active` |
-| `upstream-sync, production-ready` | Production PR created, ready for final review | Review and merge production PR | Issue closed |
+| `upstream-sync, cascade-failed, human-required` | Integration failed, human intervention required | Review failure issue, fix problems, remove `human-required` label | `cascade-active` (automatic retry) |
+| `upstream-sync, validated` | Production PR created, ready for final review | Review and merge production PR | Issue closed |
 
 ## Implementation Details
 
