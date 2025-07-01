@@ -14,9 +14,11 @@ The cascade workflow automates the progressive integration of upstream changes t
 
 **Key Benefits**:
 - **Automated Propagation**: Changes flow automatically through branch hierarchy
-- **Staged Validation**: Each integration stage runs full build and test validation
+- **Comprehensive Validation**: Full build, test, and lint validation on integration branch
+- **Early Issue Detection**: Validation failures caught before production PRs are created
 - **Conflict Isolation**: Conflicts are detected and isolated at appropriate levels
-- **Integration Testing**: Dedicated stage for running integration tests before production
+- **Quality Gate**: Only validated, tested changes progress to production
+- **Detailed Failure Tracking**: Validation failures create detailed issues with error logs
 
 ## Workflow Configuration
 
@@ -79,19 +81,20 @@ flowchart TD
     G -->|None| H[Update fork_integration with main]
     H --> I[Merge fork_upstream → fork_integration]
     I --> J{Conflicts?}
-    J -->|Yes| K[Create Conflict PR]
-    J -->|No| L[Create Clean PR]
+    J -->|Yes| K[Create Conflict Issue & Block]
+    J -->|No| L[Run Comprehensive Validation]
     
-    K --> M[Start SLA Timer]
-    M --> N[Manual Resolution]
-    L --> O[Auto Build & Test]
+    L --> M{Validation Pass?}
+    M -->|Yes| N[Update Issue: Validation Passed]
+    M -->|No| O[Create Validation Failure Issue & Block]
     
-    N --> P{SLA Exceeded?}
-    P -->|Yes| Q[Escalate to Team]
-    P -->|No| R[PR Merged to fork_integration]
-    O --> R
+    K --> P[Manual Conflict Resolution]
+    O --> Q[Manual Validation Issue Resolution]
+    P --> R{Re-trigger Cascade}
+    Q --> R
     
-    R --> S[Cascade to Main Job]
+    N --> S[Cascade to Main Job]
+    R --> S
     S --> T[Create PR: fork_integration → main]
     T --> U{Auto-merge Eligible?}
     U -->|Yes| V[Auto-merge to main]
@@ -130,9 +133,9 @@ jobs:
           fi
 ```
 
-### Phase 1: Upstream to Integration Cascade
+### Phase 1: Upstream to Integration Cascade with Validation
 
-This phase executes when triggered by the monitor or manually via `workflow_dispatch`.
+This phase executes when triggered by the monitor or manually via `workflow_dispatch`. It includes comprehensive validation to ensure upstream changes integrate successfully before creating production PRs.
 
 #### Step 0: Check Cascade State
 ```bash
@@ -177,19 +180,74 @@ else
 fi
 ```
 
-#### Step 4: PR Creation
+#### Step 4: Integration Validation
 
-**Clean Merge PR**:
+After successful merge (no conflicts), comprehensive validation runs directly on the `fork_integration` branch:
+
 ```yaml
-gh pr create \
-  --base fork_integration \
-  --head $INTEGRATION_BRANCH \
-  --title "✅ Integrate upstream changes - $(date +%Y-%m-%d)" \
-  --body "$PR_BODY" \
-  --label "upstream-sync,cascade-active"
+# Comprehensive integration validation
+- name: Validate integration
+  run: |
+    echo "🔍 Running comprehensive validation checks on integration branch..."
+    
+    # Project detection
+    IS_JAVA_PROJECT=false
+    if [ -f "pom.xml" ] || [ -n "$(find . -name 'pom.xml' -type f 2>/dev/null)" ]; then
+      IS_JAVA_PROJECT=true
+      echo "📋 Detected Java/Maven project"
+    fi
+    
+    # Run Java-specific validation
+    if [ "$IS_JAVA_PROJECT" = "true" ]; then
+      echo "🔧 Setting up Java environment..."
+      # Setup Maven settings if available
+      if [ -f ".mvn/community-maven.settings.xml" ]; then
+        mkdir -p ~/.m2
+        cp .mvn/community-maven.settings.xml ~/.m2/settings.xml
+      fi
+      
+      # Run Maven build and test
+      echo "🔨 Running Maven build and tests..."
+      if mvn -B clean install 2>&1; then
+        echo "✅ Maven build and tests passed"
+        VALIDATION_SUCCESS=true
+      else
+        echo "❌ Maven build or tests failed"
+        VALIDATION_SUCCESS=false
+      fi
+    else
+      echo "📋 Non-Java project detected - basic validation"
+      VALIDATION_SUCCESS=true
+    fi
 ```
 
-**Conflict PR**:
+**Validation Failure Handling**:
+```yaml
+# If validation fails
+if [ "$VALIDATION_SUCCESS" = "false" ]; then
+  # Create detailed validation failure issue
+  gh issue create \
+    --title "🚨 Integration Validation Failed: Build/Test Errors" \
+    --body "$VALIDATION_FAILURE_DETAILS" \
+    --label "validation-failed,cascade-blocked,high-priority,human-required"
+  
+  # Update tracking issue to blocked status
+  gh issue edit "$TRACKING_ISSUE" \
+    --remove-label "cascade-active" \
+    --add-label "cascade-blocked"
+  
+  # Block progression to production PR
+  exit 1
+fi
+```
+
+#### Step 5: Production PR Creation (Only After Validation Passes)
+
+Once validation passes, the cascade proceeds to Phase 2 (Production PR Creation).
+
+#### Step 6: Conflict Handling (Alternative Path)
+
+**Conflict PR** (when conflicts are detected in Step 3):
 ```yaml
 PR_URL=$(gh pr create \
   --base fork_integration \
@@ -205,7 +263,10 @@ gh pr comment $PR_NUMBER --body "Conflict detected at $(date -u +%Y-%m-%dT%H:%M:
 
 ### Phase 2: Integration to Main Cascade
 
-This phase triggers when changes are merged to `fork_integration`.
+This phase triggers automatically when Phase 1 validation passes. It only runs if:
+- No merge conflicts were detected
+- Integration validation (build, test, lint) passed successfully
+- Tracking issue is updated with validation success
 
 #### Step 1: Check for Changes
 ```bash
@@ -294,9 +355,26 @@ When PRs target `fork_integration`, additional integration tests should run:
     done
 ```
 
-### Build Failures
+### Integration Validation Failures
 ```yaml
-# If build fails on integration PR
+# If validation fails on fork_integration branch
+- Detailed validation failure issue created with build logs
+- Tracking issue updated to 'cascade-blocked' status
+- Production PR creation blocked until resolution
+- Team investigates validation failure
+- May require upstream fix, local adaptation, or dependency updates
+
+# Validation failure issue includes:
+- Complete build/test output
+- Error details and stack traces  
+- Resolution steps and guidance
+- Links to workflow logs
+- SLA timer (48 hours for resolution)
+```
+
+### Build Failures (Legacy - now handled by Integration Validation)
+```yaml
+# If build fails on integration PR (deprecated - validation now runs directly)
 - PR remains open
 - Build status prevents merge
 - 'cascade-failed' label added
@@ -315,7 +393,30 @@ When PRs target `fork_integration`, additional integration tests should run:
    git push
    ```
 
-2. **Build Failure Resolution**:
+2. **Integration Validation Failure Resolution**:
+   ```bash
+   # Check out integration branch to debug
+   git checkout fork_integration
+   
+   # For Java projects - run local build to see errors
+   mvn clean install
+   
+   # Fix issues locally:
+   # - Update dependencies if compatibility issues
+   # - Fix compilation errors from upstream changes
+   # - Resolve test failures
+   # - Update configuration if needed
+   
+   # Push fixes to integration branch
+   git add .
+   git commit -m "fix: resolve integration validation issues"
+   git push origin fork_integration
+   
+   # Re-trigger cascade workflow with same issue number
+   gh workflow run "Cascade Integration" -f issue_number="<ISSUE_NUMBER>"
+   ```
+
+3. **Build Failure Resolution** (Legacy):
    - Fix in integration branch if local issue
    - Report upstream if upstream issue
    - Apply temporary patch if critical
@@ -366,10 +467,11 @@ See [Label Management Strategy](label-strategy.md) for the complete label refere
 
 #### Cascade-Specific Labels:
 - `cascade-active` - Currently processing through pipeline
-- `cascade-blocked` - Waiting on conflict resolution  
+- `cascade-blocked` - Waiting on conflict or validation resolution  
 - `cascade-ready` - Passed all checks, ready for merge
-- `cascade-failed` - Failed checks or build
+- `cascade-failed` - Failed checks or build (legacy)
 - `cascade-escalated` - SLA exceeded, needs attention
+- `validation-failed` - Integration validation (build/test) failed
 
 #### Additional Labels Used:
 - `upstream-sync` - Marks PRs containing upstream changes
@@ -411,12 +513,15 @@ Create a GitHub Project board with automated rules:
 ## Monitoring and Metrics
 
 ### Key Metrics
-- **Cascade Success Rate**: Clean cascades vs. conflicts
+- **Cascade Success Rate**: Clean cascades vs. conflicts vs. validation failures
+- **Integration Validation Success Rate**: % of upstream changes that pass validation
 - **Time to Production**: fork_upstream → main duration
 - **Conflict Resolution Time**: Average time to resolve conflicts
+- **Validation Failure Resolution Time**: Average time to resolve build/test issues
 - **Build Success Rate**: Per cascade stage
-- **SLA Compliance**: % of conflicts resolved within 48 hours
+- **SLA Compliance**: % of conflicts and validation failures resolved within 48 hours
 - **Manual Review Time**: Average time from PR creation to human approval
+- **Early Detection Rate**: % of issues caught in integration vs. production
 
 ### Alerting
 ```yaml
