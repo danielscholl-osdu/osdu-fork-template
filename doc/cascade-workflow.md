@@ -293,7 +293,7 @@ gh pr create \
   --head $RELEASE_BRANCH \
   --title "🚀 Production Release: Upstream Integration - $(date +%Y-%m-%d)" \
   --body "$PR_BODY" \
-  --label "upstream-sync,production-ready,cascade-active,validated,human-required"
+  --label "upstream-sync,validated"
 ```
 
 **Branch Preservation**: The `fork_integration` branch is never used directly for PRs to `main` to prevent accidental deletion. Instead, temporary release branches are created and can be safely deleted after merge, preserving the core three-branch structure.
