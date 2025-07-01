@@ -91,7 +91,7 @@ PR_URL=$(gh pr create \
   --head $RELEASE_BRANCH \
   --title "🚀 Production Release: Upstream Integration - $(date +%Y-%m-%d)" \
   --body "$PR_BODY" \
-  --label "upstream-sync,validated")
+  --label "upstream-sync,human-required")
 
 # Update tracking issue - production PR created
 gh issue comment "$TRACKING_ISSUE" --body "🎯 **Production PR Created** - $(date -u +%Y-%m-%dT%H:%M:%SZ)

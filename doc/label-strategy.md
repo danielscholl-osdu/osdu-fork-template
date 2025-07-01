@@ -6,14 +6,28 @@ This document describes the label management approach for the Fork Management Te
 
 All system labels are defined in a centralized configuration file (`.github/labels.json`) and created during repository initialization. This ensures consistent label availability across all workflows.
 
+## Label Flow
+
+### Issue Tracking Flow
+Issues follow this label progression:
+```
+upstream-sync → cascade-active → validated
+```
+
+### Production PR Labels
+Production PRs use these labels:
+```
+upstream-sync + human-required
+```
+
 ## Label Categories
 
 ### Workflow State Labels
 - `cascade-active` - Currently processing through cascade pipeline
 - `cascade-blocked` - Waiting on conflict resolution
-- `cascade-ready` - Passed all checks, ready for merge
 - `cascade-failed` - Failed checks or build
 - `cascade-escalated` - SLA exceeded, needs attention
+- `validated` - Integration validation completed successfully
 
 ### Issue Type Labels
 - `sync-failed` - Sync workflow failures
@@ -29,8 +43,7 @@ All system labels are defined in a centralized configuration file (`.github/labe
 
 ### Process Labels
 - `upstream-sync` - Related to upstream synchronization
-- `manual-review-required` - Requires human review
-- `production-ready` - Ready for production
+- `human-required` - Requires human review/action
 - `release-tracking` - Tracks release activities
 - `rollback` - Related to rollback operations
 

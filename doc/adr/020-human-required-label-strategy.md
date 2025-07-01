@@ -70,13 +70,13 @@ From `.github/labels.json` (managed by ADR-008):
 - `escalation`: Issues that have exceeded SLA timeouts
 - `sync-failed`: Failed synchronization operations
 - `cascade-trigger-failed`: Failed cascade workflow triggers
-- `manual-review-required`: Items that need code review
+- `human-required`: Items that need human review/action
 
 ### Issue Lifecycle Labels (ADR-022)
 - `upstream-sync`: Issues related to upstream synchronization
 - `cascade-active`: Cascade integration currently in progress
 - `cascade-blocked`: Cascade blocked by conflicts or issues
-- `production-ready`: Integration complete, ready for production
+- `validated`: Integration complete, validation successful
 - `template-sync`: Issues related to template updates
 
 ### Workflow Implementation Pattern

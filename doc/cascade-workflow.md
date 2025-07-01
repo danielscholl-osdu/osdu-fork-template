@@ -293,7 +293,7 @@ gh pr create \
   --head $RELEASE_BRANCH \
   --title "🚀 Production Release: Upstream Integration - $(date +%Y-%m-%d)" \
   --body "$PR_BODY" \
-  --label "upstream-sync,validated"
+  --label "upstream-sync,human-required"
 ```
 
 **Branch Preservation**: The `fork_integration` branch is never used directly for PRs to `main` to prevent accidental deletion. Instead, temporary release branches are created and can be safely deleted after merge, preserving the core three-branch structure.
@@ -434,7 +434,7 @@ When PRs target `fork_integration`, additional integration tests should run:
 ```yaml
 # All production PRs require manual review
 echo "Production PR requires manual review before merge"
-gh pr edit $PR_NUMBER --add-label "manual-review-required"
+# All production PRs require human review (indicated by human-required label)
 ```
 
 ### Manual Intervention Points
@@ -477,7 +477,7 @@ See [Label Management Strategy](label-strategy.md) for the complete label refere
 - `upstream-sync` - Marks PRs containing upstream changes
 - `conflict` - Indicates merge conflicts exist
 - `needs-resolution` - Requires manual intervention
-- `manual-review-required` - All production PRs require human review
+- `human-required` - All production PRs require human review
 - `escalation` - Escalated issues
 - `high-priority` - High priority items
 - `emergency` - Emergency issues
