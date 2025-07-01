@@ -91,15 +91,14 @@ PR_URL=$(gh pr create \
   --head $RELEASE_BRANCH \
   --title "🚀 Production Release: Upstream Integration - $(date +%Y-%m-%d)" \
   --body "$PR_BODY" \
-  --label "upstream-sync,production-ready,cascade-active,validated,human-required")
+  --label "upstream-sync,validated")
 
-# Update tracking issue
-gh issue edit "$TRACKING_ISSUE" \
-  --remove-label "cascade-active" \
-  --add-label "production-ready"
+# Update tracking issue - production PR created
+gh issue comment "$TRACKING_ISSUE" --body "🎯 **Production PR Created** - $(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-# All production PRs require manual review
-gh pr edit $PR_NUMBER --add-label "manual-review-required"
+Integration completed successfully! Production PR has been created and is ready for final review."
+
+# All production PRs require manual review (implicit)
 ```
 
 ## Alternatives Considered
