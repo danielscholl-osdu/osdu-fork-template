@@ -46,10 +46,11 @@ Implement a **Human-Centric Cascade Pattern** with monitor-based safety net:
 - **No Event Dependencies**: Not dependent on GitHub event triggering limitations
 
 ### Comprehensive State Management
-- **Label-based Tracking**: Issue labels track cascade state (human-required → cascade-active → production-ready)
-- **Comment-based Updates**: Detailed progress updates in tracking issues
-- **Error State Handling**: Clear conflict detection and resolution workflows
+- **Label-based Tracking**: Issue labels track cascade state progression
+- **Comment-based Updates**: Detailed progress updates in tracking issues  
+- **Error State Handling**: Automated failure detection and recovery workflows
 - **Completion Tracking**: Issues closed when changes reach production
+- **Self-Healing Recovery**: Automatic retry system based on human intervention signals
 
 ### Improved Team Experience
 - **Predictable Process**: Teams know exactly when and how to trigger cascades
@@ -255,6 +256,61 @@ The monitor also includes periodic health checks:
 - **External Integrations**: Webhook support for external systems
 - **Advanced Error Handling**: Sophisticated retry and recovery strategies
 - **Metrics Collection**: Detailed analytics on trigger patterns
+
+### Automated Failure Recovery Pattern
+
+The monitor implements a sophisticated failure recovery system that enables self-healing cascade workflows:
+
+#### Failure State Management
+```yaml
+# Normal cascade state progression
+upstream-sync → cascade-active → validated
+
+# Failure state progression  
+upstream-sync → cascade-active → cascade-failed + human-required
+```
+
+#### Recovery Detection Logic
+```yaml
+detect-recovery-ready:
+  name: "🔄 Automatic Recovery - Detect Ready Retries"
+  steps:
+    - name: Check for recovery-ready issues
+      run: |
+        # Find issues with cascade-failed but NOT human-required
+        RECOVERY_ISSUES=$(gh issue list \
+          --label "cascade-failed" \
+          --state open \
+          --jq '.[] | select(.labels | contains(["cascade-failed"]) and (contains(["human-required"]) | not))')
+        
+        # For each recovery-ready issue
+        echo "$RECOVERY_ISSUES" | jq -r '.number' | while read ISSUE_NUMBER; do
+          # Update labels: cascade-failed → cascade-active
+          gh issue edit "$ISSUE_NUMBER" \
+            --remove-label "cascade-failed" \
+            --add-label "cascade-active"
+          
+          # Trigger cascade retry
+          gh workflow run "Cascade Integration" \
+            --repo ${{ github.repository }} \
+            -f issue_number="$ISSUE_NUMBER"
+        done
+```
+
+#### Human Recovery Workflow
+1. **Failure Occurs**: Cascade fails, tracking issue gets `cascade-failed + human-required`
+2. **Failure Issue Created**: Technical details in separate high-priority issue
+3. **Human Investigation**: Developer reviews failure issue and makes fixes
+4. **Signal Resolution**: Human removes `human-required` label from tracking issue
+5. **Automatic Retry**: Monitor detects label removal and retries cascade
+6. **Success/Failure**: Either completes successfully or creates new failure issue
+
+#### Benefits of Label-Based Recovery
+- **Self-Healing**: No manual workflow triggering required
+- **Clear Handoff**: Labels signal automation ↔ human transitions
+- **Audit Trail**: Complete failure/recovery history in tracking issues
+- **Robust Error Handling**: Multiple failure attempts tracked separately
+- **Predictable Process**: Developers know exactly how to signal resolution
 
 ## Related Decisions
 
