@@ -2,16 +2,16 @@
 site_name: OSDU SPI Fork
 site_author: Microsoft Azure Energy
 site_name: OSDU SPI Fork
-site_url: https://danielscholl-osdu.github.io/osdu-spi-fork/
+site_url: https://danielscholl-osdu.github.io/osdu-fork-template/
 site_author: Daniel Scholl
 site_description: >-
-  OSDU Developer - Personal Instances : Simplified
+  OSDU Fork Management Template - Simplified enterprise-grade fork management with AI-enhanced workflows
 
 docs_dir: src
 
 # Repository
-repo_name: osdu-spi-fork
-repo_url: https://github.com/danielscholl-osdu/osdu-spi-fork
+repo_name: osdu-fork-template
+repo_url: https://github.com/danielscholl-osdu/osdu-fork-template
 
 # Copyright
 copyright: Copyright &copy; Microsoft Corporation.
@@ -112,3 +112,20 @@ extra_css:
   - stylesheets/extra.css
 
 nav:
+  - Home: index.md
+  - Concepts: concepts.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Three-Branch Strategy: architecture/three_branch_strategy.md
+      - Workflow System: architecture/workflow_system.md
+      - AI Integration: architecture/ai_integration.md
+  - Workflows:
+      - Initialization: workflows/initialization.md
+      - Synchronization: workflows/synchronization.md
+      - Cascade: workflows/cascade.md
+      - Validation: workflows/validation.md
+      - Build: workflows/build.md
+      - Release: workflows/release.md
+  - Decisions:
+      - Index: decisions/index.md
+      - Evolution: decisions/evolution.md
