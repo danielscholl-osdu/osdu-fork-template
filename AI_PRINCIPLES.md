@@ -10,7 +10,7 @@ This document outlines the core principles for building quality code with AI age
 - Follow the deterministic lifecycle: `Issue → Branch → Context → Code → Test → Docs → PR → Knowledge Update`
 - Use a standardized branch naming: `agent/<issue>-<description>`
 - Follow conventional commits for automated release management
-- Document patterns and lessons learned in AI_EVOLUTION.md for future reference
+- Document patterns and lessons learned in ADRs for future reference
 
 **Why It Matters**: Structured workflows create predictable, auditable outcomes and enable multiple AI agents to work consistently across the project.
 
@@ -19,10 +19,10 @@ This document outlines the core principles for building quality code with AI age
 **Principle**: Persistent memory through structured artifacts, not oversized prompts.
 
 **In Practice**:
-- **Evolving memory**: AI_EVOLUTION.md captures cumulative learnings, patterns, and insights
+- **Evolving memory**: ADRs capture cumulative learnings, patterns, and insights
 - **Architectural memory**: ADRs encode specific decisions and rationale  
-- **Context loading**: Read relevant ADRs, AI_EVOLUTION.md sections, and specifications before starting work
-- **Knowledge accumulation**: Update AI_EVOLUTION.md with new patterns and lessons rather than per-session logs
+- **Context loading**: Read relevant ADRs and specifications before starting work
+- **Knowledge accumulation**: Update ADRs with new patterns and lessons rather than per-session logs
 
 **Why It Matters**: Evolving memory accumulates knowledge efficiently without context bloat, creating institutional intelligence that compounds over time.
 
@@ -34,7 +34,7 @@ This document outlines the core principles for building quality code with AI age
 - Start every task with clear specifications or checklists
 - Write failing tests based on requirements before implementing
 - Use behavior-driven testing focused on observable outcomes
-- Update AI_EVOLUTION.md with new patterns, insights, and lessons learned
+- Update relevant ADRs with new patterns, insights, and lessons learned
 
 **Why It Matters**: With near-zero cost of code generation, planning quality becomes the primary bottleneck and success factor.
 
@@ -57,7 +57,7 @@ This document outlines the core principles for building quality code with AI age
 **In Practice**:
 - **Reason**: Load context from ADRs, specs, and recent logs
 - **Act**: Execute code changes, tests, documentation updates
-- **Reflect**: Update AI_EVOLUTION.md with new insights and patterns discovered
+- **Reflect**: Update relevant ADRs with new insights and patterns discovered
 - **Retry**: Use test failures to drive iterative improvement
 - **Escalate**: Surface persistent issues clearly for human review
 
@@ -108,16 +108,16 @@ This document outlines the core principles for building quality code with AI age
 - **Orchestrate work**: Coordinate between multiple AI agents and human contributors
 
 ### For AI Agents
-- **Load context**: Always start by reading relevant ADRs, AI_EVOLUTION.md sections, and specifications
+- **Load context**: Always start by reading relevant ADRs and specifications
 - **Follow patterns**: Use established workflows and architectural conventions
 - **Test behavior**: Focus on observable outcomes, not implementation details
-- **Document insights**: Update AI_EVOLUTION.md with patterns and lessons that future agents should know
+- **Document insights**: Update ADRs with patterns and lessons that future agents should know
 - **Escalate appropriately**: Surface complex architectural decisions for human review
 
 ### Quality Gates
 - [ ] All changes follow established workflow patterns
 - [ ] Tests focus on behavior, not implementation
-- [ ] AI_EVOLUTION.md updated with new patterns and insights
+- [ ] Relevant ADRs updated with new patterns and insights
 - [ ] Documentation remains current and accurate
 - [ ] Safety guardrails prevent destructive operations
 
@@ -133,7 +133,7 @@ These principles are specifically applied to fork management scenarios:
 ## Continuous Improvement
 
 These principles evolve based on:
-- **Pattern recognition**: Success and failure patterns captured in AI_EVOLUTION.md
+- **Pattern recognition**: Success and failure patterns captured in ADRs
 - **Workflow refinement**: Improvements to structured processes and automation
 - **Tool evolution**: Integration of new capabilities and AI agent specializations
 - **Community feedback**: Input from contributors using these patterns
@@ -141,6 +141,6 @@ These principles evolve based on:
 ---
 
 **Further Reading**:
-- [AI_EVOLUTION.md](AI_EVOLUTION.md) - Historical context and lessons learned
+- [ADRs](doc/adr/) - Historical context and lessons learned
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Detailed workflow implementation
 - [doc/adr/](doc/adr/) - Architectural decisions and rationale

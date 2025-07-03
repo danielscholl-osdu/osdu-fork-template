@@ -178,6 +178,10 @@
       {
         "path": ".github/workflows/init-complete.yml",
         "reason": "One-time setup workflow no longer needed"
+      },
+      {
+        "path": ".github/workflows/docs.yml",
+        "reason": "Template documentation deployment workflow - not needed in fork instances"
       }
     ]
   }

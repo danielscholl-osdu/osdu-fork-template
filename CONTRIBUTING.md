@@ -8,7 +8,7 @@ This guide explains how to contribute to the Fork Management Template repository
 
 **Contribution Focus**: Improve the template workflows, documentation, and patterns
 **Branch Pattern**: `agent/<issue>-<description>` for contributions
-**AI Context**: Review [CLAUDE.md](CLAUDE.md) and [AI_EVOLUTION.md](AI_EVOLUTION.md) before starting
+**AI Context**: Review [CLAUDE.md](CLAUDE.md) and relevant ADRs before starting
 
 ## Template Enhancement Workflow
 
@@ -64,9 +64,9 @@ This template is optimized for AI-agent collaboration:
 
 ### Context Loading for AI Agents
 Before starting work, AI agents must review:
-- [AI_EVOLUTION.md](AI_EVOLUTION.md) for historical patterns and lessons
 - Current ADRs relevant to the planned changes
 - Existing workflow patterns and conventions
+- Historical patterns documented in ADRs
 
 ### AI Agent Task Assignment
 Label issues appropriately for AI assignment:
@@ -128,10 +128,10 @@ graph LR
 - [ ] No breaking changes to template API
 - [ ] Documentation updated (ADRs for architectural changes)
 - [ ] Template patterns remain consistent
-- [ ] AI context preserved in CLAUDE.md/AI_EVOLUTION.md
+- [ ] AI context preserved in CLAUDE.md and relevant ADRs
 
 ### AI Session Logging
-After completing work, update if necessary [AI_EVOLUTION.md](AI_EVOLUTION.md) with:
+After completing work, update relevant ADRs if necessary with:
 - New patterns discovered
 - Conflict resolution strategies that worked
 - Template improvements and their impact
