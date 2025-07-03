@@ -42,6 +42,11 @@ jobs:
             "validate.yml" 
             "build.yml"
             "release.yml"
+            "sync-template.yml"
+            "dependabot-validation.yml"
+            "cascade.yml"
+            "cascade-monitor.yml"
+            "claude.yml"
           )
           
           for workflow in "${required_workflows[@]}"; do
