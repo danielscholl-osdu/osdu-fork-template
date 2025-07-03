@@ -58,13 +58,19 @@ jobs:
           
           # Ensure only legitimate template workflows are in active workflows
           # Allow: dev-*, init*, claude.yml, docs.yml
-          active_workflows=$(ls .github/workflows/ | grep -v "^dev-" | grep -v "^init" | grep -v "^claude.yml" | grep -v "^docs.yml")
-          if [ -n "$active_workflows" ]; then
-            echo "❌ Unexpected workflows found in active directory:"
-            echo "$active_workflows"
-            echo "Only dev-*, init*, claude.yml, and docs.yml workflows are allowed in the template"
-            exit 1
-          fi
+          echo "Checking active workflows..."
+          for workflow_file in .github/workflows/*.yml; do
+            workflow=$(basename "$workflow_file")
+            if [[ ! "$workflow" =~ ^dev- ]] && \
+               [[ ! "$workflow" =~ ^init ]] && \
+               [[ "$workflow" != "claude.yml" ]] && \
+               [[ "$workflow" != "docs.yml" ]]; then
+              echo "❌ Unexpected workflow found: $workflow"
+              echo "Only dev-*, init*, claude.yml, and docs.yml workflows are allowed in the template"
+              exit 1
+            fi
+          done
+          echo "✅ All active workflows are valid"
           
           echo "✅ Template is ready for release"
           
