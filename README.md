@@ -45,11 +45,9 @@ For full automation, add these secrets in **Settings** → **Secrets and variabl
 - **Conflicts** create detailed issues with resolution guidance
 - **Releases** are automatically versioned and correlated with upstream
 
-## Documentation
+## Support and Contributing
 
 📚 **[Complete Documentation](https://danielscholl-osdu.github.io/osdu-fork-template/)** - Comprehensive guides covering system concepts, architecture, workflows, and AI integration.
-
-## Support and Contributing
 
 - **Issues**: [Report bugs or request features](https://github.com/danielscholl-osdu/osdu-fork-template/issues)
 - **Discussions**: [Community support and questions](https://github.com/danielscholl-osdu/osdu-fork-template/discussions)
