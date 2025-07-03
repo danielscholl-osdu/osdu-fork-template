@@ -34,7 +34,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
-      - run: pip install mkdocs mkdocs-material mkdocs-minify-plugin pymdownx-extensions
+      - run: pip install mkdocs mkdocs-material mkdocs-minify-plugin pymdown-extensions
       - run: |
           cd doc
           mkdocs gh-deploy --force --clean --verbose
