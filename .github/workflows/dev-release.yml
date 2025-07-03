@@ -51,11 +51,13 @@ jobs:
             fi
           done
           
-          # Ensure only init workflows are in active workflows
-          active_workflows=$(ls .github/workflows/ | grep -v "^dev-" | grep -v "^init")
+          # Ensure only legitimate template workflows are in active workflows
+          # Allow: dev-*, init*, claude.yml, docs.yml
+          active_workflows=$(ls .github/workflows/ | grep -v "^dev-" | grep -v "^init" | grep -v "^claude.yml" | grep -v "^docs.yml")
           if [ -n "$active_workflows" ]; then
-            echo "❌ Non-dev, non-init workflows found in active directory:"
+            echo "❌ Unexpected workflows found in active directory:"
             echo "$active_workflows"
+            echo "Only dev-*, init*, claude.yml, and docs.yml workflows are allowed in the template"
             exit 1
           fi
           
