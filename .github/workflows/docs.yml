@@ -23,18 +23,10 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
-# Hybrid approach: Prevent workflow execution in fork instances while maintaining safety checks
-# This combines trigger-level prevention with runtime detection for maximum efficiency
 jobs:
   check_template:
     name: Check if template repository
     runs-on: ubuntu-latest
-    # Workflow-level condition: Only run if this appears to be the template repository
-    # This provides immediate efficiency by preventing execution in most fork cases
-    if: |
-      vars.IS_TEMPLATE == 'true' || 
-      github.repository == 'danielscholl-osdu/osdu-fork-template' ||
-      github.event.repository.is_template == true
     outputs:
       is_template: ${{ steps.check.outputs.is_template }}
     steps:
@@ -72,8 +64,7 @@ jobs:
   deploy:
     name: Deploy documentation to GitHub Pages
     needs: check_template
-    # Double-safety: Both workflow-level prevention above AND job-level verification here
-    # This ensures documentation only deploys in the actual template repository
+    # Only deploy documentation in the template repository
     if: |
       needs.check_template.outputs.is_template == 'true' &&
       ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch')
