@@ -40,6 +40,11 @@
     "deps": {
       "title": "fix",
       "section": "Dependencies"
+    },
+    "Initial plan": {
+      "title": "chore",
+      "section": "🤖 AI Agent",
+      "hidden": true
     }
   }
 }
