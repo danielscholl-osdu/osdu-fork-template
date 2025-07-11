@@ -34,8 +34,8 @@ jobs:
             git remote add template "$TEMPLATE_REPO_URL"
           fi
           
-          # Fetch latest from template
-          git fetch template --prune
+          # Fetch latest from template (explicit branch ref to avoid tag ambiguity)
+          git fetch template refs/heads/main:refs/remotes/template/main --prune
 
       - name: Check for template updates
         id: check-updates
@@ -160,7 +160,7 @@ jobs:
           echo "SYNC_BRANCH=$SYNC_BRANCH" >> $GITHUB_ENV
           
           # Create and checkout sync branch from main
-          git checkout -b $SYNC_BRANCH main
+          git checkout -b $SYNC_BRANCH refs/heads/main
 
       - name: Sync template files
         if: steps.check-updates.outputs.has_updates == 'true'
