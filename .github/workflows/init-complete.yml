@@ -341,26 +341,20 @@ jobs:
           # Add template remote to be able to track template updates
           TEMPLATE_REPO_URL="${{ vars.TEMPLATE_REPO_URL || 'https://github.com/danielscholl-osdu/osdu-fork-template.git' }}"
           git remote add template "$TEMPLATE_REPO_URL" || true
-          # Explicitly fetch the main branch to avoid tag ambiguity
-          git fetch template refs/heads/main:refs/remotes/template/main --depth=1
+          git fetch template main --depth=1
           
           # Copy fork workflows from template repository
           # This must happen before merge to avoid GitHub App workflow permission issues
           echo "Copying fork-specific workflows from template repository..."
-          if git checkout template/main -- .github/template-workflows/ 2>/dev/null; then
-            if [ -d ".github/template-workflows" ]; then
-              # Ensure workflows directory exists
-              mkdir -p .github/workflows
-              cp .github/template-workflows/*.yml .github/workflows/
-              echo "Copied workflows:"
-              ls .github/template-workflows/*.yml | xargs -I {} basename {}
-            else
-              echo "⚠️ Warning: .github/template-workflows directory not found in template"
-            fi
+          git checkout template/main -- .github/template-workflows/
+          if [ -d ".github/template-workflows" ]; then
+            # Ensure workflows directory exists
+            mkdir -p .github/workflows
+            cp .github/template-workflows/*.yml .github/workflows/
+            echo "Copied workflows:"
+            ls .github/template-workflows/*.yml | xargs -I {} basename {}
           else
-            echo "⚠️ Warning: Failed to checkout template workflows - template/main reference not available"
-            echo "This may occur if the template fetch failed. Initialization will continue without copying workflows."
-            echo "Fork workflows will need to be added manually from the template repository."
+            echo "⚠️ Warning: .github/template-workflows directory not found in template"
           fi
           
           # Initialize tracking files

@@ -6,9 +6,9 @@ The three-branch strategy forms the cornerstone of safe, systematic fork managem
 
 ```mermaid
 graph TD
-    A[Upstream Repository] --> B[fork_upstream<br/>Mirror]
-    B --> C[fork_integration<br/>Staging]  
-    C --> D[main<br/>Production]
+    A[Upstream Repository] --> B[fork_upstream<br/>:material-source-branch: Mirror]
+    B --> C[fork_integration<br/>:material-source-merge: Staging]  
+    C --> D[main<br/>:material-source-branch-check: Production]
     
     E[Local Development] --> F[Feature Branches]
     F --> D
@@ -68,79 +68,66 @@ graph TD
 
 </div>
 
-## Process Flow
+## Integration Flow
 
-#### **Synchronize**
+### Upstream Change Integration
+
+The system follows a systematic integration pattern that ensures safety at each stage:
+
+#### **Stage 1: Upstream Synchronization**
 ```mermaid
 sequenceDiagram
     participant U as Upstream Repo
     participant FU as fork_upstream
     participant S as Sync Workflow
-    participant H as Human Reviewer
     
     S->>U: Fetch latest changes
-    S->>FU: Create sync branch from fork_upstream
-    activate FU
+    S->>FU: Update branch (force push)
     S->>S: Detect changes since last sync
-    S->>S: Generate AI analysis
-    S->>S: Create sync PR
-    S->>H: Notify human reviewer
-    H->>H: Review and approve
-    H->>FU: Merge sync branch into fork_upstream
-    deactivate FU
+    
+    alt Changes Found
+        S->>S: Create sync branch
+        S->>S: Generate AI analysis
+    else No Changes
+        S->>S: Exit cleanly
+    end
 ```
 
-#### **Integrate**
+#### **Stage 2: Integration Preparation**
 ```mermaid
 sequenceDiagram
-    participant M as main
     participant FU as fork_upstream
     participant FI as fork_integration
     participant C as Cascade Workflow
-    participant H as Human Reviewer
     
-    C->>M: Check for local changes
-    M->>FI: Merge main → fork_integration
-    activate FI
-    C->>FU: Check for upstream updates
-    FU->>FI: Merge fork_upstream → fork_integration
-    C->>FI: Run validation suite
-    C->>C: Create main PR
+    C->>FU: Check for updates
+    C->>FI: Attempt merge
     
-    alt Validation Conflicts/Failures
+    alt Merge Success
+        C->>FI: Run validation suite
+        C->>C: Create production PR
+    else Merge Conflicts
         C->>C: Create conflict resolution issue
-        C->>H: Notify about conflicts
-        H->>FI: Push conflict resolution to fork_integration
+        C->>C: Provide resolution guidance
     end
-    
-    C->>FI: Run validation suite
-    C->>H: Notify human reviewer
-    H->>H: Review and approve
-    FI->>M: Merge to main
-    deactivate FI
 ```
 
-#### **Release**
+#### **Stage 3: Production Integration**
 ```mermaid
 sequenceDiagram
+    participant FI as fork_integration
     participant M as main
-    participant R as Release Workflow
     participant H as Human Reviewer
-    participant DR as Downstream Repo
     
-    M->>R: Push to main triggers release
-    R->>R: Analyze commits for version bump
-    R->>M: Create release branch with CHANGELOG.md
-    activate M
-    R->>H: Create release PR
-    R->>M: Run validation suite
-    H->>H: Review and approve
-    H->>M: Merge release branch into main
-    deactivate M
-    R->>R: Create release & tags
+    FI->>H: Create production PR
+    H->>H: Review changes
+    H->>H: Validate impact
     
-    alt Downstream Consumption
-        DR->>M: Pull desired release tag
+    alt Approval
+        H->>M: Merge to production
+        M->>M: Deploy to downstream
+    else Changes Needed
+        H->>FI: Request modifications
     end
 ```
 

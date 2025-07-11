@@ -4,7 +4,7 @@ This document specifies the cascade integration workflow (`cascade.yml`) that au
 
 ## Overview
 
-The cascade workflow automates the progressive integration of upstream changes through the repository's branch hierarchy, ensuring proper validation and conflict resolution at each stage. It implements the integration strategy defined in [ADR-001](adr/001-three-branch-strategy.md) and works in conjunction with the sync workflow. **The cascade workflow benefits from the sync workflow's duplicate prevention system**, which ensures a single sync PR and issue per upstream state, providing clear tracking throughout the cascade process.
+The cascade workflow automates the progressive integration of upstream changes through the repository's branch hierarchy, ensuring proper validation and conflict resolution at each stage. It implements the integration strategy defined in [ADR-001](adr/001-three-branch-strategy.md) and works in conjunction with the sync workflow.
 
 ## Architecture Decision
 
@@ -628,7 +628,6 @@ stateDiagram-v2
 ### Sync Workflow
 - Triggers cascade when PR merges to `fork_upstream`
 - Provides upstream changes to cascade
-- **Duplicate prevention ensures single sync PR per upstream state**, providing clear tracking throughout cascade process
 
 ### Build Workflow
 - Validates each cascade PR

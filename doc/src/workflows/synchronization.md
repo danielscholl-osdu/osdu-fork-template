@@ -1,41 +1,8 @@
 # Upstream Synchronization Workflow
 
-🧠 **AI-powered sync** | 🔁 **Three-branch safety** | 🚧 **Human-reviewed conflict resolution** | 🔄 **Duplicate prevention**
+🧠 **AI-powered sync** | 🔁 **Three-branch safety** | 🚧 **Human-reviewed conflict resolution**
 
-This workflow regularly syncs changes from the upstream repository, which often include unconventional or inconsistent commit messages. Rather than preserving those commits as-is, the workflow uses AI to analyze the incoming changeset (via a git diff) and generate a single, conventional meta-commit that summarizes the entire upstream changeset—replacing the original, often inconsistent commits with a standardized summary. The AI classifies the changes (e.g., feat, fix, chore) and creates a detailed, multi-line commit message that adheres to conventional commit standards. A three-branch strategy (`fork_upstream` → `fork_integration` → `main`) is used to isolate changes, manage potential conflicts safely, and generate pull requests automatically. **The workflow now includes intelligent duplicate prevention** to avoid creating multiple PRs and issues for the same upstream state.
-
-## Duplicate Prevention Architecture
-
-### sync-state-manager Action
-The workflow integrates a custom GitHub Action (`sync-state-manager`) that provides comprehensive duplicate detection and state management:
-
-**Key Capabilities:**
-- **Upstream SHA Tracking**: Compares current upstream state with last synced state
-- **Existing PR Detection**: Queries GitHub API for open sync PRs with `upstream-sync` label
-- **Branch Management**: Updates existing sync branches instead of creating new ones
-- **Abandoned Branch Cleanup**: Automatically removes stale sync branches (>24h old, no associated PR)
-- **State Persistence**: Uses git config to store sync state between workflow runs
-
-### Decision Matrix Implementation
-The action implements a smart decision matrix:
-
-```yaml
-Decision Logic:
-  - No existing PR + Upstream changed → Create new PR and issue
-  - Existing PR + Upstream unchanged → Add reminder comment
-  - Existing PR + Upstream changed → Update existing branch and PR
-  - No existing PR + Upstream unchanged → No action needed
-```
-
-### State Management
-**Storage Method**: Git config variables scoped to repository
-- `sync.last-upstream-sha`: Last successfully processed upstream SHA
-- `sync.current-pr-number`: Active sync PR number (if any)
-- `sync.current-issue-number`: Active tracking issue number (if any)
-- `sync.last-sync-timestamp`: Timestamp of last sync attempt
-
-**Persistence**: Automatic across workflow runs
-**Cleanup**: Automatic when PRs/issues are closed or merged
+This workflow regularly syncs changes from the upstream repository, which often include unconventional or inconsistent commit messages. Rather than preserving those commits as-is, the workflow uses AI to analyze the incoming changeset (via a git diff) and generate a single, conventional meta-commit that summarizes the entire upstream changeset—replacing the original, often inconsistent commits with a standardized summary. The AI classifies the changes (e.g., feat, fix, chore) and creates a detailed, multi-line commit message that adheres to conventional commit standards. A three-branch strategy (`fork_upstream` → `fork_integration` → `main`) is used to isolate changes, manage potential conflicts safely, and generate pull requests automatically. If a merge conflict occurs, the workflow opens a detailed GitHub issue with resolution steps and pauses until human review.
 
 ## Three-Branch Strategy
 

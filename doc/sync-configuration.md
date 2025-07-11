@@ -35,8 +35,9 @@ The sync configuration system uses `.github/sync-config.json` to define exactly 
 
 #### Directories
 Directories that are synced entirely from template to fork:
-- `actions/` - Custom GitHub Actions (including sync-state-manager for duplicate prevention)
-- `fork-resources/` - Fork-specific templates and configuration files
+- `ISSUE_TEMPLATE/` - Issue templates
+- `PULL_REQUEST_TEMPLATE/` - PR templates  
+- `actions/` - Custom GitHub Actions
 
 #### Files
 Individual files that are synced:

@@ -1,36 +1,8 @@
 # Upstream Synchronization Workflow
 
-🧠 **AI-powered sync** | 🔁 **Three-branch safety** | 🚧 **Human-reviewed conflict resolution** | 🔄 **Duplicate prevention**
+🧠 **AI-powered sync** | 🔁 **Three-branch safety** | 🚧 **Human-reviewed conflict resolution**
 
-This workflow regularly syncs changes from the upstream repository, which often include unconventional or inconsistent commit messages. Rather than preserving those commits as-is, the workflow uses AI to analyze the incoming changeset (via a git diff) and generate a single, conventional meta-commit that summarizes the entire upstream changeset—replacing the original, often inconsistent commits with a standardized summary. The AI classifies the changes (e.g., feat, fix, chore) and creates a detailed, multi-line commit message that adheres to conventional commit standards. A three-branch strategy (`fork_upstream` → `fork_integration` → `main`) is used to isolate changes, manage potential conflicts safely, and generate pull requests automatically. **The workflow now includes intelligent duplicate prevention** to avoid creating multiple PRs and issues for the same upstream state.
-
-## Duplicate Prevention System
-
-### Smart State Management
-The workflow automatically prevents duplicate PRs and issues through intelligent state tracking:
-
-- **Upstream SHA Comparison**: Tracks the last synced upstream state to detect when new changes are available
-- **Existing PR Detection**: Scans for open sync PRs with the `upstream-sync` label
-- **Branch Management**: Updates existing sync branches instead of creating new ones when upstream advances
-- **Abandoned Branch Cleanup**: Automatically removes stale sync branches (>24h old with no associated PR)
-
-### Decision Matrix
-The workflow uses a smart decision matrix to handle all duplicate scenarios:
-
-| Scenario | Existing PR | Upstream Changed | Action |
-|----------|-------------|------------------|---------|
-| New sync needed | No | Yes | Create new PR and issue |
-| Gentle reminder | Yes | No | Add reminder comment to existing issue |
-| Upstream advanced | Yes | Yes | Update existing branch and PR |
-| No action needed | No | No | Exit cleanly |
-
-### Benefits of Duplicate Prevention
-- **Single tracking issue** throughout entire sync cycle
-- **No duplicate PRs or notifications** reducing noise
-- **Always current upstream state** in active PR
-- **Clean repository hygiene** with automatic cleanup
-- **Reduced human cognitive load** - same URLs to track
-- **Clear progression history** in issue comments
+This workflow regularly syncs changes from the upstream repository, which often include unconventional or inconsistent commit messages. Rather than preserving those commits as-is, the workflow uses AI to analyze the incoming changeset (via a git diff) and generate a single, conventional meta-commit that summarizes the entire upstream changeset—replacing the original, often inconsistent commits with a standardized summary. The AI classifies the changes (e.g., feat, fix, chore) and creates a detailed, multi-line commit message that adheres to conventional commit standards. A three-branch strategy (`fork_upstream` → `fork_integration` → `main`) is used to isolate changes, manage potential conflicts safely, and generate pull requests automatically. If a merge conflict occurs, the workflow opens a detailed GitHub issue with resolution steps and pauses until human review.
 
 ## Three-Branch Strategy
 
@@ -56,7 +28,6 @@ graph TD
 - **Conflict Safety**: Conflicts isolated and handled safely
 - **AI-Enhanced Analysis**: Intelligent PR descriptions and conflict categorization
 - **Complete Audit Trail**: Full tracking of all changes and decisions
-- **Duplicate Prevention**: Intelligent state management prevents duplicate PRs and issues
 
 ## Configuration Options
 
@@ -85,29 +56,12 @@ The workflow needs these GitHub permissions:
 ## How It Works
 
 ### The Happy Path (No Conflicts)
-1. **Check for Duplicates**: Workflow first checks for existing sync PRs and compares upstream state
-2. **Smart Decision Making**: Uses decision matrix to determine if new sync is needed
-3. **Create or Update**: Creates new sync branch or updates existing one based on state
-4. **AI Analysis**: Generates intelligent PR description with change summary
-5. **Create or Update PR**: Opens new pull request or updates existing one
-6. **Human Review**: Team reviews and merges the PR
-7. **Cascade**: Manual or automatic cascade moves changes to `main`
-
-### Duplicate Prevention Flow
-```mermaid
-flowchart TD
-    A[Daily Trigger] --> B[Check Existing PRs]
-    B --> C[Compare Upstream SHA]
-    C --> D{Decision Matrix}
-    D -->|New sync needed| E[Create New PR/Issue]
-    D -->|Reminder needed| F[Add Reminder Comment]
-    D -->|Update needed| G[Update Existing Branch/PR]
-    D -->|No action| H[Exit Clean]
-    E --> I[Human Review]
-    F --> I
-    G --> I
-    I --> J[Merge & Cascade]
-```
+1. **Check for Changes**: Workflow fetches upstream and compares with your fork
+2. **Create Sync Branch**: If changes exist, creates a dated sync branch
+3. **AI Analysis**: Generates intelligent PR description with change summary
+4. **Create PR**: Opens pull request from sync branch to `fork_upstream`
+5. **Human Review**: Team reviews and merges the PR
+6. **Cascade**: Manual or automatic cascade moves changes to `main`
 
 ### When Conflicts Occur
 1. **Conflict Detection**: Workflow identifies merge conflicts during integration
@@ -237,14 +191,6 @@ Use these GitHub issue filters to find items needing attention:
 - **Cause**: Your fork is already up to date
 - **Action**: No action needed, workflow will exit cleanly
 
-#### "Duplicate sync prevented"
-- **Cause**: Existing sync PR is still open for the same upstream state
-- **Action**: Review and merge existing PR, or wait for gentle reminder comments
-
-#### "Sync branch updated"
-- **Cause**: Upstream advanced while previous sync PR was open
-- **Action**: Review updated PR with latest upstream changes
-
 #### "Failed to fetch upstream"
 - **Cause**: Network issues or incorrect `UPSTREAM_REPO_URL`
 - **Action**: Check repository secrets and network connectivity
@@ -302,7 +248,6 @@ For deeper technical understanding:
 - [ADR-001: Three-Branch Strategy](adr/001-three-branch-strategy.md) - Core branching approach
 - [ADR-020: Human-Required Labels](adr/020-human-required-label-strategy.md) - Task assignment strategy
 - [ADR-023: Meta Commit Strategy](adr/023-meta-commit-strategy-for-release-please.md) - Release integration
-- [ADR-024: Sync Workflow Duplicate Prevention](adr/024-sync-workflow-duplicate-prevention-architecture.md) - Duplicate prevention system
 - [Product Architecture](product-architecture.md#synchronization) - Complete system overview
 
 ---

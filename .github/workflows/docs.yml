@@ -24,11 +24,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Documentation deployment
   deploy:
-    name: Deploy documentation to GitHub Pages
-    # Simple, efficient condition - only run if template repository
-    # This prevents fork instances from running the workflow at all
-    if: vars.IS_TEMPLATE == 'true'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     environment:
       name: github-pages
     runs-on: ubuntu-latest

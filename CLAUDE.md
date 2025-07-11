@@ -16,7 +16,7 @@ This is a Fork Management Template repository designed to help teams maintain lo
 ### Workflow System
 The repository uses GitHub Actions workflows for automation:
 - **init.yml**: Repository initialization and setup
-- **sync.yml**: Daily upstream synchronization with AI-enhanced PR descriptions and duplicate prevention
+- **sync.yml**: Daily upstream synchronization with AI-enhanced PR descriptions
 - **build.yml**: Build and test automation (supports Java/Maven projects)
 - **validate.yml**: PR validation, commit message checks, conflict detection
 - **release.yml**: Automated semantic versioning and changelog generation

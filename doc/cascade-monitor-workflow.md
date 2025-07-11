@@ -1,6 +1,6 @@
 # Cascade Monitor Workflow Specification
 
-This document specifies the cascade monitor workflow (`cascade-monitor.yml`) that detects when upstream sync changes are merged and automatically triggers the cascade integration process. **The monitor benefits from the sync workflow's duplicate prevention system**, which ensures only one sync PR per upstream state, providing clear and unambiguous monitoring.
+This document specifies the cascade monitor workflow (`cascade-monitor.yml`) that detects when upstream sync changes are merged and automatically triggers the cascade integration process.
 
 ## Overview
 
@@ -332,7 +332,6 @@ steps:
 - **Dependency**: Monitors PRs created by sync workflow
 - **Labels**: Relies on `upstream-sync` label from sync workflow
 - **Coordination**: No direct communication - event-driven architecture
-- **Duplicate Prevention**: Benefits from sync workflow's duplicate prevention system ensuring single PR per upstream state
 
 ### With Cascade Workflow
 - **Triggering**: Uses `gh workflow run` to start cascade

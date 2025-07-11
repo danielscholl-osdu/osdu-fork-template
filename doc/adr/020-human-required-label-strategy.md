@@ -265,7 +265,7 @@ https://github.com/org/repo/issues?q=is:open+label:conflict+label:human-required
 - Consistent across all repository instances
 
 ### Workflow Patterns
-- Sync workflow: Uses `upstream-sync,human-required` for manual cascade triggering with duplicate prevention
+- Sync workflow: Uses `upstream-sync,human-required` for manual cascade triggering
 - Cascade workflow: Uses lifecycle labels (`cascade-active`, `cascade-blocked`, `production-ready`)
 - Monitor workflow: Uses `human-required` for trigger failures
 - Template sync: Uses `template-sync,human-required` for template updates

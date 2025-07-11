@@ -32,9 +32,9 @@ The fork management template's three-branch cascade strategy (ADR-001) and human
 
 Implement **Issue Lifecycle Tracking Pattern** that creates and maintains GitHub issues throughout the cascade process:
 
-### 1. **Issue Creation**: sync.yml creates tracking issue with duplicate prevention
+### 1. **Issue Creation**: sync.yml creates tracking issue
 ```yaml
-# When upstream sync detects changes (prevents duplicates)
+# When upstream sync detects changes
 gh issue create \
   --title "📥 Upstream Sync Ready for Review - $(date +%Y-%m-%d)" \
   --body "Sync Details: PR #X, N commits, manual cascade required" \
@@ -295,7 +295,7 @@ fi
 
 ## Success Criteria
 
-- **100% Issue Creation**: Every upstream sync creates tracking issue (no duplicates due to duplicate prevention system)
+- **100% Issue Creation**: Every upstream sync creates tracking issue
 - **95% State Accuracy**: Issue labels accurately reflect cascade state
 - **< 2 hour Update Lag**: Issue updates within 2 hours of state changes
 - **90% Human Adoption**: Teams actively use issues for cascade tracking

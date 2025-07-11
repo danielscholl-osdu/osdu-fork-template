@@ -160,7 +160,7 @@ jobs:
           echo "SYNC_BRANCH=$SYNC_BRANCH" >> $GITHUB_ENV
           
           # Create and checkout sync branch from main
-          git checkout -b $SYNC_BRANCH main
+          git checkout -b $SYNC_BRANCH refs/remotes/origin/main
 
       - name: Sync template files
         if: steps.check-updates.outputs.has_updates == 'true'

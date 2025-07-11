@@ -19,7 +19,7 @@ Key automation requirements:
 Implement all automation using GitHub Actions with a modular workflow architecture consisting of:
 
 1. **init.yml** - Repository initialization and setup
-2. **sync.yml** - Upstream synchronization with issue lifecycle tracking and duplicate prevention
+2. **sync.yml** - Upstream synchronization with issue lifecycle tracking
 3. **cascade.yml** - Human-triggered integration workflow with issue updates
 4. **cascade-monitor.yml** - Safety net detection and health monitoring
 5. **validate.yml** - PR validation and compliance checks
@@ -80,7 +80,7 @@ Implement all automation using GitHub Actions with a modular workflow architectu
 
 ### Workflow Triggers
 - **init.yml**: `repository_dispatch` event triggered by repository creation
-- **sync.yml**: Scheduled (daily) + manual `workflow_dispatch` - creates tracking issues with duplicate prevention
+- **sync.yml**: Scheduled (daily) + manual `workflow_dispatch` - creates tracking issues
 - **cascade.yml**: Manual `workflow_dispatch` (human-triggered) - updates issue lifecycle
 - **cascade-monitor.yml**: Scheduled (6 hours) + manual `workflow_dispatch` - safety net
 - **validate.yml**: PR events (opened, synchronize, reopened)
@@ -109,7 +109,7 @@ Extract common patterns into reusable composite actions:
 
 ## Success Criteria
 - Repository initialization completes successfully within 5 minutes
-- Upstream synchronization runs reliably on schedule with issue tracking and duplicate prevention
+- Upstream synchronization runs reliably on schedule with issue tracking
 - 90%+ of sync merges followed by manual cascade triggers within 2 hours
 - Issue lifecycle tracking provides complete audit trail for 95%+ of cascades
 - Build workflows complete within 15 minutes for typical projects
