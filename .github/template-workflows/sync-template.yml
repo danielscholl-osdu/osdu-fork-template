@@ -160,7 +160,7 @@ jobs:
           echo "SYNC_BRANCH=$SYNC_BRANCH" >> $GITHUB_ENV
           
           # Create and checkout sync branch from main
-          git checkout -b $SYNC_BRANCH main
+          git checkout -b $SYNC_BRANCH refs/heads/main
 
       - name: Sync template files
         if: steps.check-updates.outputs.has_updates == 'true'
@@ -372,7 +372,7 @@ jobs:
           printf "### Changed Files\n" >> /tmp/fallback_description.md
           
           # Add changed files list (safely escaped)
-          git diff --name-only main...$SYNC_BRANCH | while read -r file; do
+          git diff --name-only refs/heads/main...$SYNC_BRANCH | while read -r file; do
             printf -- "- %s\n" "$file"
           done >> /tmp/fallback_description.md || echo "- No changed files detected" >> /tmp/fallback_description.md
           

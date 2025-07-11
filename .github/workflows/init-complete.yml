@@ -322,20 +322,20 @@ jobs:
           
           # Copy files according to sync configuration
           # First, get the sync configuration
-          git checkout main -- .github/sync-config.json
+          git checkout refs/heads/main -- .github/sync-config.json
           
           # Copy directories that should be synced entirely
           DIRECTORIES=$(jq -r '.sync_rules.directories[] | .path' .github/sync-config.json)
           for dir in $DIRECTORIES; do
             echo "Copying directory: $dir"
-            git checkout main -- "$dir/" || echo "Directory $dir not found, skipping"
+            git checkout refs/heads/main -- "$dir/" || echo "Directory $dir not found, skipping"
           done
           
           # Copy individual files
           FILES=$(jq -r '.sync_rules.files[] | .path' .github/sync-config.json)
           for file in $FILES; do
             echo "Copying file: $file"
-            git checkout main -- "$file" || echo "File $file not found, skipping"
+            git checkout refs/heads/main -- "$file" || echo "File $file not found, skipping"
           done
           
           # Add template remote to be able to track template updates
@@ -418,7 +418,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           # Merge fork_integration into main with conflict resolution
-          git checkout main
+          git checkout refs/heads/main
           
           # Try merge with unrelated histories, preferring fork_integration changes
           if ! git merge fork_integration --allow-unrelated-histories --no-ff -X theirs -m "chore: complete repository initialization"; then
