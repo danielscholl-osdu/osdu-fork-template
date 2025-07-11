@@ -142,8 +142,18 @@ jobs:
           
           echo "✅ No active cascades detected - proceeding with upstream sync"
 
+      - name: Check sync state and prevent duplicates
+        id: sync-state
+        uses: ./.github/actions/sync-state-manager
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          upstream_repo_url: ${{ vars.UPSTREAM_REPO_URL }}
+          default_branch: ${{ env.DEFAULT_BRANCH }}
+
       - name: Sync upstream changes
         id: sync-changes
+        # Only run if we should create a PR or update an existing branch
+        if: steps.sync-state.outputs.should_create_pr == 'true' || steps.sync-state.outputs.should_update_branch == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -152,16 +162,34 @@ jobs:
           AZURE_API_VERSION: ${{ secrets.AZURE_API_VERSION }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          # Generate branch names with timestamp for uniqueness
+          # Generate branch names with timestamp for uniqueness or use existing branch
           DATE_SUFFIX=$(date +%Y%m%d-%H%M%S)
-          SYNC_BRANCH="sync/upstream-${DATE_SUFFIX}"
+          
+          if [ "${{ steps.sync-state.outputs.should_update_branch }}" = "true" ]; then
+            # Use existing branch name
+            SYNC_BRANCH="${{ steps.sync-state.outputs.existing_branch_name }}"
+            echo "🔄 Updating existing sync branch: $SYNC_BRANCH"
+          else
+            # Create new branch name
+            SYNC_BRANCH="sync/upstream-${DATE_SUFFIX}"
+            echo "🆕 Creating new sync branch: $SYNC_BRANCH"
+          fi
           
           # Fetch and checkout fork_upstream branch
           git fetch origin fork_upstream
           git checkout -b fork_upstream origin/fork_upstream
 
-          # Create a new branch for the sync
-          git checkout -b $SYNC_BRANCH
+          # Create or checkout the sync branch
+          if [ "${{ steps.sync-state.outputs.should_update_branch }}" = "true" ]; then
+            # Fetch and checkout existing branch
+            git fetch origin $SYNC_BRANCH
+            git checkout -b $SYNC_BRANCH origin/$SYNC_BRANCH
+            # Reset to fork_upstream to get clean merge
+            git reset --hard fork_upstream
+          else
+            # Create new branch for the sync
+            git checkout -b $SYNC_BRANCH
+          fi
           
           # Capture state before sync for meta commit analysis
           BEFORE_SHA=$(git rev-parse fork_upstream)
@@ -216,8 +244,14 @@ jobs:
           
           echo "has_changes=true" >> $GITHUB_OUTPUT
           
-          # Push changes with force flag to handle any branch name conflicts
-          git push -f origin $SYNC_BRANCH
+          # Push changes with force flag to handle branch updates
+          if [ "${{ steps.sync-state.outputs.should_update_branch }}" = "true" ]; then
+            git push -f origin $SYNC_BRANCH
+            echo "🔄 Force-pushed updates to existing branch"
+          else
+            git push -f origin $SYNC_BRANCH
+            echo "🆕 Pushed new sync branch"
+          fi
 
           # Get upstream version for PR description (use SHA instead of vague "latest")
           UPSTREAM_SHA=$(git rev-parse upstream/$DEFAULT_BRANCH)
@@ -237,7 +271,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
           
       - name: Create enhanced sync PR
-        if: steps.sync-changes.outputs.has_changes == 'true'
+        if: steps.sync-changes.outputs.has_changes == 'true' && steps.sync-state.outputs.should_create_pr == 'true'
         id: create-pr
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -340,6 +374,9 @@ jobs:
           PR_NUMBER=$(basename "$PR_URL")
           echo "PR number: $PR_NUMBER"
           
+          # Update sync state with new PR number
+          git config sync.current-pr-number "$PR_NUMBER"
+          
           # Set outputs for next step
           echo "pr-url=$PR_URL" >> $GITHUB_OUTPUT
           echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
@@ -347,8 +384,36 @@ jobs:
           echo "$PR_DESCRIPTION" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
+      - name: Update existing PR
+        if: steps.sync-changes.outputs.has_changes == 'true' && steps.sync-state.outputs.should_update_branch == 'true'
+        id: update-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.sync-state.outputs.existing_pr_number }}"
+          UPSTREAM_VERSION="${{ env.UPSTREAM_VERSION }}"
+          
+          # Update PR title and add comment about the update
+          gh pr edit "$PR_NUMBER" --title "⬆️ Sync with upstream $UPSTREAM_VERSION (Updated)"
+          
+          # Add comment to the PR about the update
+          gh pr comment "$PR_NUMBER" --body "🔄 **Sync Updated**
+          
+          The upstream repository has advanced since this PR was created. This branch has been updated with the latest changes from upstream.
+          
+          **New upstream version**: \`$UPSTREAM_VERSION\`
+          **Updated at**: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`
+          
+          Please review the updated changes and merge when ready."
+          
+          # Set outputs for consistency
+          echo "pr-url=${{ github.server_url }}/${{ github.repository }}/pull/$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          
+          echo "✅ Updated existing PR #$PR_NUMBER with new upstream changes"
+
       - name: Create human notification issue
-        if: steps.sync-changes.outputs.has_changes == 'true'
+        if: steps.sync-changes.outputs.has_changes == 'true' && steps.sync-state.outputs.should_create_issue == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -367,6 +432,9 @@ jobs:
           
           # Extract issue number
           ISSUE_NUMBER=$(basename "$ISSUE_URL")
+          
+          # Update sync state with new issue number
+          git config sync.current-issue-number "$ISSUE_NUMBER"
           
           # Build notification body with the actual issue number
           printf -v NOTIFICATION_BODY '%s\n\n%s\n\n%s\n\n%s\n\n%s\n%s\n%s\n%s\n\n%s\n\n%s\n%s\n%s\n%s\n\n%s\n\n%s\n\n%s\n\n%s\n%s\n\n%s\n\n%s\n%s\n\n%s\n\n%s\n%s\n%s\n\n%s\n\n%s\n\n%s\n%s\n%s\n%s\n\n%s\n\n%s\n\n%s\n\n%s\n%s\n%s' \
@@ -414,14 +482,78 @@ jobs:
           # Update the issue with the complete description
           gh issue edit "$ISSUE_NUMBER" --body "$NOTIFICATION_BODY"
 
-      - name: Log sync completion
-        if: steps.sync-changes.outputs.has_changes == 'true'
+      - name: Add reminder comment to existing issue
+        if: steps.sync-state.outputs.sync_decision == 'add_reminder'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_URL="${{ steps.create-pr.outputs.pr-url }}"
-          PR_NUMBER="${{ steps.create-pr.outputs.pr-number }}"
-          echo "✅ Sync PR created successfully: $PR_URL"
-          echo "✅ Human notification issue created"
-          echo "The PR can be reviewed and merged to integrate upstream changes."
+          ISSUE_NUMBER="${{ steps.sync-state.outputs.existing_issue_number }}"
+          PR_NUMBER="${{ steps.sync-state.outputs.existing_pr_number }}"
+          
+          # Add a gentle reminder comment
+          gh issue comment "$ISSUE_NUMBER" --body "🔔 **Sync Reminder**
+          
+          This is a friendly reminder that the upstream sync PR is still awaiting review and merge.
+          
+          **Current status**: PR #$PR_NUMBER is ready for review
+          **No new changes**: Upstream repository has not changed since the PR was created
+          **Next steps**: Please review and merge the PR when ready
+          
+          **Reminder sent**: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`"
+          
+          echo "📝 Added reminder comment to existing issue #$ISSUE_NUMBER"
+
+      - name: Add progress comment to existing issue
+        if: steps.sync-state.outputs.sync_decision == 'update_existing'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUMBER="${{ steps.sync-state.outputs.existing_issue_number }}"
+          PR_NUMBER="${{ steps.sync-state.outputs.existing_pr_number }}"
+          UPSTREAM_VERSION="${{ env.UPSTREAM_VERSION }}"
+          
+          # Add a progress comment about the update
+          gh issue comment "$ISSUE_NUMBER" --body "🔄 **Sync Updated**
+          
+          The upstream repository has advanced since this sync was created. The existing PR has been updated with the latest changes.
+          
+          **Updated PR**: #$PR_NUMBER
+          **New upstream version**: \`$UPSTREAM_VERSION\`
+          **Updated at**: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`
+          
+          Please review the updated changes and merge when ready. The same workflow process continues."
+          
+          echo "📝 Added progress comment to existing issue #$ISSUE_NUMBER"
+
+      - name: Log sync completion
+        if: steps.sync-changes.outputs.has_changes == 'true' || steps.sync-state.outputs.sync_decision == 'add_reminder'
+        run: |
+          SYNC_DECISION="${{ steps.sync-state.outputs.sync_decision }}"
+          
+          case "$SYNC_DECISION" in
+            "create_new")
+              PR_URL="${{ steps.create-pr.outputs.pr-url }}"
+              echo "✅ New sync PR created successfully: $PR_URL"
+              echo "✅ Human notification issue created"
+              echo "The PR can be reviewed and merged to integrate upstream changes."
+              ;;
+            "update_existing")
+              PR_URL="${{ steps.update-pr.outputs.pr-url }}"
+              echo "✅ Existing sync PR updated successfully: $PR_URL"
+              echo "✅ Progress comment added to existing issue"
+              echo "The updated PR can be reviewed and merged to integrate upstream changes."
+              ;;
+            "add_reminder")
+              echo "📝 Reminder comment added to existing issue"
+              echo "No new changes from upstream - existing PR is still current"
+              ;;
+            "no_action")
+              echo "✅ No action taken - upstream unchanged and no existing PR"
+              ;;
+            *)
+              echo "⚠️ Unknown sync decision: $SYNC_DECISION"
+              ;;
+          esac
 
       - name: Handle Failure
         if: failure()
