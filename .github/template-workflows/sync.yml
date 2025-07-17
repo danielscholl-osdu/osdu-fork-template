@@ -571,6 +571,7 @@ jobs:
         if: steps.sync-state.outputs.sync_decision == 'add_reminder' || steps.sync-state.outputs.sync_decision == 'update_existing'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           ISSUE_NUMBER="${{ steps.sync-state.outputs.existing_issue_number }}"
           PR_NUMBER="${{ steps.sync-state.outputs.existing_pr_number }}"
@@ -578,11 +579,12 @@ jobs:
           SYNC_BRANCH="${{ env.SYNC_BRANCH }}"
           
           echo "Updating issue description for issue #$ISSUE_NUMBER"
+          echo "Repository: $GH_REPO"
           echo "Parameters: UPSTREAM_VERSION=$UPSTREAM_VERSION, SYNC_BRANCH=$SYNC_BRANCH"
           
-          # Get current issue body
+          # Get current issue body using GitHub API (avoids argument parsing issues)
           echo "Fetching current issue body..."
-          CURRENT_BODY=$(gh issue view "$ISSUE_NUMBER" --json body --jq -r '.body')
+          CURRENT_BODY=$(gh api "repos/$GH_REPO/issues/$ISSUE_NUMBER" --jq '.body')
           
           if [ -z "$CURRENT_BODY" ] || [ "$CURRENT_BODY" = "null" ]; then
             echo "❌ Error: Could not fetch issue body"
@@ -599,13 +601,26 @@ jobs:
           
           echo "Calculated commit count: $COMMIT_COUNT"
           
-          # Update the Sync Summary section with current values using a temporary file
+          # Update the Sync Summary section with current values using awk (more reliable than sed with backticks)
           echo "$CURRENT_BODY" > /tmp/current_body.txt
           
-          # Use sed to update the three key fields
-          sed -i -E "s/(\*\*Upstream Version\*\*: \`)[^\`]+(\`)/\1$UPSTREAM_VERSION\2/" /tmp/current_body.txt
-          sed -i -E "s/(\*\*Changes\*\*: )[0-9]+ new commits from upstream/\1$COMMIT_COUNT new commits from upstream/" /tmp/current_body.txt
-          sed -i -E "s/(\*\*Branch\*\*: \`)[^\`]+(\` → \`fork_upstream\`)/\1$SYNC_BRANCH\2/" /tmp/current_body.txt
+          # Use awk to update the three key fields
+          awk -v upstream="$UPSTREAM_VERSION" -v count="$COMMIT_COUNT" -v branch="$SYNC_BRANCH" '
+          {
+            # Update Upstream Version
+            gsub(/\*\*Upstream Version\*\*: `[^`]*`/, "**Upstream Version**: `" upstream "`")
+            
+            # Update Changes count
+            gsub(/\*\*Changes\*\*: [0-9]+ new commits from upstream/, "**Changes**: " count " new commits from upstream")
+            
+            # Update Branch
+            gsub(/\*\*Branch\*\*: `[^`]*` → `fork_upstream`/, "**Branch**: `" branch "` → `fork_upstream`")
+            
+            print
+          }' /tmp/current_body.txt > /tmp/updated_body.txt
+          
+          # Replace the original file with the updated version
+          mv /tmp/updated_body.txt /tmp/current_body.txt
           
           # Update the issue description using the file
           echo "Updating issue description..."
