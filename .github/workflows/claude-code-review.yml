@@ -108,7 +108,10 @@ jobs:
 
       - name: Create GitLab MR
         if: |
-          steps.claude_auth.outputs.auth_method != 'none'
+          contains(github.event.pull_request.labels.*.name, 'OSDU') &&
+          steps.claude_auth.outputs.auth_method != 'none' &&
+          vars.IS_TEMPLATE != 'true' &&
+          github.event.repository.is_template != true
         id: claude_gitlab
         uses: anthropics/claude-code-action@beta
         with:
