@@ -577,21 +577,42 @@ jobs:
           UPSTREAM_VERSION="${{ env.UPSTREAM_VERSION }}"
           SYNC_BRANCH="${{ env.SYNC_BRANCH }}"
           
+          echo "Updating issue description for issue #$ISSUE_NUMBER"
+          echo "Parameters: UPSTREAM_VERSION=$UPSTREAM_VERSION, SYNC_BRANCH=$SYNC_BRANCH"
+          
           # Get current issue body
+          echo "Fetching current issue body..."
           CURRENT_BODY=$(gh issue view "$ISSUE_NUMBER" --json body --jq -r '.body')
           
-          # Calculate current commit count
-          COMMIT_COUNT=$(git rev-list --count fork_upstream..$SYNC_BRANCH 2>/dev/null || echo "0")
+          if [ -z "$CURRENT_BODY" ] || [ "$CURRENT_BODY" = "null" ]; then
+            echo "❌ Error: Could not fetch issue body"
+            exit 1
+          fi
           
-          # Update the Sync Summary section with current values
-          UPDATED_BODY=$(echo "$CURRENT_BODY" | sed -E "
-            s/(\*\*Upstream Version\*\*: \`)[^\`]+(\`)/\1$UPSTREAM_VERSION\2/
-            s/(\*\*Changes\*\*: )[0-9]+ new commits from upstream/\1$COMMIT_COUNT new commits from upstream/
-            s/(\*\*Branch\*\*: \`)[^\`]+(\` → \`fork_upstream\`)/\1$SYNC_BRANCH\2/
-          ")
+          # Calculate current commit count - handle case where SYNC_BRANCH might not exist
+          if [ -n "$SYNC_BRANCH" ] && git rev-parse --verify "$SYNC_BRANCH" >/dev/null 2>&1; then
+            COMMIT_COUNT=$(git rev-list --count fork_upstream..$SYNC_BRANCH 2>/dev/null || echo "0")
+          else
+            # For reminder case, get count from existing PR branch or use stored value
+            COMMIT_COUNT=$(git rev-list --count fork_upstream..origin/$SYNC_BRANCH 2>/dev/null || echo "0")
+          fi
           
-          # Update the issue description
-          gh issue edit "$ISSUE_NUMBER" --body "$UPDATED_BODY"
+          echo "Calculated commit count: $COMMIT_COUNT"
+          
+          # Update the Sync Summary section with current values using a temporary file
+          echo "$CURRENT_BODY" > /tmp/current_body.txt
+          
+          # Use sed to update the three key fields
+          sed -i -E "s/(\*\*Upstream Version\*\*: \`)[^\`]+(\`)/\1$UPSTREAM_VERSION\2/" /tmp/current_body.txt
+          sed -i -E "s/(\*\*Changes\*\*: )[0-9]+ new commits from upstream/\1$COMMIT_COUNT new commits from upstream/" /tmp/current_body.txt
+          sed -i -E "s/(\*\*Branch\*\*: \`)[^\`]+(\` → \`fork_upstream\`)/\1$SYNC_BRANCH\2/" /tmp/current_body.txt
+          
+          # Update the issue description using the file
+          echo "Updating issue description..."
+          gh issue edit "$ISSUE_NUMBER" --body-file /tmp/current_body.txt
+          
+          # Clean up
+          rm -f /tmp/current_body.txt
           
           echo "✅ Updated issue description with current sync status:"
           echo "  - Upstream Version: $UPSTREAM_VERSION"
