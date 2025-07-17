@@ -645,28 +645,53 @@ jobs:
             fi
           fi
           
-          # Enable GitHub Copilot automatic code review if possible
+          # Enable GitHub Copilot automatic code review via Repository Ruleset
           if [ -n "$GH_TOKEN" ]; then
-            echo "🤖 Enabling GitHub Copilot automatic code review..."
+            echo "🤖 Creating repository ruleset for GitHub Copilot automatic code review..."
             if GH_TOKEN=$GH_TOKEN gh api \
-              --method PUT \
+              --method POST \
               -H "Accept: application/vnd.github.v3+json" \
-              "/repos/${{ github.repository }}/code-review-config" \
+              "/repos/${{ github.repository }}/rulesets" \
               --input - << 'EOF'
           {
-            "code_review_config": {
-              "copilot_autofix_enabled": true
-            }
+            "name": "GitHub Copilot Code Review",
+            "target": "branch",
+            "enforcement": "active",
+            "conditions": {
+              "ref_name": {
+                "include": ["refs/heads/main"],
+                "exclude": []
+              }
+            },
+            "rules": [
+              {
+                "type": "pull_request",
+                "parameters": {
+                  "dismiss_stale_reviews_on_push": true,
+                  "require_code_owner_review": false,
+                  "require_last_push_approval": false,
+                  "required_approving_review_count": 1,
+                  "required_review_thread_resolution": true
+                }
+              },
+              {
+                "type": "copilot_code_review",
+                "parameters": {
+                  "copilot_code_review_enabled": true
+                }
+              }
+            ],
+            "bypass_actors": []
           }
           EOF
             then
-              echo "✅ GitHub Copilot automatic code review enabled"
+              echo "✅ GitHub Copilot automatic code review enabled via repository ruleset"
             else
-              echo "⚠️ Could not enable GitHub Copilot automatic code review - may require manual configuration"
-              echo "📝 To enable manually: Go to Settings → Code security and analysis → GitHub Copilot → Enable automatic code review"
+              echo "⚠️ Could not create GitHub Copilot code review ruleset - may require manual configuration"
+              echo "📝 To enable manually: Go to Settings → Rules → Rulesets → New ruleset → Add Copilot code review rule"
             fi
           else
-            echo "⚠️ **Note:** GitHub Copilot automatic code review requires manual configuration. Go to Settings → Code security and analysis → GitHub Copilot → Enable automatic code review" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            echo "⚠️ **Note:** GitHub Copilot automatic code review requires manual configuration. Go to Settings → Rules → Rulesets → New ruleset → Add Copilot code review rule" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           fi
           
           echo "SECURITY_SUCCESS=$SECURITY_SUCCESS" >> $GITHUB_ENV
@@ -689,7 +714,7 @@ jobs:
           fi
           
           if [ "$SECURITY_SUCCESS" = "true" ]; then
-            SECURITY_STATUS="✅ **Security Features:** Secret scanning, dependency updates, and GitHub Copilot automatic code review enabled"
+            SECURITY_STATUS="✅ **Security Features:** Secret scanning, dependency updates, and GitHub Copilot automatic code review ruleset enabled"
           else
             SECURITY_STATUS="⚠️ **Security Features:** Requires manual setup"
           fi
@@ -715,7 +740,7 @@ jobs:
             if [ "$SECURITY_SUCCESS" != "true" ]; then
               MANUAL_STEPS="$MANUAL_STEPS
           - **Security Features:** Enable in Settings → Security & analysis
-          - **GitHub Copilot:** Enable automatic code review in Settings → Code security and analysis → GitHub Copilot"
+          - **GitHub Copilot:** Create repository ruleset in Settings → Rules → Rulesets → New ruleset → Add Copilot code review rule"
             fi
           fi
           
