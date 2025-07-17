@@ -34,14 +34,14 @@ jobs:
             git remote add template "$TEMPLATE_REPO_URL"
           fi
           
-          # Fetch latest from template
-          git fetch template --prune
+          # Fetch latest from template with explicit branch reference
+          git fetch template refs/heads/main:refs/remotes/template/main --prune
 
       - name: Check for template updates
         id: check-updates
         run: |
           # Get the latest commit from template main branch
-          TEMPLATE_COMMIT=$(git rev-parse template/main)
+          TEMPLATE_COMMIT=$(git rev-parse refs/remotes/template/main)
           echo "Template latest commit: $TEMPLATE_COMMIT"
           
           # Check if we have a record of the last synced template commit
@@ -61,11 +61,11 @@ jobs:
           
           if [ "${NEEDS_BOOTSTRAP:-false}" = "true" ]; then            
             # Try to find a reasonable baseline - use the first commit that has .github files
-            BASELINE_COMMIT=$(git log template/main --reverse --oneline -- .github/ | head -1 | cut -d' ' -f1)
+            BASELINE_COMMIT=$(git log refs/remotes/template/main --reverse --oneline -- .github/ | head -1 | cut -d' ' -f1)
             
             if [ -z "$BASELINE_COMMIT" ]; then
               # Fallback: use first commit in template repository
-              BASELINE_COMMIT=$(git log template/main --reverse --oneline | head -1 | cut -d' ' -f1)
+              BASELINE_COMMIT=$(git log refs/remotes/template/main --reverse --oneline | head -1 | cut -d' ' -f1)
               echo "Using first template commit as baseline: $BASELINE_COMMIT"
             else
               echo "Using first .github commit as baseline: $BASELINE_COMMIT"
@@ -93,11 +93,11 @@ jobs:
           fi
           
           # Get sync configuration to know what files to check
-          SYNC_CONFIG_EXISTS=$(git show template/main:.github/sync-config.json >/dev/null 2>&1 && echo "true" || echo "false")
+          SYNC_CONFIG_EXISTS=$(git show refs/remotes/template/main:.github/sync-config.json >/dev/null 2>&1 && echo "true" || echo "false")
           
           if [ "$SYNC_CONFIG_EXISTS" = "true" ]; then
             # Extract paths from sync configuration
-            git show template/main:.github/sync-config.json > temp-sync-config.json
+            git show refs/remotes/template/main:.github/sync-config.json > temp-sync-config.json
             
             # Build list of paths to check for changes
             SYNC_PATHS=""
@@ -160,7 +160,7 @@ jobs:
           echo "SYNC_BRANCH=$SYNC_BRANCH" >> $GITHUB_ENV
           
           # Create and checkout sync branch from main
-          git checkout -b $SYNC_BRANCH main
+          git checkout -b $SYNC_BRANCH refs/heads/main
 
       - name: Sync template files
         if: steps.check-updates.outputs.has_updates == 'true'
@@ -169,7 +169,7 @@ jobs:
           LAST_SYNC_COMMIT="${{ steps.check-updates.outputs.last_sync_commit }}"
           
           # Get sync configuration from template
-          git show template/main:.github/sync-config.json > temp-sync-config.json
+          git show refs/remotes/template/main:.github/sync-config.json > temp-sync-config.json
           
           echo "Syncing template files using configuration..."
           
@@ -201,8 +201,8 @@ jobs:
               mkdir -p "$(dirname "$dir")"
               
               # Copy directory from template (if it exists)
-              if git show template/main:"$dir" >/dev/null 2>&1; then
-                git archive template/main "$dir" | tar -x || echo "Failed to sync directory $dir"
+              if git show refs/remotes/template/main:"$dir" >/dev/null 2>&1; then
+                git archive refs/remotes/template/main "$dir" | tar -x || echo "Failed to sync directory $dir"
               fi
               
               git add "$dir" || true
@@ -229,7 +229,7 @@ jobs:
               mkdir -p "$(dirname "$file")"
               
               # Copy file from template
-              if git show template/main:"$file" > "$file" 2>/dev/null; then
+              if git show refs/remotes/template/main:"$file" > "$file" 2>/dev/null; then
                 git add "$file"
               else
                 echo "File $file not found in template, skipping"
@@ -266,7 +266,7 @@ jobs:
               mkdir -p ".github/workflows"
               
               # Copy template workflow to final location
-              if git show template/main:"$template_workflow" > "$FINAL_WORKFLOW_PATH" 2>/dev/null; then
+              if git show refs/remotes/template/main:"$template_workflow" > "$FINAL_WORKFLOW_PATH" 2>/dev/null; then
                 git add "$FINAL_WORKFLOW_PATH"
                 echo "Updated workflow: $FINAL_WORKFLOW_PATH"
               else
@@ -291,40 +291,40 @@ jobs:
           
           if [ "$FORK_RESOURCES_CHANGED" = "true" ]; then
             # Process issue templates
-            if git show template/main:".github/fork-resources/ISSUE_TEMPLATE" >/dev/null 2>&1; then
+            if git show refs/remotes/template/main:".github/fork-resources/ISSUE_TEMPLATE" >/dev/null 2>&1; then
               echo "Updating issue templates from fork-resources..."
               mkdir -p ".github/ISSUE_TEMPLATE"
-              git archive template/main ".github/fork-resources/ISSUE_TEMPLATE" | tar -x --strip-components=3 -C ".github/ISSUE_TEMPLATE" || echo "Failed to extract issue templates"
+              git archive refs/remotes/template/main ".github/fork-resources/ISSUE_TEMPLATE" | tar -x --strip-components=3 -C ".github/ISSUE_TEMPLATE" || echo "Failed to extract issue templates"
               git add ".github/ISSUE_TEMPLATE/" || true
             fi
             
             # Process copilot instructions
-            if git show template/main:".github/fork-resources/copilot-instructions.md" >/dev/null 2>&1; then
+            if git show refs/remotes/template/main:".github/fork-resources/copilot-instructions.md" >/dev/null 2>&1; then
               echo "Updating copilot instructions from fork-resources..."
-              git show template/main:".github/fork-resources/copilot-instructions.md" > ".github/copilot-instructions.md"
+              git show refs/remotes/template/main:".github/fork-resources/copilot-instructions.md" > ".github/copilot-instructions.md"
               git add ".github/copilot-instructions.md"
             fi
             
             # Process copilot firewall config
-            if git show template/main:".github/fork-resources/copilot-firewall-config.json" >/dev/null 2>&1; then
+            if git show refs/remotes/template/main:".github/fork-resources/copilot-firewall-config.json" >/dev/null 2>&1; then
               echo "Updating copilot firewall config from fork-resources..."
-              git show template/main:".github/fork-resources/copilot-firewall-config.json" > ".github/copilot-firewall-config.json"
+              git show refs/remotes/template/main:".github/fork-resources/copilot-firewall-config.json" > ".github/copilot-firewall-config.json"
               git add ".github/copilot-firewall-config.json"
             fi
             
             # Process triage prompt
-            if git show template/main:".github/fork-resources/triage.prompt.md" >/dev/null 2>&1; then
+            if git show refs/remotes/template/main:".github/fork-resources/triage.prompt.md" >/dev/null 2>&1; then
               echo "Updating triage prompt from fork-resources..."
               mkdir -p ".github/prompts"
-              git show template/main:".github/fork-resources/triage.prompt.md" > ".github/prompts/triage.prompt.md"
+              git show refs/remotes/template/main:".github/fork-resources/triage.prompt.md" > ".github/prompts/triage.prompt.md"
               git add ".github/prompts/triage.prompt.md"
             fi
             
             # Process .vscode configuration
-            if git show template/main:".github/fork-resources/.vscode" >/dev/null 2>&1; then
+            if git show refs/remotes/template/main:".github/fork-resources/.vscode" >/dev/null 2>&1; then
               echo "Updating .vscode MCP configuration from fork-resources..."
               mkdir -p ".vscode"
-              git archive template/main ".github/fork-resources/.vscode" | tar -x --strip-components=3 -C ".vscode" || echo "Failed to extract .vscode config"
+              git archive refs/remotes/template/main ".github/fork-resources/.vscode" | tar -x --strip-components=3 -C ".vscode" || echo "Failed to extract .vscode config"
               git add -f ".vscode/" || true
             fi
           fi
@@ -333,7 +333,7 @@ jobs:
           
           # Always sync the configuration file itself
           echo "Syncing sync configuration file"
-          git show template/main:.github/sync-config.json > .github/sync-config.json
+          git show refs/remotes/template/main:.github/sync-config.json > .github/sync-config.json
           git add .github/sync-config.json
           
           rm -f temp-sync-config.json
@@ -372,14 +372,14 @@ jobs:
           printf "### Changed Files\n" >> /tmp/fallback_description.md
           
           # Add changed files list (safely escaped)
-          git diff --name-only main...$SYNC_BRANCH | while read -r file; do
+          git diff --name-only refs/heads/main...$SYNC_BRANCH | while read -r file; do
             printf -- "- %s\n" "$file"
           done >> /tmp/fallback_description.md || echo "- No changed files detected" >> /tmp/fallback_description.md
           
           printf "\n### Template Changes\n" >> /tmp/fallback_description.md
           
           # Add template changes (safely escaped)  
-          git log --oneline $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT template/main -- .github/ | head -10 | while read -r line; do
+          git log --oneline $LAST_SYNC_COMMIT..$TEMPLATE_COMMIT refs/remotes/template/main -- .github/ | head -10 | while read -r line; do
             printf -- "- %s\n" "$line"
           done >> /tmp/fallback_description.md || echo "- No specific .github changes found" >> /tmp/fallback_description.md
           
