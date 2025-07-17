@@ -19,6 +19,25 @@ on:
       - '**.txt'
       - 'LICENSE'
       - 'NOTICE'
+  pull_request_target:
+    branches: [main, fork_integration, fork_upstream]
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - '.github/workflows/**'
+      - '.github/template-workflows/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/actions/**'
+      - '.github/*.md'
+      - '.github/*.json'
+      - '.github/*.yml'
+      - '.github/*.yaml'
+      - '.github/.template-sync-commit'
+      - '.vscode/**'
+      - 'docs/**'
+      - '**.md'
+      - '**.txt'
+      - 'LICENSE'
+      - 'NOTICE'
   push:
     branches: [main, fork_integration, fork_upstream]
     paths-ignore:
@@ -61,6 +80,8 @@ jobs:
     if: |
       github.event_name == 'workflow_dispatch' || 
       github.event_name == 'pull_request' ||
+      (github.event_name == 'pull_request_target' && 
+       (github.actor == 'app/github-actions' || github.actor == 'github-actions[bot]' || github.actor == 'dependabot[bot]' || contains(github.actor, '[bot]'))) ||
       (github.event_name == 'push' && 
        !contains(github.event.head_commit.message, 'chore: complete repository initialization') &&
        !contains(github.event.head_commit.message, 'chore: clean up template files after initialization'))
@@ -70,6 +91,10 @@ jobs:
     steps:
       - name: "Checkout Code"
         uses: actions/checkout@v4
+        with:
+          # For pull_request_target, we need to check out the PR head to validate the actual changes
+          # For pull_request, this will be the same as the default behavior
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
         
       - name: "Verify Initialization Status"
         id: check
@@ -120,6 +145,9 @@ jobs:
       is_java_repo: ${{ steps.check_java.outputs.is_java }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # For pull_request_target, we need to check out the PR head to validate the actual changes
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
       
       - name: "Check Repository Initialization"
         id: check_init
@@ -154,6 +182,9 @@ jobs:
       build_result: ${{ steps.build.outputs.build_result }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # For pull_request_target, we need to check out the PR head to validate the actual changes
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
       
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -196,6 +227,8 @@ jobs:
       - name: "Checkout Code"
         uses: actions/checkout@v4
         with:
+          # For pull_request_target, we need to check out the PR head to validate the actual changes
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
       - name: "Validate Commit Messages"
