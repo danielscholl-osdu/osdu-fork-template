@@ -645,53 +645,60 @@ jobs:
             fi
           fi
           
-          # Enable GitHub Copilot automatic code review via Repository Ruleset
+          # GitHub Copilot automatic code review configuration
           if [ -n "$GH_TOKEN" ]; then
-            echo "🤖 Creating repository ruleset for GitHub Copilot automatic code review..."
-            if GH_TOKEN=$GH_TOKEN gh api \
-              --method POST \
-              -H "Accept: application/vnd.github.v3+json" \
-              "/repos/${{ github.repository }}/rulesets" \
-              --input - << 'EOF'
-          {
-            "name": "GitHub Copilot Code Review",
-            "target": "branch",
-            "enforcement": "active",
-            "conditions": {
-              "ref_name": {
-                "include": ["refs/heads/main"],
-                "exclude": []
-              }
-            },
-            "rules": [
-              {
-                "type": "pull_request",
-                "parameters": {
-                  "dismiss_stale_reviews_on_push": true,
-                  "require_code_owner_review": false,
-                  "require_last_push_approval": false,
-                  "required_approving_review_count": 1,
-                  "required_review_thread_resolution": true
-                }
-              },
-              {
-                "type": "copilot_code_review",
-                "parameters": {
-                  "copilot_code_review_enabled": true
-                }
-              }
-            ],
-            "bypass_actors": []
-          }
-          EOF
-            then
-              echo "✅ GitHub Copilot automatic code review enabled via repository ruleset"
+            echo "🤖 Creating GitHub Copilot automatic code review ruleset..."
+            
+            # Step 1: Create basic ruleset
+            RULESET_JSON=$(echo '{
+              "name": "GitHub Copilot Code Review",
+              "target": "branch",
+              "enforcement": "active"
+            }' | GH_TOKEN=$GH_TOKEN gh api --method POST -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
+              "/repos/${{ github.repository }}/rulesets" --input - 2>/dev/null)
+            
+            if [ $? -eq 0 ] && [ -n "$RULESET_JSON" ]; then
+              RULESET_ID=$(echo "$RULESET_JSON" | jq -r '.id')
+              echo "Created basic ruleset with ID: $RULESET_ID"
+              
+              # Step 2: Update with complete Copilot configuration
+              if echo '{
+                "name": "GitHub Copilot Code Review",
+                "target": "branch",
+                "enforcement": "active",
+                "conditions": {
+                  "ref_name": {
+                    "include": ["~DEFAULT_BRANCH"],
+                    "exclude": []
+                  }
+                },
+                "bypass_actors": [],
+                "rules": [
+                  {
+                    "type": "pull_request",
+                    "parameters": {
+                      "allowed_merge_methods": ["merge", "squash", "rebase"],
+                      "automatic_copilot_code_review_enabled": true,
+                      "dismiss_stale_reviews_on_push": false,
+                      "require_code_owner_review": false,
+                      "require_last_push_approval": false,
+                      "required_approving_review_count": 0,
+                      "required_review_thread_resolution": false
+                    }
+                  }
+                ]
+              }' | GH_TOKEN=$GH_TOKEN gh api --method PUT -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
+                "/repos/${{ github.repository }}/rulesets/$RULESET_ID" --input - >/dev/null 2>&1; then
+                echo "✅ GitHub Copilot automatic code review enabled via repository ruleset"
+              else
+                echo "⚠️ Failed to configure Copilot code review in ruleset"
+              fi
             else
               echo "⚠️ Could not create GitHub Copilot code review ruleset - may require manual configuration"
-              echo "📝 To enable manually: Go to Settings → Rules → Rulesets → New ruleset → Add Copilot code review rule"
+              echo "📝 To enable manually: Go to Settings → Rules → Rulesets → New branch ruleset → Add Copilot code review rule" | gh issue comment "${{ github.event.issue.number }}" --body-file -
             fi
           else
-            echo "⚠️ **Note:** GitHub Copilot automatic code review requires manual configuration. Go to Settings → Rules → Rulesets → New ruleset → Add Copilot code review rule" | gh issue comment "${{ github.event.issue.number }}" --body-file -
+            echo "⚠️ **Note:** GitHub Copilot automatic code review requires manual configuration. Go to Settings → Rules → Rulesets → New branch ruleset → Add Copilot code review rule" | gh issue comment "${{ github.event.issue.number }}" --body-file -
           fi
           
           echo "SECURITY_SUCCESS=$SECURITY_SUCCESS" >> $GITHUB_ENV
@@ -714,7 +721,7 @@ jobs:
           fi
           
           if [ "$SECURITY_SUCCESS" = "true" ]; then
-            SECURITY_STATUS="✅ **Security Features:** Secret scanning, dependency updates, and GitHub Copilot automatic code review ruleset enabled"
+            SECURITY_STATUS="✅ **Security Features:** Secret scanning, dependency updates, and GitHub Copilot automatic code review enabled"
           else
             SECURITY_STATUS="⚠️ **Security Features:** Requires manual setup"
           fi
@@ -740,7 +747,7 @@ jobs:
             if [ "$SECURITY_SUCCESS" != "true" ]; then
               MANUAL_STEPS="$MANUAL_STEPS
           - **Security Features:** Enable in Settings → Security & analysis
-          - **GitHub Copilot:** Create repository ruleset in Settings → Rules → Rulesets → New ruleset → Add Copilot code review rule"
+          - **GitHub Copilot:** Create repository ruleset in Settings → Rules → Rulesets → New branch ruleset → Request pull request review from Copilot"
             fi
           fi
           
