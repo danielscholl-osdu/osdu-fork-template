@@ -489,9 +489,7 @@ jobs:
           
           Please review the updated changes and merge when ready."
           
-          # Clear the reminder and progress SHAs since we've updated - allows new comments after this update
-          git config --unset sync.last-reminder-sha || true
-          git config --unset sync.last-progress-sha || true
+          # Note: Comment deduplication now uses existing comment checking rather than git config tracking
           
           # Set outputs for consistency
           echo "pr-url=${{ github.server_url }}/${{ github.repository }}/pull/$PR_NUMBER" >> $GITHUB_OUTPUT
@@ -569,71 +567,36 @@ jobs:
           # Update the issue with the complete description
           gh issue edit "$ISSUE_NUMBER" --body "$NOTIFICATION_BODY"
 
-      - name: Add reminder comment to existing issue
-        if: steps.sync-state.outputs.sync_decision == 'add_reminder'
+      - name: Update issue description with current sync status
+        if: steps.sync-state.outputs.sync_decision == 'add_reminder' || steps.sync-state.outputs.sync_decision == 'update_existing'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ISSUE_NUMBER="${{ steps.sync-state.outputs.existing_issue_number }}"
           PR_NUMBER="${{ steps.sync-state.outputs.existing_pr_number }}"
           UPSTREAM_VERSION="${{ env.UPSTREAM_VERSION }}"
+          SYNC_BRANCH="${{ env.SYNC_BRANCH }}"
           
-          # Check if we've already sent a reminder for this upstream version
-          LAST_REMINDER_SHA=$(git config --get sync.last-reminder-sha || echo "")
+          # Get current issue body
+          CURRENT_BODY=$(gh issue view "$ISSUE_NUMBER" --json body --jq -r '.body')
           
-          if [ "$LAST_REMINDER_SHA" = "$UPSTREAM_VERSION" ]; then
-            echo "⏭️ Skipping reminder - already sent for upstream version $UPSTREAM_VERSION"
-            exit 0
-          fi
+          # Calculate current commit count
+          COMMIT_COUNT=$(git rev-list --count fork_upstream..$SYNC_BRANCH 2>/dev/null || echo "0")
           
-          # Add a gentle reminder comment
-          gh issue comment "$ISSUE_NUMBER" --body "🔔 **Sync Reminder**
+          # Update the Sync Summary section with current values
+          UPDATED_BODY=$(echo "$CURRENT_BODY" | sed -E "
+            s/(\*\*Upstream Version\*\*: \`)[^\`]+(\`)/\1$UPSTREAM_VERSION\2/
+            s/(\*\*Changes\*\*: )[0-9]+ new commits from upstream/\1$COMMIT_COUNT new commits from upstream/
+            s/(\*\*Branch\*\*: \`)[^\`]+(\` → \`fork_upstream\`)/\1$SYNC_BRANCH\2/
+          ")
           
-          This is a friendly reminder that the upstream sync PR is still awaiting review and merge.
+          # Update the issue description
+          gh issue edit "$ISSUE_NUMBER" --body "$UPDATED_BODY"
           
-          **Current status**: PR #$PR_NUMBER is ready for review
-          **No new changes**: Upstream repository has not changed since the PR was created
-          **Next steps**: Please review and merge the PR when ready
-          
-          **Reminder sent**: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`"
-          
-          # Track that we sent a reminder for this upstream version
-          git config sync.last-reminder-sha "$UPSTREAM_VERSION"
-          
-          echo "📝 Added reminder comment to existing issue #$ISSUE_NUMBER"
-
-      - name: Add progress comment to existing issue
-        if: steps.sync-state.outputs.sync_decision == 'update_existing'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ISSUE_NUMBER="${{ steps.sync-state.outputs.existing_issue_number }}"
-          PR_NUMBER="${{ steps.sync-state.outputs.existing_pr_number }}"
-          UPSTREAM_VERSION="${{ env.UPSTREAM_VERSION }}"
-          
-          # Check if we've already sent a progress comment for this upstream version
-          LAST_PROGRESS_SHA=$(git config --get sync.last-progress-sha || echo "")
-          
-          if [ "$LAST_PROGRESS_SHA" = "$UPSTREAM_VERSION" ]; then
-            echo "⏭️ Skipping progress comment - already sent for upstream version $UPSTREAM_VERSION"
-            exit 0
-          fi
-          
-          # Add a progress comment about the update
-          gh issue comment "$ISSUE_NUMBER" --body "🔄 **Sync Updated**
-          
-          The upstream repository has advanced since this sync was created. The existing PR has been updated with the latest changes.
-          
-          **Updated PR**: #$PR_NUMBER
-          **New upstream version**: \`$UPSTREAM_VERSION\`
-          **Updated at**: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`
-          
-          Please review the updated changes and merge when ready. The same workflow process continues."
-          
-          # Track that we sent a progress comment for this upstream version
-          git config sync.last-progress-sha "$UPSTREAM_VERSION"
-          
-          echo "📝 Added progress comment to existing issue #$ISSUE_NUMBER"
+          echo "✅ Updated issue description with current sync status:"
+          echo "  - Upstream Version: $UPSTREAM_VERSION"
+          echo "  - Changes: $COMMIT_COUNT new commits"
+          echo "  - Branch: $SYNC_BRANCH"
 
       - name: Log sync completion
         if: steps.sync-changes.outputs.has_changes == 'true' || steps.sync-state.outputs.sync_decision == 'add_reminder'
@@ -650,11 +613,11 @@ jobs:
             "update_existing")
               PR_URL="${{ steps.update-pr.outputs.pr-url }}"
               echo "✅ Existing sync PR updated successfully: $PR_URL"
-              echo "✅ Progress comment added to existing issue"
+              echo "✅ Issue description updated with current sync status"
               echo "The updated PR can be reviewed and merged to integrate upstream changes."
               ;;
             "add_reminder")
-              echo "📝 Reminder comment added to existing issue"
+              echo "✅ Issue description updated with current sync status"
               echo "No new changes from upstream - existing PR is still current"
               ;;
             "no_action")
