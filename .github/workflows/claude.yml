@@ -24,17 +24,44 @@ jobs:
       issues: read
       id-token: write
       actions: read # Required for Claude to read CI results on PRs
+    
+    env:
+      CLAUDE_OAUTH_TOKEN: ""
+      CLAUDE_API_KEY: ""
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
+      - name: Set Claude authentication variables
+        id: claude_auth
+        run: |
+          if [ -n "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
+            echo "CLAUDE_OAUTH_TOKEN=${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" >> $GITHUB_ENV
+            echo "CLAUDE_API_KEY=" >> $GITHUB_ENV
+            echo "auth_method=oauth" >> $GITHUB_OUTPUT
+            echo "Using OAuth token for authentication"
+          elif [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "CLAUDE_OAUTH_TOKEN=" >> $GITHUB_ENV
+            echo "CLAUDE_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> $GITHUB_ENV
+            echo "auth_method=api_key" >> $GITHUB_OUTPUT
+            echo "Using API key for authentication"
+          else
+            echo "CLAUDE_OAUTH_TOKEN=" >> $GITHUB_ENV
+            echo "CLAUDE_API_KEY=" >> $GITHUB_ENV
+            echo "auth_method=none" >> $GITHUB_OUTPUT
+            echo "::error::No Claude authentication available. Please configure either CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY secrets."
+            exit 1
+          fi
+
       - name: Run Claude Code
+        if: steps.claude_auth.outputs.auth_method != 'none'
         id: claude
         uses: anthropics/claude-code-action@beta
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_code_oauth_token: ${{ env.CLAUDE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ env.CLAUDE_API_KEY }}
 
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
@@ -44,10 +71,10 @@ jobs:
           # model: "claude-opus-4-20250514"
           
           # Optional: Customize the trigger phrase (default: @claude)
-          # trigger_phrase: "/claude"
+          trigger_phrase: "/claude"
           
           # Optional: Trigger when specific user is assigned to an issue
-          # assignee_trigger: "claude-bot"
+          assignee_trigger: "claude"
           
           # Optional: Allow Claude to run specific commands
           # allowed_tools: "Bash(npm install),Bash(npm run build),Bash(npm run test:*),Bash(npm run lint:*)"
