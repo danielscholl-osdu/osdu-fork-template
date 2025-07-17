@@ -489,8 +489,9 @@ jobs:
           
           Please review the updated changes and merge when ready."
           
-          # Clear the reminder SHA since we've updated - allows new reminders after this update
+          # Clear the reminder and progress SHAs since we've updated - allows new comments after this update
           git config --unset sync.last-reminder-sha || true
+          git config --unset sync.last-progress-sha || true
           
           # Set outputs for consistency
           echo "pr-url=${{ github.server_url }}/${{ github.repository }}/pull/$PR_NUMBER" >> $GITHUB_OUTPUT
@@ -610,6 +611,14 @@ jobs:
           PR_NUMBER="${{ steps.sync-state.outputs.existing_pr_number }}"
           UPSTREAM_VERSION="${{ env.UPSTREAM_VERSION }}"
           
+          # Check if we've already sent a progress comment for this upstream version
+          LAST_PROGRESS_SHA=$(git config --get sync.last-progress-sha || echo "")
+          
+          if [ "$LAST_PROGRESS_SHA" = "$UPSTREAM_VERSION" ]; then
+            echo "⏭️ Skipping progress comment - already sent for upstream version $UPSTREAM_VERSION"
+            exit 0
+          fi
+          
           # Add a progress comment about the update
           gh issue comment "$ISSUE_NUMBER" --body "🔄 **Sync Updated**
           
@@ -620,6 +629,9 @@ jobs:
           **Updated at**: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`
           
           Please review the updated changes and merge when ready. The same workflow process continues."
+          
+          # Track that we sent a progress comment for this upstream version
+          git config sync.last-progress-sha "$UPSTREAM_VERSION"
           
           echo "📝 Added progress comment to existing issue #$ISSUE_NUMBER"
 
