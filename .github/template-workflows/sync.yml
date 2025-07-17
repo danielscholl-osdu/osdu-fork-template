@@ -389,12 +389,94 @@ jobs:
         id: update-pr
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AZURE_API_KEY: ${{ secrets.AZURE_API_KEY }}
+          AZURE_API_BASE: ${{ secrets.AZURE_API_BASE }}
+          AZURE_API_VERSION: ${{ secrets.AZURE_API_VERSION }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           PR_NUMBER="${{ steps.sync-state.outputs.existing_pr_number }}"
           UPSTREAM_VERSION="${{ env.UPSTREAM_VERSION }}"
+          SYNC_BRANCH="${{ env.SYNC_BRANCH }}"
+          FALLBACK_DESCRIPTION="${{ env.FALLBACK_DESCRIPTION }}"
           
-          # Update PR title and add comment about the update
-          gh pr edit "$PR_NUMBER" --title "⬆️ Sync with upstream $UPSTREAM_VERSION (Updated)"
+          # Detect available LLM provider
+          USE_LLM=false
+          LLM_MODEL=""
+          
+          # Check for Anthropic API key (primary)
+          if [[ -n "$ANTHROPIC_API_KEY" ]]; then
+            USE_LLM=true
+            LLM_MODEL="claude-4"
+            echo "Using Anthropic Claude for PR description regeneration"
+          # Check for Azure OpenAI API key (secondary)
+          elif [[ -n "$AZURE_API_KEY" && -n "$AZURE_API_BASE" ]]; then
+            USE_LLM=true
+            LLM_MODEL="azure/gpt-4o"
+            echo "Using Azure OpenAI GPT-4o for PR description regeneration"
+          # Check for OpenAI API key (tertiary)
+          elif [[ -n "$OPENAI_API_KEY" ]]; then
+            USE_LLM=true
+            LLM_MODEL="gpt-4.1"
+            echo "Using OpenAI GPT-4 for PR description regeneration"
+          else
+            echo "No LLM API keys found. Using fallback PR description."
+          fi
+          
+          # Calculate diff size to avoid generating prompts that exceed model limits
+          MAX_DIFF_LINES=20000
+          DIFF_LINES=$(git diff fork_upstream | wc -l | tr -d ' ')
+          # Ensure DIFF_LINES is a valid numeric value
+          if [[ -z "$DIFF_LINES" || ! "$DIFF_LINES" =~ ^[0-9]+$ ]]; then
+            DIFF_LINES=0
+          fi
+          echo "Diff contains $DIFF_LINES lines"
+          
+          # Generate updated PR description using AI if available with comprehensive error handling
+          if [[ "$USE_LLM" == "true" && "$DIFF_LINES" -le "$MAX_DIFF_LINES" ]]; then
+            echo "Generating AI-enhanced PR description using $LLM_MODEL..."
+            
+            # Use aipr tool with vulnerability analysis and timeout protection
+            PR_DESCRIPTION=""
+            echo "   🔍 Attempting AIPR PR generation with model: $LLM_MODEL"
+            
+            # Single call approach for PR description (use correct aipr pr syntax, no --vulns to reduce prompt size)
+            echo "   📝 Command: aipr pr -t fork_upstream -p meta -s"
+            PR_DESCRIPTION=$(timeout 90s aipr pr -t fork_upstream -p meta -s 2>&1 || echo "AIPR_FAILED")
+            
+            # Debug what we got back and handle all failure cases
+            if [[ "$PR_DESCRIPTION" == "AIPR_FAILED" ]]; then
+              echo "   ❌ AIPR pr command execution failed or timed out"
+              PR_DESCRIPTION=""
+            elif [[ "$PR_DESCRIPTION" =~ ^[Ee]rror || "$PR_DESCRIPTION" =~ [Ff]ailed || "$PR_DESCRIPTION" =~ "prompt is too long" || "$PR_DESCRIPTION" =~ "maximum" ]]; then
+              echo "   ❌ AIPR pr error: $PR_DESCRIPTION"
+              PR_DESCRIPTION=""
+            fi
+            
+            if [[ -n "$PR_DESCRIPTION" ]] && [[ ${#PR_DESCRIPTION} -gt 50 ]]; then
+              echo "✅ Generated enhanced PR description using $LLM_MODEL (${#PR_DESCRIPTION} characters)"
+            else
+              if [[ -n "$PR_DESCRIPTION" ]]; then
+                echo "⚠️ AIPR PR description too short (${#PR_DESCRIPTION} chars): $PR_DESCRIPTION"
+              else
+                echo "⚠️ AIPR PR generation failed or timed out"
+              fi
+              echo "   🔄 Using enhanced fallback description"
+              PR_DESCRIPTION="$FALLBACK_DESCRIPTION"
+            fi
+          else
+            if [[ "$DIFF_LINES" -gt "$MAX_DIFF_LINES" ]]; then
+              echo "⚠️ Diff is larger than $MAX_DIFF_LINES lines; using fallback description to avoid token limits"
+            else
+              echo "⚠️ No LLM API keys available; using fallback description"
+            fi
+            PR_DESCRIPTION="$FALLBACK_DESCRIPTION"
+          fi
+          
+          # Update PR title and regenerate description with all commits
+          gh pr edit "$PR_NUMBER" \
+            --title "⬆️ Sync with upstream $UPSTREAM_VERSION (Updated)" \
+            --body "$PR_DESCRIPTION"
           
           # Add comment to the PR about the update
           gh pr comment "$PR_NUMBER" --body "🔄 **Sync Updated**
@@ -403,6 +485,7 @@ jobs:
           
           **New upstream version**: \`$UPSTREAM_VERSION\`
           **Updated at**: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`
+          **PR description**: Regenerated to include all commits (original + new changes)
           
           Please review the updated changes and merge when ready."
           
@@ -410,7 +493,7 @@ jobs:
           echo "pr-url=${{ github.server_url }}/${{ github.repository }}/pull/$PR_NUMBER" >> $GITHUB_OUTPUT
           echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
           
-          echo "✅ Updated existing PR #$PR_NUMBER with new upstream changes"
+          echo "✅ Updated existing PR #$PR_NUMBER with new upstream changes and regenerated description"
 
       - name: Create human notification issue
         if: steps.sync-changes.outputs.has_changes == 'true' && steps.sync-state.outputs.should_create_issue == 'true'
