@@ -28,6 +28,7 @@ jobs:
     env:
       GITLAB_UPSTREAM_URL: ${{ vars.GITLAB_UPSTREAM_URL }}
       GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+      GITLAB_CLI_VERSION: ${{ vars.GITLAB_CLI_VERSION || '1.36.0' }}
       CLAUDE_OAUTH_TOKEN: ""
       CLAUDE_API_KEY: ""
     
@@ -75,12 +76,13 @@ jobs:
           
           echo "GitLab configuration validated:"
           echo "- GITLAB_UPSTREAM_URL: ${{ vars.GITLAB_UPSTREAM_URL }}"
-          echo "- GITLAB_TOKEN: [CONFIGURED]"
+          echo "- GITLAB_TOKEN: configured"
 
       - name: Install GitLab CLI
         if: contains(github.event.pull_request.labels.*.name, 'OSDU')
+        timeout-minutes: 5
         run: |
-          curl -fsSL https://gitlab.com/gitlab-org/cli/-/releases/v1.36.0/downloads/glab_1.36.0_linux_amd64.tar.gz | tar -xzv
+          curl -fsSL https://gitlab.com/gitlab-org/cli/-/releases/v${{ env.GITLAB_CLI_VERSION }}/downloads/glab_${{ env.GITLAB_CLI_VERSION }}_linux_amd64.tar.gz | tar -xzv
           sudo mv bin/glab /usr/local/bin/
           glab version
 
@@ -113,13 +115,14 @@ jobs:
           vars.IS_TEMPLATE != 'true' &&
           github.event.repository.is_template != true
         id: claude_gitlab
+        timeout-minutes: 10
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ env.CLAUDE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ env.CLAUDE_API_KEY }}
           
           # Tools to allow GitLab operations
-          allowed_tools: "Bash(glab *),Bash(git *)"
+          allowed_tools: "Bash(glab auth *),Bash(glab mr *),Bash(glab repo *),Bash(git *)"
 
           additional_permissions: |
             actions: read
@@ -136,7 +139,7 @@ jobs:
             
             ENVIRONMENT VARIABLES AVAILABLE:
             - GITLAB_UPSTREAM_URL: ${{ env.GITLAB_UPSTREAM_URL }}
-            - GITLAB_TOKEN: Available for authentication
+            - GITLAB_TOKEN: Available for authentication (do not log token values)
             
             INSTRUCTIONS:
             1. Authenticate with GitLab using: glab auth login --hostname <gitlab-host> --token $GITLAB_TOKEN
@@ -150,7 +153,10 @@ jobs:
                - Labels should be added for `MR::Dependencies Upgrade`
             5. Ensure the existing PR has a comment with the GitLab MR URL
             
-            IMPORTANT: Use the glab CLI tool to interact with GitLab. The GitLab repository URL is: ${{ env.GITLAB_UPSTREAM_URL }}
+            IMPORTANT: 
+            - Use the glab CLI tool to interact with GitLab
+            - The GitLab repository URL is: ${{ env.GITLAB_UPSTREAM_URL }}
+            - Do not log any authentication tokens or sensitive information
             
             If there are any issues, explain what went wrong and provide troubleshooting steps.
 
