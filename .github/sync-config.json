@@ -146,6 +146,10 @@
         "reason": "Template-specific Claude instructions"
       },
       {
+        "path": "CHANGELOG.md",
+        "reason": "Template development changelog - fork instances use upstream changelog"
+      },
+      {
         "path": ".github/ISSUE_TEMPLATE/branch-protection-reminder.md",
         "reason": "Template initialization issue template"
       },
