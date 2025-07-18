@@ -82,6 +82,8 @@ jobs:
     needs: check-repo-state
     if: needs.check-repo-state.outputs.initialized == 'true' && needs.check-repo-state.outputs.is_java_project == 'true'
     runs-on: ubuntu-latest
+    env:
+      GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
     outputs:
       is_java_project: ${{ steps.build.outputs.is_java_project }}
       build_result: ${{ steps.build.outputs.build_result }}
@@ -97,6 +99,8 @@ jobs:
     needs: [check-repo-state, java-build]
     if: needs.check-repo-state.outputs.is_java_project == 'true'
     runs-on: ubuntu-latest
+    env:
+      GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -119,8 +123,15 @@ jobs:
       - name: "Generate Coverage Report"
         env:
           MAVEN_OPTS: "-Dmaven.repo.local=$HOME/.m2/repository"
-          MAVEN_CLI_OPTS: "--batch-mode --settings=.mvn/community-maven.settings.xml -Drevision=${GITHUB_REF_NAME}-SNAPSHOT"
         run: |
+          # Set up Maven CLI options
+          MAVEN_CLI_OPTS="--batch-mode -Drevision=${GITHUB_REF_NAME}-SNAPSHOT"
+          
+          # Add settings file if it exists
+          if [ -f ".mvn/community-maven.settings.xml" ]; then
+            MAVEN_CLI_OPTS="$MAVEN_CLI_OPTS --settings=.mvn/community-maven.settings.xml"
+          fi
+          
           mvn $MAVEN_CLI_OPTS clean test org.jacoco:jacoco-maven-plugin:0.8.11:report
           echo "# Test Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "## Summary" >> $GITHUB_STEP_SUMMARY

@@ -46,9 +46,17 @@ runs:
       id: build
       shell: bash
       run: |
+        # Set up Maven CLI options
+        MAVEN_CLI_OPTS="--batch-mode -Drevision=${GITHUB_REF_NAME}-SNAPSHOT"
+        
+        # Add settings file if it exists
+        if [ -f ".mvn/community-maven.settings.xml" ]; then
+          MAVEN_CLI_OPTS="$MAVEN_CLI_OPTS --settings=.mvn/community-maven.settings.xml"
+        fi
+        
         if [[ "${{ inputs.generate_coverage }}" == "true" ]]; then
           # Run build with coverage
-          mvn -B clean test org.jacoco:jacoco-maven-plugin:0.8.11:report
+          mvn $MAVEN_CLI_OPTS clean test org.jacoco:jacoco-maven-plugin:0.8.11:report
           
           # Generate coverage summary
           echo "# Test Coverage Report" >> $GITHUB_STEP_SUMMARY
@@ -58,11 +66,11 @@ runs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         else
           # Regular build without coverage
-          mvn -B clean install
+          mvn $MAVEN_CLI_OPTS clean install
         fi
       env:
         MAVEN_OPTS: "-Dmaven.repo.local=$HOME/.m2/repository"
-        MAVEN_CLI_OPTS: "--batch-mode --settings=.mvn/community-maven.settings.xml -Drevision=${GITHUB_REF_NAME}-SNAPSHOT"
+        GITLAB_TOKEN: ${{ env.GITLAB_TOKEN }}
 
     - name: "Upload Build Artifacts"
       if: steps.check_pom.outputs.has_pom == 'true'
