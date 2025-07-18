@@ -1,8 +1,10 @@
 name: Claude Code Review
 
 on:
-  pull_request:
-    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
     # Optional: Only run on specific file changes
     # paths:
     #   - "src/**/*.ts"
@@ -96,6 +98,9 @@ jobs:
 
           # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
           # model: "claude-opus-4-20250514"
+
+          # Optional: Customize the trigger phrase (default: @claude)
+          trigger_phrase: "/claude-review"
           
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
