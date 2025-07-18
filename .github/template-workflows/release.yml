@@ -92,10 +92,7 @@ jobs:
           # Update release notes without changing the original tag
           RELEASE_NOTES=$(gh release view $RELEASE_TAG --json body -q .body)
           gh release edit $RELEASE_TAG \
-            --notes "$(cat <<EOF
-${RELEASE_NOTES}
+            --notes "${RELEASE_NOTES}
 
-Upstream Version: ${UPSTREAM_VERSION}
-Correlation Tag: ${CORRELATION_TAG}
-EOF
-)" 
+            Upstream Version: ${UPSTREAM_VERSION}
+            Correlation Tag: ${CORRELATION_TAG}" 
