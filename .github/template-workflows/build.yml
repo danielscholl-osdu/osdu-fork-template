@@ -82,8 +82,6 @@ jobs:
     needs: check-repo-state
     if: needs.check-repo-state.outputs.initialized == 'true' && needs.check-repo-state.outputs.is_java_project == 'true'
     runs-on: ubuntu-latest
-    env:
-      COMMUNITY_MAVEN_TOKEN: ${{ secrets.GITLAB_TOKEN }}
     outputs:
       is_java_project: ${{ steps.build.outputs.is_java_project }}
       build_result: ${{ steps.build.outputs.build_result }}
@@ -93,14 +91,14 @@ jobs:
       - name: "Run Java Build"
         id: build
         uses: ./.github/actions/java-build
+        with:
+          gitlab_token: ${{ secrets.GITLAB_TOKEN }}
 
   code-coverage:
     name: "📊 Code Coverage"
     needs: [check-repo-state, java-build]
     if: needs.check-repo-state.outputs.is_java_project == 'true'
     runs-on: ubuntu-latest
-    env:
-      COMMUNITY_MAVEN_TOKEN: ${{ secrets.GITLAB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -123,6 +121,7 @@ jobs:
       - name: "Generate Coverage Report"
         env:
           MAVEN_OPTS: "-Dmaven.repo.local=$HOME/.m2/repository"
+          COMMUNITY_MAVEN_TOKEN: ${{ secrets.GITLAB_TOKEN }}
         run: |
           # Set up Maven CLI options
           MAVEN_CLI_OPTS="--batch-mode -Drevision=${GITHUB_REF_NAME}-SNAPSHOT"

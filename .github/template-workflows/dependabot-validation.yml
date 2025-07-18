@@ -80,9 +80,9 @@ jobs:
         env:
           MAVEN_USERNAME: ${{ secrets.OPENGROUP_MAVEN_USERNAME }}
           MAVEN_TOKEN: ${{ secrets.OPENGROUP_MAVEN_TOKEN }}
-          COMMUNITY_MAVEN_TOKEN: ${{ secrets.GITLAB_TOKEN }}
         with:
           generate_coverage: true
+          gitlab_token: ${{ secrets.GITLAB_TOKEN }}
       
       - name: "Post Build Status Comment"
         uses: ./.github/actions/pr-status

@@ -213,9 +213,9 @@ jobs:
         env:
           MAVEN_USERNAME: ${{ secrets.OPENGROUP_MAVEN_USERNAME }}
           MAVEN_TOKEN: ${{ secrets.OPENGROUP_MAVEN_TOKEN }}
-          COMMUNITY_MAVEN_TOKEN: ${{ secrets.GITLAB_TOKEN }}
         with:
           generate_coverage: ${{ github.event_name == 'pull_request' }}
+          gitlab_token: ${{ secrets.GITLAB_TOKEN }}
 
   code-validation:
     name: "✅ Code Quality Checks"
