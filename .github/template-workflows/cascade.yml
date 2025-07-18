@@ -25,6 +25,7 @@ jobs:
     outputs:
       integration_success: ${{ steps.validate.outputs.success }}
       conflicts_found: ${{ steps.merge_upstream.outputs.conflicts }}
+      issue_valid: ${{ steps.update_tracking_start.outputs.issue_valid }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -117,6 +118,7 @@ jobs:
           echo "integration_in_process=false" >> $GITHUB_OUTPUT
 
       - name: Update tracking issue - cascade started
+        id: update_tracking_start
         if: steps.check_state.outputs.integration_in_process == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -125,22 +127,42 @@ jobs:
           ISSUE_NUMBER="${{ github.event.inputs.issue_number }}"
           
           if [ -n "$ISSUE_NUMBER" ]; then
-            echo "Updating tracking issue #$ISSUE_NUMBER - cascade started"
+            echo "Validating tracking issue #$ISSUE_NUMBER..."
             
-            # Update labels: remove human-required, add cascade-active
-            gh issue edit "$ISSUE_NUMBER" \
-              --remove-label "human-required" \
-              --add-label "cascade-active"
+            # Check if issue exists and get its state
+            ISSUE_STATE=$(gh issue view "$ISSUE_NUMBER" --json state,number --jq '.state' 2>/dev/null || echo "NOT_FOUND")
             
-            # Add progress comment
-            gh issue comment "$ISSUE_NUMBER" --body "🚀 **Cascade Integration Started** - $(date -u +%Y-%m-%dT%H:%M:%SZ)
-            
-            Integration workflow has been triggered and is now processing upstream changes.
-            
-            **Status:** Merging \`fork_upstream\` → \`fork_integration\` → \`main\`
-            **Workflow:** [View Progress](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            if [ "$ISSUE_STATE" = "NOT_FOUND" ]; then
+              echo "::warning::Issue #$ISSUE_NUMBER does not exist. Skipping issue updates but continuing cascade."
+              echo "Cascade will proceed without tracking issue updates."
+              echo "issue_valid=false" >> $GITHUB_OUTPUT
+            elif [ "$ISSUE_STATE" = "CLOSED" ]; then
+              echo "::warning::Issue #$ISSUE_NUMBER is closed. Skipping issue updates but continuing cascade."
+              echo "Cascade will proceed without tracking issue updates."
+              echo "issue_valid=false" >> $GITHUB_OUTPUT
+            elif [ "$ISSUE_STATE" = "OPEN" ]; then
+              echo "Updating tracking issue #$ISSUE_NUMBER - cascade started"
+              echo "issue_valid=true" >> $GITHUB_OUTPUT
+              
+              # Update labels: remove human-required, add cascade-active
+              gh issue edit "$ISSUE_NUMBER" \
+                --remove-label "human-required" \
+                --add-label "cascade-active"
+              
+              # Add progress comment
+              gh issue comment "$ISSUE_NUMBER" --body "🚀 **Cascade Integration Started** - $(date -u +%Y-%m-%dT%H:%M:%SZ)
+              
+              Integration workflow has been triggered and is now processing upstream changes.
+              
+              **Status:** Merging \`fork_upstream\` → \`fork_integration\` → \`main\`
+              **Workflow:** [View Progress](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            else
+              echo "::warning::Issue #$ISSUE_NUMBER has unexpected state: $ISSUE_STATE. Skipping issue updates but continuing cascade."
+              echo "issue_valid=false" >> $GITHUB_OUTPUT
+            fi
           else
-            echo "No tracking issue found - cascade may have been triggered independently"
+            echo "No tracking issue provided - cascade triggered independently"
+            echo "issue_valid=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Merge main into fork_integration
@@ -206,7 +228,7 @@ jobs:
               
               # Update tracking issue
               TRACKING_ISSUE="${{ github.event.inputs.issue_number }}"
-              if [ -n "$TRACKING_ISSUE" ]; then
+              if [ -n "$TRACKING_ISSUE" ] && [ "${{ steps.update_tracking_start.outputs.issue_valid }}" = "true" ]; then
                 gh issue edit "$TRACKING_ISSUE" \
                   --remove-label "cascade-active" \
                   --add-label "cascade-blocked"
@@ -421,7 +443,7 @@ jobs:
           
           # Update tracking issue if available
           TRACKING_ISSUE="${{ github.event.inputs.issue_number }}"
-          if [ -n "$TRACKING_ISSUE" ]; then
+          if [ -n "$TRACKING_ISSUE" ] && [ "${{ needs.cascade-to-integration.outputs.issue_valid }}" = "true" ]; then
             gh issue edit "$TRACKING_ISSUE" \
               --remove-label "cascade-active" \
               --add-label "cascade-blocked"
@@ -579,7 +601,7 @@ jobs:
           
           # Update original tracking issue
           TRACKING_ISSUE="${{ github.event.inputs.issue_number }}"
-          if [ -n "$TRACKING_ISSUE" ]; then
+          if [ -n "$TRACKING_ISSUE" ] && [ "${{ needs.cascade-to-integration.outputs.issue_valid }}" = "true" ]; then
             gh issue edit "$TRACKING_ISSUE" \
               --remove-label "cascade-active" \
               --add-label "validated"
@@ -707,7 +729,9 @@ jobs:
           
           # Update original tracking issue with failure information
           TRACKING_ISSUE="${{ github.event.inputs.issue_number }}"
-          if [ -n "$TRACKING_ISSUE" ]; then
+          # Check if we have a valid issue from the first job
+          ISSUE_VALID="${{ needs.cascade-to-integration.outputs.issue_valid }}"
+          if [ -n "$TRACKING_ISSUE" ] && [ "$ISSUE_VALID" = "true" ]; then
             # Update tracking issue labels and add comment about failure
             gh issue edit "$TRACKING_ISSUE" \
               --remove-label "cascade-active" \
