@@ -70,7 +70,7 @@ runs:
         fi
       env:
         MAVEN_OPTS: "-Dmaven.repo.local=$HOME/.m2/repository"
-        GITLAB_TOKEN: ${{ env.GITLAB_TOKEN }}
+        COMMUNITY_MAVEN_TOKEN: ${{ env.GITLAB_TOKEN }}
 
     - name: "Upload Build Artifacts"
       if: steps.check_pom.outputs.has_pom == 'true'

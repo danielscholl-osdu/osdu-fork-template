@@ -83,7 +83,7 @@ jobs:
     if: needs.check-repo-state.outputs.initialized == 'true' && needs.check-repo-state.outputs.is_java_project == 'true'
     runs-on: ubuntu-latest
     env:
-      GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+      COMMUNITY_MAVEN_TOKEN: ${{ secrets.GITLAB_TOKEN }}
     outputs:
       is_java_project: ${{ steps.build.outputs.is_java_project }}
       build_result: ${{ steps.build.outputs.build_result }}
@@ -100,7 +100,7 @@ jobs:
     if: needs.check-repo-state.outputs.is_java_project == 'true'
     runs-on: ubuntu-latest
     env:
-      GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+      COMMUNITY_MAVEN_TOKEN: ${{ secrets.GITLAB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
