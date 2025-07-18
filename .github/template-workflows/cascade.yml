@@ -296,7 +296,7 @@ jobs:
           
           # Comment on tracking issue about validation start
           TRACKING_ISSUE="${{ github.event.inputs.issue_number }}"
-          if [ -n "$TRACKING_ISSUE" ]; then
+          if [ -n "$TRACKING_ISSUE" ] && [ "${{ steps.update_tracking_start.outputs.issue_valid }}" = "true" ]; then
             gh issue comment "$TRACKING_ISSUE" --body "🔍 **Integration Validation Started** - $(date -u +%Y-%m-%dT%H:%M:%SZ)
             
             Running comprehensive validation on \`fork_integration\` branch:
@@ -312,7 +312,7 @@ jobs:
           CHANGES=$(git rev-list --count origin/main..fork_integration)
           if [ "$CHANGES" = "0" ]; then
             echo "::warning::No changes to integrate"
-            if [ -n "$TRACKING_ISSUE" ]; then
+            if [ -n "$TRACKING_ISSUE" ] && [ "${{ steps.update_tracking_start.outputs.issue_valid }}" = "true" ]; then
               gh issue comment "$TRACKING_ISSUE" --body "⚠️ **Integration Validation Warning** - $(date -u +%Y-%m-%dT%H:%M:%SZ)
               
               No changes detected between \`fork_integration\` and \`main\` branches. Nothing to integrate."
@@ -363,7 +363,7 @@ jobs:
             echo "✅ All validation checks passed"
             echo "success=true" >> $GITHUB_OUTPUT
             
-            if [ -n "$TRACKING_ISSUE" ]; then
+            if [ -n "$TRACKING_ISSUE" ] && [ "${{ steps.update_tracking_start.outputs.issue_valid }}" = "true" ]; then
               VALIDATION_DISPLAY=$(echo -e "${VALIDATION_DETAILS}")
               gh issue comment "$TRACKING_ISSUE" --body "✅ **Integration Validation Passed** - $(date -u +%Y-%m-%dT%H:%M:%SZ). All validation checks completed successfully: ${VALIDATION_DISPLAY}. **Next Step:** Creating production PR to merge validated changes to \`main\` branch."
             fi
@@ -442,6 +442,9 @@ jobs:
             --label "validation-failed,cascade-blocked,high-priority,human-required"
           
           # Update tracking issue if available
+          # Note: Context reference depends on workflow structure:
+          # - Template: uses steps.update_tracking_start.outputs.issue_valid (same job)
+          # - Fork: may need needs.cascade-to-integration.outputs.issue_valid (different job)
           TRACKING_ISSUE="${{ github.event.inputs.issue_number }}"
           if [ -n "$TRACKING_ISSUE" ] && [ "${{ steps.update_tracking_start.outputs.issue_valid }}" = "true" ]; then
             gh issue edit "$TRACKING_ISSUE" \
@@ -558,7 +561,7 @@ jobs:
           # Create detailed PR body with commit summary and issue closure
           TRACKING_ISSUE="${{ github.event.inputs.issue_number }}"
           CLOSE_ISSUE_TEXT=""
-          if [ -n "$TRACKING_ISSUE" ]; then
+          if [ -n "$TRACKING_ISSUE" ] && [ "${{ needs.cascade-to-integration.outputs.issue_valid }}" = "true" ]; then
             CLOSE_ISSUE_TEXT="Closes #${TRACKING_ISSUE}"$'\n\n'
           fi
           
