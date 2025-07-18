@@ -443,7 +443,7 @@ jobs:
           
           # Update tracking issue if available
           TRACKING_ISSUE="${{ github.event.inputs.issue_number }}"
-          if [ -n "$TRACKING_ISSUE" ] && [ "${{ needs.cascade-to-integration.outputs.issue_valid }}" = "true" ]; then
+          if [ -n "$TRACKING_ISSUE" ] && [ "${{ steps.update_tracking_start.outputs.issue_valid }}" = "true" ]; then
             gh issue edit "$TRACKING_ISSUE" \
               --remove-label "cascade-active" \
               --add-label "cascade-blocked"
