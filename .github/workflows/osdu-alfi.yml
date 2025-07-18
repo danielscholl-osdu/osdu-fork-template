@@ -18,9 +18,9 @@ jobs:
   osdu:
     # Optional: Filter by PR author
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@osdu')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@osdu')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@osdu') || contains(github.event.issue.title, '@osdu')))
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@alfi')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@alfi')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@alfi') || contains(github.event.issue.title, '@alfi')))
     # if: |
     #   github.event.pull_request.user.login == 'external-contributor' ||
     #   github.event.pull_request.user.login == 'new-developer' ||
@@ -114,7 +114,7 @@ jobs:
           # model: "claude-opus-4-20250514"
           
           # Optional: Customize the trigger phrase (default: @claude)
-          trigger_phrase: "@osdu"
+          trigger_phrase: "@alfi"
           
           # Direct prompt for GitLab MR creation
           direct_prompt: |
