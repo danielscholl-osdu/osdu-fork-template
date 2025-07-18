@@ -74,6 +74,10 @@
         {
           "path": ".github/template-workflows/claude.yml",
           "description": "Claude PR Assistant for AI-enhanced development workflow"
+        },
+        {
+          "path": ".github/template-workflows/osdu-alfi.yml",
+          "description": "OSDU GitLab Alfi integration workflow"
         }
       ],
       "template_only": [

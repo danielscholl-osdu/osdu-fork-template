@@ -23,11 +23,36 @@ jobs:
       pull-requests: write
       issues: write
       id-token: write
+    env:
+      CLAUDE_OAUTH_TOKEN: ""
+      CLAUDE_API_KEY: ""
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      - name: Set Claude authentication variables
+        id: claude_auth
+        run: |
+          if [ -n "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
+            echo "CLAUDE_OAUTH_TOKEN=${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" >> $GITHUB_ENV
+            echo "CLAUDE_API_KEY=" >> $GITHUB_ENV
+            echo "auth_method=oauth" >> $GITHUB_OUTPUT
+            echo "Using OAuth token for authentication"
+          elif [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "CLAUDE_OAUTH_TOKEN=" >> $GITHUB_ENV
+            echo "CLAUDE_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> $GITHUB_ENV
+            echo "auth_method=api_key" >> $GITHUB_OUTPUT
+            echo "Using API key for authentication"
+          else
+            echo "CLAUDE_OAUTH_TOKEN=" >> $GITHUB_ENV
+            echo "CLAUDE_API_KEY=" >> $GITHUB_ENV
+            echo "auth_method=none" >> $GITHUB_OUTPUT
+            echo "::error::No Claude authentication available. Please configure either CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY secrets."
+            exit 1
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -61,9 +86,11 @@ jobs:
           sudo apt-get install trivy
 
       - name: Run Claude PR Action
+        if: steps.claude_auth.outputs.auth_method != 'none'
         uses: anthropics/claude-code-action@beta
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ env.CLAUDE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ env.CLAUDE_API_KEY }}
           timeout_minutes: "60"
           allowed_tools: "Bash,Task,mcp__mvn-mcp-server__check_version_tool,mcp__mvn-mcp-server__check_version_batch_tool,mcp__mvn-mcp-server__list_available_versions_tool,mcp__mvn-mcp-server__scan_java_project_tool,mcp__mvn-mcp-server__analyze_pom_file_tool"
           mcp_config: |
