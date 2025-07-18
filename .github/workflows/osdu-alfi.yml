@@ -1,4 +1,4 @@
-name: OSDU Gitlab Alfi
+name: Alfi
 
 on:
   pull_request_review_comment:
@@ -118,7 +118,7 @@ jobs:
           
           # Direct prompt for GitLab MR creation
           direct_prompt: |
-            You need to create an identical GitLab Merge Request for this GitHub Pull Request.
+            If you need to create a Gitlab Merge Request:
             
             ENVIRONMENT VARIABLES AVAILABLE:
             - GITLAB_UPSTREAM_URL: ${{ env.GITLAB_UPSTREAM_URL }}
