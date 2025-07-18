@@ -84,14 +84,18 @@ jobs:
           CORRELATION_TAG="${RELEASE_TAG}-upstream-${UPSTREAM_VERSION}"
           
           # Only create correlation tag if it doesn't already exist
-          if ! git tag -l | grep -q "^${CORRELATION_TAG}$"; then
+          if ! git tag -l "${CORRELATION_TAG}" | grep -q .; then
             git tag $CORRELATION_TAG
             git push origin $CORRELATION_TAG
           fi
           
           # Update release notes without changing the original tag
+          RELEASE_NOTES=$(gh release view $RELEASE_TAG --json body -q .body)
           gh release edit $RELEASE_TAG \
-            --notes "$(gh release view $RELEASE_TAG --json body -q .body)
+            --notes "$(cat <<EOF
+${RELEASE_NOTES}
 
-            Upstream Version: ${UPSTREAM_VERSION}
-            Correlation Tag: ${CORRELATION_TAG}" 
+Upstream Version: ${UPSTREAM_VERSION}
+Correlation Tag: ${CORRELATION_TAG}
+EOF
+)" 
