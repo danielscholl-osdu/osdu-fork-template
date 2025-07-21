@@ -146,6 +146,21 @@ graph TD
 !!! success "AI Integration Benefits"
     These AI capabilities work together to create an intelligent development environment that reduces manual effort, improves code quality, and accelerates the development lifecycle while maintaining security and reliability standards.
 
+<div class="grid cards" markdown>
+
+-   :material-source-repository:{ .lg .middle } **Cross-Platform Integration**
+
+    ---
+
+    AI-powered GitHub-to-GitLab workflow automation that enables seamless contribution to OSDU community repositories while maintaining GitHub-based development workflows
+
+    - **GitLab MR Creation**: Automated GitLab merge request creation from GitHub PRs
+    - **Cross-Platform Sync**: Intelligent synchronization of changes between GitHub and GitLab
+    - **OSDU Integration**: Specialized support for `community.opengroup.org` GitLab instance
+    - **AI-Enhanced Triggers**: `@alfi` mentions activate cross-platform automation
+
+</div>
+
 ## Technical Implementation
 
 ### :material-console: Claude Code CLI Integration
@@ -158,7 +173,7 @@ Automated setup in GitHub Actions workflows:
 - name: Install Claude Code CLI
   run: npm install -g @anthropic-ai/claude-code
 
-# MCP Configuration for Maven Projects  
+# MCP Configuration for Maven and GitLab Integration  
 - name: Configure MCP Servers
   run: |
     cat > .mcp.json << 'EOF'
@@ -168,6 +183,14 @@ Automated setup in GitHub Actions workflows:
           "type": "stdio",
           "command": "uvx",
           "args": ["--from", "git+https://github.com/danielscholl-osdu/mvn-mcp-server@main", "mvn-mcp-server"]
+        },
+        "gitlab": {
+          "command": "npx",
+          "args": ["-y", "@zereight/mcp-gitlab"],
+          "env": {
+            "GITLAB_PERSONAL_ACCESS_TOKEN": "${{ secrets.GITLAB_TOKEN }}",
+            "GITLAB_API_URL": "https://community.opengroup.org/api/v4"
+          }
         }
       }
     }
@@ -177,10 +200,51 @@ Automated setup in GitHub Actions workflows:
 #### **Model Context Protocol (MCP) Integration**
 Specialized tool integration for enhanced AI capabilities:
 
-- **Maven MCP Server**: Dependency analysis and management recommendations
-- **Git Integration**: Repository history and change pattern analysis
+- **Maven MCP Server**: Dependency analysis and management recommendations for Java/Maven projects
+- **GitLab MCP Server**: Cross-platform GitLab API operations for MR creation and repository management
+- **Git Integration**: Repository history and change pattern analysis across platforms
 - **Security Scanning**: Vulnerability database integration and analysis
 - **Documentation Tools**: Automated documentation generation and validation
+
+### :material-git: Cross-Platform GitLab Integration
+
+#### **AI-Enhanced GitLab Workflow** (`osdu-alfi.yml`)
+
+The system includes sophisticated cross-platform integration that extends AI capabilities to GitLab repositories, enabling seamless contribution to OSDU community projects:
+
+```mermaid
+sequenceDiagram
+    participant GH as GitHub PR/Issue
+    participant AI as Claude + GitLab MCP
+    participant GL as GitLab Repository
+    participant U as User
+
+    U->>GH: Add @alfi mention to comment
+    GH->>AI: Trigger OSDU Alfi workflow
+    AI->>AI: Analyze GitHub context and changes
+    AI->>GL: Create corresponding GitLab branch
+    AI->>GL: Push synchronized changes
+    AI->>GL: Create GitLab merge request
+    AI->>GH: Comment with GitLab MR link
+```
+
+**Key Capabilities:**
+
+- **Trigger Activation**: `@alfi` mentions in GitHub PR reviews, issue comments, or new issues
+- **Context Analysis**: AI reads GitHub PR/issue content and determines appropriate GitLab actions
+- **Branch Synchronization**: Creates GitLab branches with synchronized changes from GitHub
+- **MR Creation**: Generates GitLab merge requests with OSDU-appropriate labels and descriptions
+- **Feedback Loop**: Comments back on GitHub with GitLab MR links for seamless tracking
+
+**OSDU-Specific Features:**
+
+- **Community GitLab Targeting**: Configured for `community.opengroup.org` GitLab instance
+- **OSDU Branch Naming**: Uses `ai-agent/` prefix for automated branches
+- **Appropriate Labeling**: Applies `MR::Dependencies Upgrade` and context-specific labels
+- **Template Protection**: Automatically skips template repositories, only runs on actual forks
+
+!!! info "Cross-Platform Workflow Integration"
+    This GitLab integration extends the three-branch strategy without disrupting it. GitHub remains the primary development platform, while GitLab integration provides automated pathways for contributing to upstream OSDU repositories.
 
 ### :material-api: Multi-Provider Fallback Strategy
 
@@ -258,5 +322,3 @@ graph TD
     - **Fallback Testing**: Regular validation of fallback mechanisms
 
 ---
-
-*This AI integration architecture enhances the fork management system with intelligent capabilities while maintaining reliability, security, and cost-effectiveness through thoughtful design and implementation.*
