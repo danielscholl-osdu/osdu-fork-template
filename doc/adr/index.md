@@ -29,6 +29,8 @@ Architecture Decision Records for Fork Management Template
 | 021 | Pull Request Target Trigger Pattern | Accepted | 2025-06-24 | [ADR-021](021-pull-request-target-trigger-pattern.md) |
 | 022 | Issue Lifecycle Tracking Pattern | Accepted | 2025-06-25 | [ADR-022](022-issue-lifecycle-tracking-pattern.md) |
 | 023 | Meta Commit Strategy for Release Please | Accepted | 2025-06-30 | [ADR-023](023-meta-commit-strategy-for-release-please.md) |
+| 024 | Sync Workflow Duplicate Prevention Architecture | Accepted | 2025-07-03 | [ADR-024](024-sync-workflow-duplicate-prevention-architecture.md) |
+| 025 | GitLab Cross-Platform Integration Strategy for OSDU | Accepted | 2025-07-21 | [ADR-025](025-gitlab-cross-platform-integration-strategy.md) |
 
 ## Overview
 
@@ -141,3 +143,15 @@ These Architecture Decision Records document the key design choices made in the 
 - AI-generated conventional meta commits drive Release Please versioning
 - Robust fallback to conservative `feat:` commits during AI service outages
 - Solves upstream non-conventional commit format conflicts
+
+**Sync Workflow Duplicate Prevention Architecture (ADR-024)**
+- State-based duplicate detection using git config persistence
+- Smart decision matrix for handling all duplicate sync scenarios
+- Branch update strategy maintains human workflow continuity
+- Automatic cleanup of abandoned sync branches and state management
+
+**GitLab Cross-Platform Integration Strategy (ADR-025)**
+- AI-driven GitHub-to-GitLab bridging using Model Context Protocol (MCP) servers
+- OSDU-specific GitLab targeting for `community.opengroup.org` integration
+- Unified GitLab token authentication for both Maven and API access
+- Automated merge request creation with AI-enhanced workflow triggers
