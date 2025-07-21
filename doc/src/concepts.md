@@ -210,5 +210,3 @@ This automated fork management approach delivers significant operational and str
 
 
 ---
-
-*This conceptual foundation enables Microsoft to maintain active participation in the OSDU community while delivering reliable, Azure-optimized implementations to enterprise customers.*
