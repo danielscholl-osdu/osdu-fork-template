@@ -42,9 +42,9 @@ graph TD
     A --> C[Fork Instance 2]
     A --> D[Fork Instance N]
     
-    B --> E[Upstream OSDU Core]
-    C --> F[Upstream OSDU Indexer]
-    D --> G[Upstream OSDU Storage]
+    B --> E[Upstream OSDU library]
+    C --> F[Upstream OSDU legal]
+    D --> G[Upstream OSDU storage]
     
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
     style B fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
@@ -110,5 +110,3 @@ The system delivers enterprise-grade features through comprehensive security, pr
     Production deployments benefit from automated security scanning, unlimited scalability through template propagation, and seamless integration with existing development toolchains and AI services.
 
 ---
-
-*This architecture provides a robust foundation for enterprise-scale fork management while maintaining simplicity and reliability through proven GitHub-native patterns.*

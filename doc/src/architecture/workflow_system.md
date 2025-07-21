@@ -65,9 +65,11 @@ graph TD
 
     ---
 
-    AI-powered daily synchronization that fetches upstream changes, analyzes them for conflicts, and creates integration PRs with conventional commit messages
+    AI-powered daily synchronization with intelligent duplicate prevention that fetches upstream changes, analyzes them for conflicts, and creates integration PRs with conventional commit messages
 
-    - **Trigger**: Scheduled daily at midnight UTC
+    - **Trigger**: Scheduled daily at midnight UTC with intelligent duplicate prevention
+    - **State Management**: Tracks sync state between runs to prevent duplicate PRs and issues
+    - **Decision Logic**: Updates existing branches when upstream advances, prevents duplicates for same SHA
     - **Integration**: Three-branch safety pattern (fork_upstream → fork_integration → main)
     - **AI Features**: Intelligent change analysis and conventional commit generation
     - **Conflict Handling**: Automated detection with human-guided resolution
@@ -84,7 +86,7 @@ graph TD
 
     Distributes template improvements across multiple fork instances with selective synchronization and automated validation
 
-    - **Trigger**: Weekly scheduled execution on Mondays
+    - **Trigger**: Weekly scheduled execution on Mondays at 8 AM UTC
     - **Scope**: Selective file synchronization based on configuration rules
     - **Safety**: Automated testing and validation before deployment
     - **Scalability**: Supports unlimited fork instances with consistent patterns
@@ -201,6 +203,30 @@ graph TD
 
 </div>
 
+## AI-Enhanced Integration Workflows
+
+### :material-git: Cross-Platform Integration
+
+<div class="grid cards" markdown>
+
+-   :material-gitlab:{ .lg .middle } **OSDU GitLab Integration** (`osdu-alfi.yml`)
+
+    ---
+
+    AI-powered cross-platform workflow that enables seamless GitHub-to-GitLab contribution for OSDU community repositories
+
+    - **Trigger**: `@alfi` mentions in GitHub PR reviews, issue comments, or new issues
+    - **AI Integration**: Claude Code CLI with GitLab MCP server for intelligent automation
+    - **Cross-Platform Sync**: Creates GitLab branches and merge requests from GitHub context
+    - **OSDU Targeting**: Specialized support for `community.opengroup.org` GitLab instance
+
+    [:octicons-arrow-right-24: Learn about cross-platform AI](ai_integration.md)
+
+</div>
+
+!!! info "AI-Enhanced Extensions"
+    These workflows extend the core fork management system with AI-powered capabilities that bridge platforms and enhance developer productivity. They operate alongside the core workflows without disrupting the fundamental three-branch strategy.
+
 ## Workflow Event Architecture
 
 ### Event-Driven Triggers
@@ -223,13 +249,14 @@ graph LR
 
 | Trigger Type | Workflow | Schedule/Event | Description |
 |-------------|----------|----------------|-------------|
-| **Scheduled** | Daily Sync | `0 0 * * *` | Midnight UTC upstream synchronization |
-| **Scheduled** | Template Sync | `0 2 * * 1` | Monday 2 AM template updates |
+| **Scheduled** | Daily Sync | `0 0 * * *` | Midnight UTC upstream synchronization with duplicate prevention |
+| **Scheduled** | Template Sync | `0 8 * * 1` | Monday 8 AM UTC template updates |
 | **Scheduled** | Monitoring | `0 */6 * * *` | 6-hour cascade monitoring |
 | **Event-Based** | PR Validation | PR creation/updates | Validation workflows on pull requests |
 | **Event-Based** | Cascade Trigger | Issue creation | Cascade triggering on sync completion |
 | **Event-Based** | Build | Push to main | Build workflows on main branch updates |
 | **Event-Based** | Release | Tag creation | Distribution workflows on releases |
+| **AI-Triggered** | GitLab Integration | `@alfi` mentions | Cross-platform GitLab MR creation from GitHub |
 | **Manual** | Emergency Sync | On-demand | Immediate upstream synchronization |
 | **Manual** | Cascade Override | On-demand | Manual cascade operation initiation |
 | **Manual** | Template Update | On-demand | Immediate template propagation |
@@ -352,5 +379,3 @@ graph LR
 - **Notification Customization**: Flexible alert and reporting mechanisms
 
 ---
-
-*This workflow architecture provides a robust, scalable foundation for enterprise-grade fork management while maintaining flexibility for diverse project requirements and organizational needs.*

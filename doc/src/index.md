@@ -43,18 +43,9 @@ Built-in vulnerability scanning, compliance checks, and branch protection rules.
 
 ## Key Benefits
 
-✅ **90% reduction** in manual integration work  
-✅ **Automated conflict detection** with AI guidance  
-✅ **Enterprise security** and compliance built-in  
-✅ **Zero-configuration** template deployment  
-
-## Get Started
-
-Ready to automate your fork management? 
-
-[**Quick Start Guide**](workflows/initialization.md){ .md-button .md-button--primary }
-[**Learn the Concepts**](concepts.md){ .md-button }
+:material-check-circle: **90% reduction** in manual integration work  
+:material-check-circle: **Automated conflict detection** with AI guidance  
+:material-check-circle: **Enterprise security** and compliance built-in  
+:material-check-circle: **Zero-configuration** template deployment  
 
 ---
-
-*Mature automation incorporating lessons from complex enterprise development scenarios.*
