@@ -76,19 +76,42 @@ sequenceDiagram
     participant U as Upstream Repo
     participant FU as fork_upstream
     participant S as Sync Workflow
+    participant SM as Sync State Manager
     participant H as Human Reviewer
     
     S->>U: Fetch latest changes
-    S->>FU: Create sync branch from fork_upstream
-    activate FU
-    S->>S: Detect changes since last sync
-    S->>S: Generate AI analysis
-    S->>S: Create sync PR
-    S->>H: Notify human reviewer
-    H->>H: Review and approve
-    H->>FU: Merge sync branch into fork_upstream
-    deactivate FU
+    S->>SM: Check existing sync PRs and upstream SHA
+    SM->>SM: Compare with stored last-sync state
+    
+    alt New upstream changes, no existing PR
+        S->>FU: Create new sync branch from fork_upstream
+        activate FU
+        S->>S: Generate AI analysis
+        S->>S: Create new sync PR and issue
+        S->>H: Notify human reviewer
+    else Upstream advanced, existing PR open
+        S->>FU: Update existing sync branch (force push)
+        S->>S: Update PR title and description
+        S->>S: Add progress comment to existing issue
+        S->>H: Update notification on existing issue
+    else Duplicate detected (same upstream SHA)
+        S->>S: Add reminder comment to existing issue
+        S->>H: Gentle reminder notification
+    else No changes detected
+        S->>S: Exit - no action needed
+    end
+    
+    opt Human approval received
+        H->>H: Review and approve
+        H->>FU: Merge sync branch into fork_upstream
+        SM->>SM: Update stored sync state
+        SM->>SM: Cleanup completed sync artifacts
+        deactivate FU
+    end
 ```
+
+!!! info "Sync State Management"
+    The synchronization process includes intelligent duplicate prevention that maintains sync continuity. The **Sync State Manager** tracks upstream SHA, active PR numbers, and issue state between runs to prevent duplicate PRs and maintain human workflow continuity. When upstream advances while a PR is open, the existing branch is updated rather than creating duplicates.
 
 #### **Integrate**
 ```mermaid
@@ -250,5 +273,3 @@ For urgent Azure SPI fixes:
     For production deployments, temporary release branches (`release/upstream-YYYYMMDD-HHMMSS`) are created from `fork_integration` to `main`, allowing safe cleanup while preserving the three-branch core architecture.
 
 ---
-
-*This three-branch strategy provides the foundation for reliable, systematic fork management that balances automation efficiency with human oversight and safety.*
